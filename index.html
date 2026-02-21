@@ -1,0 +1,680 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="utf-8">
+    <title>漫画汉化工作台</title>
+    <link rel="stylesheet" href="css/style.css">
+    <script src="js/CSInterface.js"></script>
+    <script src="js/modules/pageManager.js"></script>
+    <script src="js/modules/typeset.js"></script>
+    <script src="js/modules/styleTool.js"></script>
+    <script src="js/modules/retouch.js"></script>
+    <script src="js/modules/fontTool.js"></script>
+    <script src="js/modules/fxTool.js"></script>
+    <script src="js/modules/presets.js"></script>
+    <script src="js/main.js"></script>
+</head>
+
+<body>
+
+    <!-- ══════════════════════════════════════
+     顶部导航栏
+     ══════════════════════════════════════ -->
+    <nav class="header-nav">
+        <button class="nav-btn active" data-target="panel-page" title="页面管理">
+            <svg class="nav-icon" viewBox="0 0 16 16" fill="currentColor">
+                <path
+                    d="M1 2.5A1.5 1.5 0 012.5 1h3A1.5 1.5 0 017 2.5v3A1.5 1.5 0 015.5 7h-3A1.5 1.5 0 011 5.5v-3zM2.5 2a.5.5 0 00-.5.5v3a.5.5 0 00.5.5h3a.5.5 0 00.5-.5v-3a.5.5 0 00-.5-.5h-3zm6.5.5A1.5 1.5 0 0110.5 1h3A1.5 1.5 0 0115 2.5v3A1.5 1.5 0 0113.5 7h-3A1.5 1.5 0 019 5.5v-3zm1.5-.5a.5.5 0 00-.5.5v3a.5.5 0 00.5.5h3a.5.5 0 00.5-.5v-3a.5.5 0 00-.5-.5h-3zM1 10.5A1.5 1.5 0 012.5 9h3A1.5 1.5 0 017 10.5v3A1.5 1.5 0 015.5 15h-3A1.5 1.5 0 011 13.5v-3zm1.5-.5a.5.5 0 00-.5.5v3a.5.5 0 00.5.5h3a.5.5 0 00.5-.5v-3a.5.5 0 00-.5-.5h-3zm6.5.5A1.5 1.5 0 0110.5 9h3a1.5 1.5 0 011.5 1.5v3a1.5 1.5 0 01-1.5 1.5h-3A1.5 1.5 0 019 13.5v-3zm1.5-.5a.5.5 0 00-.5.5v3a.5.5 0 00.5.5h3a.5.5 0 00.5-.5v-3a.5.5 0 00-.5-.5h-3z" />
+            </svg>
+            <span class="nav-label">页面</span>
+        </button>
+
+        <button class="nav-btn" data-target="panel-retouch" title="修图去字">
+            <svg class="nav-icon" viewBox="0 0 16 16" fill="currentColor">
+                <path
+                    d="M11.534 7h3.932a.25.25 0 01.192.41l-1.966 2.36a.25.25 0 01-.384 0l-1.966-2.36a.25.25 0 01.192-.41zm-11 2h3.932a.25.25 0 00.192-.41L2.692 6.23a.25.25 0 00-.384 0L.342 8.59A.25.25 0 00.534 9z" />
+                <path fill-rule="evenodd"
+                    d="M8 3c-1.552 0-2.94.707-3.857 1.818a.5.5 0 11-.771-.636A6.002 6.002 0 0113.917 7H12.9A5.002 5.002 0 008 3zM3.1 9a5.002 5.002 0 008.757 2.182.5.5 0 11.771.636A6.002 6.002 0 012.083 9H3.1z" />
+            </svg>
+            <span class="nav-label">修图</span>
+        </button>
+
+        <button class="nav-btn" data-target="panel-typeset" title="文本嵌字">
+            <svg class="nav-icon" viewBox="0 0 16 16" fill="currentColor">
+                <path fill-rule="evenodd"
+                    d="M2 12.5a.5.5 0 01.5-.5h7a.5.5 0 010 1h-7a.5.5 0 01-.5-.5zm0-3a.5.5 0 01.5-.5h11a.5.5 0 010 1h-11a.5.5 0 01-.5-.5zm0-3a.5.5 0 01.5-.5h11a.5.5 0 010 1h-11a.5.5 0 01-.5-.5zm0-3a.5.5 0 01.5-.5h11a.5.5 0 010 1h-11a.5.5 0 01-.5-.5z" />
+            </svg>
+            <span class="nav-label">嵌字</span>
+        </button>
+
+        <button class="nav-btn" data-target="panel-style" title="段落样式">
+            <svg class="nav-icon" viewBox="0 0 16 16" fill="currentColor">
+                <path
+                    d="M5.5 7a.5.5 0 000 1h5a.5.5 0 000-1h-5zM5 9.5a.5.5 0 01.5-.5h5a.5.5 0 010 1h-5a.5.5 0 01-.5-.5zm0 2a.5.5 0 01.5-.5h2a.5.5 0 010 1h-2a.5.5 0 01-.5-.5z" />
+                <path
+                    d="M9.5 0H4a2 2 0 00-2 2v12a2 2 0 002 2h8a2 2 0 002-2V4.5L9.5 0zm0 1v2A1.5 1.5 0 0011 4.5h2V14a1 1 0 01-1 1H4a1 1 0 01-1-1V2a1 1 0 011-1h5.5z" />
+            </svg>
+            <span class="nav-label">样式</span>
+        </button>
+
+        <button class="nav-btn" data-target="panel-fx" title="图层特效">
+            <svg class="nav-icon" viewBox="0 0 16 16" fill="currentColor">
+                <path
+                    d="M7.657 6.247c.11-.33.576-.33.686 0l.645 1.937a2.89 2.89 0 001.829 1.828l1.936.645c.33.11.33.576 0 .686l-1.937.645a2.89 2.89 0 00-1.828 1.829l-.645 1.936a.361.361 0 01-.686 0l-.645-1.937a2.89 2.89 0 00-1.828-1.828l-1.937-.645a.361.361 0 010-.686l1.937-.645a2.89 2.89 0 001.828-1.829l.645-1.936zM3.794 1.148a.217.217 0 01.412 0l.387 1.162c.173.518.5.845 1.018 1.018l1.162.387a.217.217 0 010 .412l-1.162.387A1.73 1.73 0 004.593 5.53l-.387 1.163a.217.217 0 01-.412 0L3.407 5.53a1.73 1.73 0 00-1.018-1.018l-1.163-.387a.217.217 0 010-.412l1.162-.387A1.73 1.73 0 003.407 2.31l.387-1.162z" />
+            </svg>
+            <span class="nav-label">特效</span>
+        </button>
+
+        <button class="nav-btn" data-target="panel-font" title="字体管理">
+            <svg class="nav-icon" viewBox="0 0 16 16" fill="currentColor">
+                <path
+                    d="M12.258 3H3.747l-.082.334L1.104 13H2.63l.674-2.727h5.394L9.374 13h1.524L8.258 3.334 8.176 3h-1.92zm-.615 6.273H4.387L6.001 4.2h.003l1.639 5.073zM13 1a.5.5 0 01.5.5v1a.5.5 0 01-1 0v-1A.5.5 0 0113 1zm0 4a.5.5 0 01.5.5v1a.5.5 0 01-1 0v-1A.5.5 0 0113 5zm.5 4.5a.5.5 0 00-1 0v1a.5.5 0 001 0v-1z" />
+            </svg>
+            <span class="nav-label">字体</span>
+        </button>
+
+        <button class="nav-btn" data-target="panel-preset" title="全局设置">
+            <svg class="nav-icon" viewBox="0 0 16 16" fill="currentColor">
+                <path
+                    d="M8 4.754a3.246 3.246 0 100 6.492 3.246 3.246 0 000-6.492zM5.754 8a2.246 2.246 0 114.492 0 2.246 2.246 0 01-4.492 0z" />
+                <path
+                    d="M9.796 1.343c-.527-1.79-3.065-1.79-3.592 0l-.094.319a.873.873 0 01-1.255.52l-.292-.16c-1.64-.892-3.433.902-2.54 2.541l.159.292a.873.873 0 01-.52 1.255l-.319.094c-1.79.527-1.79 3.065 0 3.592l.319.094a.873.873 0 01.52 1.255l-.16.292c-.892 1.64.901 3.434 2.541 2.54l.292-.159a.873.873 0 011.255.52l.094.319c.527 1.79 3.065 1.79 3.592 0l.094-.319a.873.873 0 011.255-.52l.292.16c1.64.893 3.434-.902 2.54-2.541l-.159-.292a.873.873 0 01.52-1.255l.319-.094c1.79-.527 1.79-3.065 0-3.592l-.319-.094a.873.873 0 01-.52-1.255l.16-.292c.893-1.64-.902-3.433-2.541-2.54l-.292.159a.873.873 0 01-1.255-.52l-.094-.319zm-2.633.283c.246-.835 1.428-.835 1.674 0l.094.319a1.873 1.873 0 002.693 1.115l.291-.16c.764-.415 1.6.42 1.184 1.185l-.159.292a1.873 1.873 0 001.116 2.692l.318.094c.835.246.835 1.428 0 1.674l-.319.094a1.873 1.873 0 00-1.115 2.693l.16.291c.415.764-.42 1.6-1.185 1.184l-.291-.159a1.873 1.873 0 00-2.693 1.116l-.094.318c-.246.835-1.428.835-1.674 0l-.094-.319a1.873 1.873 0 00-2.692-1.115l-.292.16c-.764.415-1.6-.42-1.184-1.185l.159-.291A1.873 1.873 0 001.945 8.93l-.319-.094c-.835-.246-.835-1.428 0-1.674l.319-.094A1.873 1.873 0 003.06 4.377l-.16-.292c-.415-.764.42-1.6 1.185-1.184l.292.159a1.873 1.873 0 002.692-1.115l.094-.319z" />
+            </svg>
+            <span class="nav-label">设置</span>
+        </button>
+    </nav>
+
+    <div class="main-content">
+
+        <!-- ══════════════════════════════════════
+     页面管理
+     ══════════════════════════════════════ -->
+        <div id="panel-page" class="panel active">
+            <div class="panel-title">页面流水线总控</div>
+
+            <!-- 导入操作与基础设置 -->
+            <div class="section">
+                <div class="btn-row mb-3">
+                    <button id="btn-import-pages" class="btn btn--primary btn--flex2">导入页面 (图/PSD)</button>
+                    <button id="btn-remove-selected" class="btn btn--secondary" title="移除选中">移除</button>
+                    <button id="btn-clear-pages" class="btn btn--red" title="清空列表">清空</button>
+                </div>
+
+                <div class="inline-bar mb-3">
+                    <span class="form-label fw-500">状态过滤:</span>
+                    <select id="sel-page-state-filter" class="input--flex" style="font-size: 11px;">
+                        <option value="all">显示全部</option>
+                        <option value="untouched">⬛ 未处理</option>
+                        <option value="retouched">🟦 已修图去字</option>
+                        <option value="typeset">🟪 已嵌字填充</option>
+                        <option value="done">🟩 终审完结</option>
+                    </select>
+                </div>
+
+                <div class="list-header" style="align-items: flex-end;">
+                    <div>
+                        <span class="list-header__title" style="display: block;">画板队列</span>
+                        <span class="list-header__hint">支持拖拽图片重排顺序</span>
+                    </div>
+                    <div>
+                        <button id="btn-batch-rename" class="btn btn--ghost btn--xs">批量改名前缀</button>
+                    </div>
+                </div>
+
+                <div id="page-thumbnails" class="thumbnail-grid">
+                    <div class="placeholder">暂无页面，点击上方导入</div>
+                </div>
+            </div>
+
+            <hr class="divider">
+
+            <!-- 文档内部操作 -->
+            <div class="section">
+                <div class="section-head">
+                    <div class="section-title">当前文档内操作</div>
+                </div>
+
+                <button id="btn-toggle-compare" class="btn btn--tint btn--block mb-2">开启原图对比</button>
+                <button id="btn-save-psd-compare" class="btn btn--orange btn--block mb-2"
+                    title="拷贝底层原图为顶层参考组并保存">将对比组带入连同保存</button>
+            </div>
+
+            <hr class="divider">
+
+            <!-- ===============================
+       自动化跨文档批处理中枢
+       =============================== -->
+            <div class="section">
+                <div class="section-head">
+                    <div class="section-title section-title--red">自动化跑批车间</div>
+                </div>
+
+                <div class="card">
+                    <div class="form-row mb-2">
+                        <span class="form-label" style="width: 50px;">导出至:</span>
+                        <input type="text" id="input-export-dir" class="input--flex" placeholder="未设置（点击右侧选择）" readonly>
+                        <button id="btn-sel-export-dir" class="btn btn--secondary btn--sm">选择</button>
+                    </div>
+                    <div class="form-row mb-3">
+                        <span class="form-label" style="width: 50px;">格式:</span>
+                        <select id="sel-export-format" class="input--flex">
+                            <option value="jpg">JPEG (中等质量适于网传)</option>
+                            <option value="jpg-high">JPEG (最高质量)</option>
+                            <option value="png">PNG (无损画质)</option>
+                        </select>
+                    </div>
+
+                    <div class="btn-col">
+                        <button id="btn-batch-export" class="btn btn--primary btn--block">🚀 一键根据排序输出全部页面</button>
+                        <button id="btn-batch-save-psd" class="btn btn--ghost btn--block" title="遍历所有开启状态的画板执行快捷保存">💾
+                            批量静默保存列表的所有 PSD</button>
+                    </div>
+                </div>
+            </div>
+
+            <hr class="divider">
+
+            <!-- 开发测试 -->
+            <div class="section">
+                <div class="section-head">
+                    <div class="section-title">开发调试</div>
+                </div>
+                <button id="btn-test-ps-conn" class="btn btn--ghost btn--block mb-2">连接测试：弹出 PS 警告窗</button>
+                <div id="ps-response" class="code-output"></div>
+            </div>
+        </div>
+
+
+        <!-- ══════════════════════════════════════
+     修图去字
+     ══════════════════════════════════════ -->
+        <div id="panel-retouch" class="panel">
+            <div class="panel-title">修图去字</div>
+
+            <!-- 工具切换 -->
+            <div class="section">
+                <div class="section-head">
+                    <div class="section-title">PS 工具切换</div>
+                </div>
+                <div class="tool-grid">
+                    <button class="tool-btn" data-tool="lassoTool" title="套索 (L)">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path
+                                d="M12 21a9 9 0 01-8.3-5.5c-1-2.4-.5-5 1.7-6.8L12 3l6.6 5.7c2.2 1.8 2.7 4.4 1.7 6.8A9 9 0 0112 21z" />
+                            <path d="M12 14v7" />
+                            <path d="M9 18l3 3 3-3" />
+                        </svg>
+                        套索
+                    </button>
+                    <button class="tool-btn" data-tool="polySelTool" title="多边形套索 (L)">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <polygon points="12 2 22 8.5 22 15.5 12 22 2 15.5 2 8.5" />
+                        </svg>
+                        多边形
+                    </button>
+                    <button class="tool-btn" data-tool="magicWandTool" title="魔棒 (W)">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="m15 5 4 4" />
+                            <path d="m19 5-4 4" />
+                            <path d="m12 12-8 8" />
+                            <path d="m13 11 4-4" />
+                            <path d="m11 13-4 4" />
+                        </svg>
+                        魔棒
+                    </button>
+                    <button class="tool-btn" data-tool="quickSelectTool" title="快速选择 (W)">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="12" cy="12" r="10" />
+                            <path d="m12 8 4 4-4 4" />
+                        </svg>
+                        快速选择
+                    </button>
+                    <button class="tool-btn" data-tool="paintbrushTool" title="画笔 (B)">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="m18 2-4 4" />
+                            <path d="m14 6-4 4" />
+                            <path d="M22 22 11 11.5" />
+                        </svg>
+                        画笔
+                    </button>
+                    <button class="tool-btn" data-tool="eraserTool" title="橡皮擦 (E)">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path
+                                d="m7 21-4.3-4.3c-1-1-1-2.5 0-3.4l9.6-9.6c1-1 2.5-1 3.4 0l5.6 5.6c1 1 1 2.5 0 3.4L13 21" />
+                            <path d="M22 21H7" />
+                            <path d="m5 11 9 9" />
+                        </svg>
+                        橡皮擦
+                    </button>
+                    <button class="tool-btn" data-tool="cloneStampTool" title="仿制图章 (S)">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M12 2v6" />
+                            <path d="M7 6h10" />
+                            <path d="M6 10c-1.1 0-2 .9-2 2v2c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2v-2c0-1.1-.9-2-2-2Z" />
+                            <path d="M8 16v6" />
+                            <path d="M16 16v6" />
+                            <path d="M4 22h16" />
+                        </svg>
+                        图章
+                    </button>
+                    <button class="tool-btn" data-tool="patchSelection" title="修补工具 (J)">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path
+                                d="M6 18l12-12c1.1-1.1 3-1.1 4.1 0 1.1 1.1 1.1 3 0 4.1l-12 12c-1.1 1.1-3 1.1-4.1 0-1.1-1.1-1.1-3 0-4.1Z" />
+                            <circle cx="10" cy="10" r=".5" />
+                            <circle cx="14" cy="14" r=".5" />
+                            <circle cx="10" cy="14" r=".5" />
+                            <circle cx="14" cy="10" r=".5" />
+                        </svg>
+                        修补
+                    </button>
+                </div>
+            </div>
+
+            <!-- 扩边设置 -->
+            <div class="section">
+                <div class="inline-bar mb-3">
+                    <span class="form-label">扩边像素</span>
+                    <input type="number" id="input-expand-pixel" value="3" min="-50" max="50" class="input--sm">
+                    <span class="form-hint">正=外扩 · 负=内缩</span>
+                </div>
+
+                <div class="btn-col">
+                    <button id="btn-auto-erase" class="btn btn--primary btn--lg btn--block">一键去字 — 内容感知填充</button>
+                    <button id="btn-fill-white" class="btn btn--secondary btn--block">涂白处理 — 直接填充白底</button>
+                </div>
+
+                <hr class="divider">
+
+                <div class="section-head">
+                    <div class="section-title section-title--pink">文字色彩追踪选区</div>
+                </div>
+
+                <div class="btn-col mb-2">
+                    <button id="btn-create-selection-auto" class="btn btn--primary btn--block btn--lg mb-1"
+                        title="智能侦测白底气泡中的深色文字">
+                        ✨ 终极魔棒：探测全页气泡文字
+                    </button>
+                    <div class="btn-row">
+                        <button id="btn-create-selection-black" class="btn btn--tint btn--flex2" title="基于色彩范围自动选中黑色文字">
+                            全图黑字
+                        </button>
+                        <button id="btn-create-selection-white" class="btn btn--tint btn--flex2" title="适用于黑底白字或深色底白字">
+                            全图白字
+                        </button>
+                    </div>
+                </div>
+
+                <button id="btn-create-selection-foreground" class="btn btn--orange btn--block mt-2"
+                    title="请先使用吸管工具(I)吸取画面中要去除的文字颜色，然后点击此按钮">
+                    💉 吸管提取：按前景色追踪彩字
+                </button>
+
+            </div>
+
+            <!-- 说明 -->
+            <div class="note mt-3">
+                <strong>使用说明</strong><br>
+                1. 使用套索或矩形选框框选要擦除的文字区域。<br>
+                2. 点击「一键去字」，插件自动扩边并调用 PS 内容感知填充补齐背景。
+            </div>
+        </div>
+
+
+        <!-- ══════════════════════════════════════
+     文本嵌字
+     ══════════════════════════════════════ -->
+        <div id="panel-typeset" class="panel">
+            <div class="panel-title">文本嵌字</div>
+
+            <!-- 二级标签 -->
+            <div class="tab-bar" id="typeset-mode-tabs">
+                <button class="tab-bar__item active" data-mode="import">批量导入与生成</button>
+                <button class="tab-bar__item" data-mode="correct">修改与修正</button>
+            </div>
+
+            <!-- 导入与生成 -->
+            <div id="typeset-import-tools">
+                <div class="section">
+                    <div class="btn-row mb-2">
+                        <button id="btn-import-txt" class="btn btn--primary">导入 TXT 文件</button>
+                        <button id="btn-copy-ai-prompt" class="btn btn--tint">复制 AI 排版要求</button>
+                    </div>
+
+                    <textarea id="txt-source" class="input--full mb-2" rows="5"
+                        placeholder="在此粘贴文稿，或点击上方导入 TXT&#10;&#10;支持格式：&#10;=== 第 1 页: 001.jpg ===&#10;[1] 你好，世界。&#10;[2] 翻译文本"></textarea>
+
+                    <button id="btn-parse-txt" class="btn btn--green btn--block mb-3">解析文稿内容</button>
+
+                    <!-- 解析后 UI -->
+                    <div id="typeset-ui-area" class="card" style="display:none;">
+                        <div class="form-row mb-2">
+                            <span class="form-label">当前页</span>
+                            <select id="sel-page-list" class="input--flex"></select>
+                        </div>
+
+                        <div id="dialog-list" class="dialog-list mb-3"></div>
+
+                        <div class="form-row mb-2">
+                            <span class="form-label">场景预设</span>
+                            <select id="sel-typeset-preset" class="input--flex">
+                                <option value="">（选择参数后自动覆盖下方配置）</option>
+                            </select>
+                        </div>
+
+                        <div class="form-row mb-1">
+                            <span class="form-label">字体</span>
+                            <select id="sel-font-family" class="input--flex">
+                                <option value="">（匹配默认）</option>
+                            </select>
+                        </div>
+
+                        <div class="form-row mb-1">
+                            <span class="form-label">方向</span>
+                            <select id="sel-text-direction" class="input--flex">
+                                <option value="VERTICAL">⬇️ 竖排 (日漫标准要求)</option>
+                                <option value="HORIZONTAL">➡️ 横排 (条漫/韩漫标准)</option>
+                            </select>
+                        </div>
+
+                        <div class="form-row mb-3">
+                            <span class="form-label">字号</span>
+                            <input type="number" id="input-font-size" value="16" min="1" max="200" class="input--sm">
+                            <span class="form-unit">pt</span>
+                            <span class="form-hint">不同画幅需要的字号可能不同</span>
+                        </div>
+
+                        <button id="btn-auto-typeset" class="btn btn--primary btn--block btn--lg">
+                            批量生成文本图层
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 修改与修正 -->
+            <div id="typeset-correct-tools" style="display:none;">
+
+                <!-- 双向读写 -->
+                <div class="section">
+                    <div class="card mb-3">
+                        <div class="section-head">
+                            <div class="section-title">文本读写</div>
+                            <button id="btn-sync-read-layer" class="btn btn--tint btn--sm">提取图层文字</button>
+                        </div>
+
+                        <textarea id="input-sync-text" class="input--full mb-2" rows="4"
+                            placeholder="在 PS 中选中一个文本图层，然后点击右上角「提取图层文字」…"></textarea>
+
+                        <button id="btn-sync-write-layer" class="btn btn--primary btn--block">写入选中图层</button>
+                    </div>
+                </div>
+
+                <!-- 排版修正 -->
+                <div class="section">
+                    <div class="card">
+                        <div class="section-head">
+                            <div class="section-title section-title--pink">排版修正工具</div>
+                        </div>
+
+                        <div class="inline-bar mb-3">
+                            <span class="form-label fw-500">断句控制</span>
+                            <span class="form-unit">每</span>
+                            <input type="number" id="input-auto-break-num" value="7" min="2" max="50" class="input--sm">
+                            <span class="form-unit">字换行</span>
+                            <button id="btn-auto-break-text" class="btn btn--pink-solid btn--xs"
+                                title="根据字数上限自动气泡折行">执行断句</button>
+                        </div>
+
+                        <div class="btn-row mb-2">
+                            <button id="btn-fix-punctuation" class="btn btn--ghost btn--sm" title="弯引号→直角引号，修正全半角">
+                                「」标点规范化
+                            </button>
+                            <button id="btn-fix-bang-question" class="btn btn--ghost btn--sm" title="！？→半角 !?">
+                                !? 全半角降级
+                            </button>
+                        </div>
+                        <button id="btn-fix-dash" class="btn btn--tint btn--block btn--sm" title="修正破折号中间断开（负字距）">
+                            —— 连补破折号 ——
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+
+        <!-- ══════════════════════════════════════
+     段落样式
+     ══════════════════════════════════════ -->
+        <div id="panel-style" class="panel">
+            <div class="panel-title">段落样式</div>
+
+            <!-- 预设库 -->
+            <div class="section">
+                <div class="section-head">
+                    <div class="section-title">预设库</div>
+                </div>
+                <div class="card">
+                    <div id="style-presets-container" class="btn-row" style="flex-wrap:wrap;">
+                        <div class="placeholder" style="padding:20px 0;">尚未创建预设，在下方配置参数后保存</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 参数配置 -->
+            <div class="section">
+                <div class="section-head">
+                    <div class="section-title section-title--green">参数配置</div>
+                </div>
+                <div class="card">
+                    <div class="form-row mb-2">
+                        <span class="form-label">字体</span>
+                        <select id="sel-style-font" class="input--flex">
+                            <option value="">（系统字体库加载中…）</option>
+                        </select>
+                    </div>
+
+                    <div class="form-row mb-2">
+                        <span class="form-label">字号</span>
+                        <input type="number" id="input-style-size" value="36" class="input--sm">
+                        <span class="form-unit">pt</span>
+                    </div>
+
+                    <div class="form-row mb-3">
+                        <span class="form-label">行距</span>
+                        <select id="sel-style-leading-type" class="input--md">
+                            <option value="auto">自动倍率</option>
+                            <option value="fixed">固定数值</option>
+                        </select>
+                        <input type="number" id="input-style-leading-val" value="125" class="input--flex">
+                        <span class="form-unit" id="lab-style-leading-unit">%</span>
+                    </div>
+
+                    <div class="btn-row">
+                        <button id="btn-apply-style-now" class="btn btn--secondary">执行套用</button>
+                        <button id="btn-save-style-preset" class="btn btn--primary">存为预设</button>
+                    </div>
+                </div>
+            </div>
+
+            <p class="hint">自动行距通常填入 120–125 即可避免中文行重叠。保存后可在上方预设库一键调用。</p>
+        </div>
+
+
+        <!-- ══════════════════════════════════════
+     图层特效
+     ══════════════════════════════════════ -->
+        <div id="panel-fx" class="panel">
+            <div class="panel-title">图层特效</div>
+
+            <div class="section">
+                <div class="section-head">
+                    <div class="section-title">外描边生成</div>
+                </div>
+                <div class="card">
+                    <div class="form-row mb-3">
+                        <span class="form-label">描边粗细</span>
+                        <input type="number" id="input-stroke-size" value="3" min="1" max="50" class="input--sm">
+                        <span class="form-unit">px</span>
+                    </div>
+
+                    <div class="btn-row mb-3">
+                        <button id="btn-stroke-black" class="btn btn--secondary">加黑边</button>
+                        <button id="btn-stroke-white" class="btn btn--secondary">加白边</button>
+                    </div>
+
+                    <button id="btn-clear-layer-style" class="btn btn--danger-text btn--block">清除该图层所有特效</button>
+                </div>
+            </div>
+
+            <p class="hint">无需进入图层样式面板即可快速添加描边，适合在复杂背景上提升文字可读性。支持多选图层批量操作。</p>
+        </div>
+
+
+        <!-- ══════════════════════════════════════
+     字体管理
+     ══════════════════════════════════════ -->
+        <div id="panel-font" class="panel">
+            <div class="panel-title">字体管理</div>
+
+            <!-- 三级标签 -->
+            <div class="tab-bar" id="font-mode-tabs">
+                <button class="tab-bar__item active" data-mode="system">系统字库</button>
+                <button class="tab-bar__item" data-mode="favorite">收藏集</button>
+                <button class="tab-bar__item" data-mode="online">在线 / AI</button>
+            </div>
+
+            <!-- 系统字库工具 -->
+            <div id="font-system-tools">
+                <div class="form-row mb-2">
+                    <input type="text" id="input-font-search" placeholder="搜索系统字体…" class="input--flex">
+                    <button id="btn-refresh-fonts" class="btn btn--ghost btn--sm" title="重新扫描系统字体库">
+                        <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
+                            <path fill-rule="evenodd" d="M8 3a5 5 0 104.546 2.914.5.5 0 01.908-.418A6 6 0 118 2v1z" />
+                            <path
+                                d="M8 4.466V.534a.25.25 0 01.41-.192l2.36 1.966c.12.1.12.284 0 .384L8.41 4.658A.25.25 0 018 4.466z" />
+                        </svg>
+                    </button>
+                </div>
+
+                <div class="tab-bar mb-2" id="font-category-filters">
+                    <button class="tab-bar__item active" data-filter="all">全部</button>
+                    <button class="tab-bar__item" data-filter="chinese">中文</button>
+                    <button class="tab-bar__item" data-filter="english">英 / 数</button>
+                </div>
+            </div>
+
+            <!-- 收藏夹工具 -->
+            <div id="font-fav-tools" style="display:none;">
+                <div class="btn-row mb-2" id="fav-category-filters" style="flex-wrap:wrap;">
+                    <!-- JS 动态生成收藏分类按钮 -->
+                </div>
+            </div>
+
+            <!-- 在线字库工具 -->
+            <div id="font-online-tools" style="display:none;">
+                <div class="note mb-3">
+                    受版权与系统限制，工作台不内嵌网络商城。请查阅下方 AI 推荐后<strong>点击直达版权合规站</strong>挑选。
+                </div>
+
+                <div class="btn-row mb-3">
+                    <button class="btn btn--primary" id="btn-jump-zfont">字由 zfont</button>
+                    <button class="btn btn--green" id="btn-jump-zeoseven">ZeoSeven</button>
+                </div>
+
+                <div class="form-row mb-3">
+                    <input type="text" id="input-online-search" placeholder="描述你需要的字体风格…" class="input--flex">
+                    <button id="btn-ai-recommend" class="btn btn--tint btn--sm" title="调用大模型推荐">AI 参谋</button>
+                </div>
+            </div>
+
+            <!-- 字体列表 -->
+            <div class="list-header">
+                <span class="list-header__title" id="font-list-title">系统已装载字体</span>
+                <span class="list-header__hint" id="font-count-lab">共 0 款</span>
+            </div>
+
+            <div id="font-list-container" class="dialog-list" style="max-height:240px;">
+                <div class="placeholder">正在读取系统字体库…</div>
+            </div>
+
+            <p class="hint" id="font-install-tip">点击列表项直接应用。<span class="text-accent">可收藏并自定义中文别名。</span></p>
+        </div>
+
+
+        <!-- ══════════════════════════════════════
+     全局设置
+     ══════════════════════════════════════ -->
+        <div id="panel-preset" class="panel">
+            <div class="panel-title">设置</div>
+
+            <!-- 缓存管理 -->
+            <div class="settings-group">
+                <div class="settings-group__title">缓存与存储</div>
+                <p class="text-dim mb-2" style="font-size:11px;">插件运行中会生成本地配置与缓存文件（如字体索引）。</p>
+                <div class="form-row">
+                    <span class="form-label">字体缓存</span>
+                    <button id="btn-clear-font-cache" class="btn btn--ghost btn--sm"
+                        style="margin-left:auto;">清理缓存</button>
+                </div>
+            </div>
+
+            <!-- API 接入 -->
+            <div class="settings-group">
+                <div class="settings-group__title">扩展 API 接入（即将到来）</div>
+                <p class="text-dim mb-2" style="font-size:11px;">填写 API Key 以启用在线字库检索与 AI 推荐。所有 Key 仅保存在本地。</p>
+
+                <label class="form-label mb-1" style="display:block;">大模型 API Key（Gemini / OpenAI 等）</label>
+                <input type="password" id="input-api-key" placeholder="在此填入 Key…" class="input--full mb-3">
+
+                <button id="btn-save-api-key" class="btn btn--primary btn--block">保存 API 配置</button>
+            </div>
+
+            <!-- 关于 -->
+            <div class="app-footer">
+                <div class="app-footer__name">漫画汉化工作台</div>
+                <div class="app-footer__ver">V1.0.0 Beta</div>
+                <button id="btn-reload-extension" class="btn btn--ghost btn--sm">强制重载插件</button>
+            </div>
+        </div>
+
+    </div><!-- /.main-content -->
+
+
+    <!-- ══════════════════════════════════════
+     字体收藏弹窗
+     ══════════════════════════════════════ -->
+    <div id="modal-fav-font" class="modal-overlay">
+        <div class="modal">
+            <div class="modal__title">字体收藏与命名</div>
+
+            <p class="modal__meta">系统字体名：<span id="fav-font-psname"></span></p>
+            <p class="modal__meta mb-2">PostScript：<span id="fav-font-postname"></span></p>
+
+            <hr class="divider" style="margin:8px 0;">
+
+            <label class="form-label mb-1" style="display:block;">自定义中文名称</label>
+            <input type="text" id="fav-font-alias" placeholder="为该字体赋予中文别名…" class="input--full mb-3">
+
+            <label class="form-label mb-1" style="display:block;">分类标签（留空为未分类）</label>
+            <input type="text" id="fav-font-category" placeholder="如：对话、旁白、效果音、手写…" class="input--full mb-3">
+
+            <div class="btn-row">
+                <button class="btn btn--primary" id="btn-save-fav">保存收藏</button>
+                <button class="btn btn--ghost" id="btn-cancel-fav">取消</button>
+                <button class="btn btn--danger-text" id="btn-remove-fav" style="display:none;">移除</button>
+            </div>
+        </div>
+    </div>
+
+</body>
+
+</html>
