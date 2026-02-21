@@ -57,20 +57,22 @@ window.onload = function () {
     });
 
     // 确保数据隔离目录存在 (放置 json 等缓存文件)
-    const dataDir = extPath + "/data";
+    // 【第十一阶段重构】：从有更新覆写风险的 extPath/data 迁移至安全的 USER_DATA
+    const userDataPath = cs.getSystemPath(SystemPath.USER_DATA);
+    const dataDir = userDataPath + "/MangaWorkbenchData";
     const dirResult = window.cep.fs.stat(dataDir);
     if (dirResult.err !== window.cep.fs.NO_ERROR) {
         window.cep.fs.makedir(dataDir);
     }
 
     // --- 实例化各模块的前端逻辑 ---
-    window.pageManager = new PageManager(cs, extPath);
-    window.typesetManager = new TypesetManager(cs, extPath);
-    window.styleManager = new StyleManager(cs, extPath);
-    window.fxManager = new FxManager(cs, extPath);
-    window.retouchManager = new RetouchManager(cs, extPath);
-    window.fontManager = new FontManager(cs, extPath);
-    window.presetsManager = new PresetsManager(cs, extPath);
+    window.pageManager = new PageManager(cs, extPath, dataDir);
+    window.typesetManager = new TypesetManager(cs, extPath, dataDir);
+    window.styleManager = new StyleManager(cs, extPath, dataDir);
+    window.fxManager = new FxManager(cs, extPath, dataDir);
+    window.retouchManager = new RetouchManager(cs, extPath, dataDir);
+    window.fontManager = new FontManager(cs, extPath, dataDir);
+    window.presetsManager = new PresetsManager(cs, extPath, dataDir);
 
     // 原图对比快捷操作
     const btnCompare = document.getElementById('btn-toggle-compare');

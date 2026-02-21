@@ -342,6 +342,15 @@
                 <button class="tab-bar__item" data-mode="correct">修改与修正</button>
             </div>
 
+            <!-- 解析后共享 UI：所见即所点双向关联列表 -->
+            <div id="typeset-shared-list" class="card mb-2" style="display:none;">
+                <div class="form-row mb-2">
+                    <span class="form-label">当前页</span>
+                    <select id="sel-page-list" class="input--flex"></select>
+                </div>
+                <div id="dialog-list" class="dialog-list"></div>
+            </div>
+
             <!-- 导入与生成 -->
             <div id="typeset-import-tools">
                 <div class="section">
@@ -357,13 +366,6 @@
 
                     <!-- 解析后 UI -->
                     <div id="typeset-ui-area" class="card" style="display:none;">
-                        <div class="form-row mb-2">
-                            <span class="form-label">当前页</span>
-                            <select id="sel-page-list" class="input--flex"></select>
-                        </div>
-
-                        <div id="dialog-list" class="dialog-list mb-3"></div>
-
                         <div class="form-row mb-2">
                             <span class="form-label">场景预设</span>
                             <select id="sel-typeset-preset" class="input--flex">
@@ -403,18 +405,49 @@
             <!-- 修改与修正 -->
             <div id="typeset-correct-tools" style="display:none;">
 
-                <!-- 双向读写 -->
+                <!-- 属性联调与读写 -->
                 <div class="section">
                     <div class="card mb-3">
                         <div class="section-head">
-                            <div class="section-title">文本读写</div>
-                            <button id="btn-sync-read-layer" class="btn btn--tint btn--sm">提取图层文字</button>
+                            <div class="section-title">图层属性调控</div>
+                            <div class="btn-row">
+                                <button id="btn-sync-read-layer" class="btn btn--tint btn--sm"
+                                    title="读取所选的单层文本图层内容与排版属性">提取图层信息</button>
+                                <button id="btn-sync-read-all" class="btn btn--tint btn--sm"
+                                    title="读取当前画板中的所有文本图层，汇出合并为带序号的文稿格式">📥 全页提取</button>
+                            </div>
                         </div>
 
-                        <textarea id="input-sync-text" class="input--full mb-2" rows="4"
-                            placeholder="在 PS 中选中一个文本图层，然后点击右上角「提取图层文字」…"></textarea>
+                        <textarea id="input-sync-text" class="input--full mb-2" rows="3"
+                            placeholder="在 PS 中选中一个文本图层，然后点击右上角「提取图层信息」…"></textarea>
 
-                        <button id="btn-sync-write-layer" class="btn btn--primary btn--block">写入选中图层</button>
+                        <!-- 高级属性控制台 -->
+                        <div class="form-row mb-1">
+                            <span class="form-label">字体</span>
+                            <select id="sel-sync-font" class="input--flex">
+                                <option value="">（保持不变）</option>
+                            </select>
+                        </div>
+
+                        <div class="form-row mb-1">
+                            <span class="form-label">字号</span>
+                            <input type="number" id="input-sync-size" placeholder="如 16" min="1" max="200"
+                                class="input--flex">
+                            <span class="form-unit ml-1">pt</span>
+                        </div>
+
+                        <div class="form-row mb-1">
+                            <span class="form-label">行距</span>
+                            <input type="text" id="input-sync-leading" placeholder="留空为自动" class="input--flex">
+                            <span class="form-unit ml-1">pt/%</span>
+                        </div>
+
+                        <div class="form-row mb-2">
+                            <span class="form-label">颜色</span>
+                            <input type="color" id="input-sync-color" value="#000000" class="input--color ml-1">
+                        </div>
+
+                        <button id="btn-sync-write-layer" class="btn btn--primary btn--block">向图层应用文本与排版</button>
                     </div>
                 </div>
 
@@ -671,6 +704,35 @@
                 <button class="btn btn--primary" id="btn-save-fav">保存收藏</button>
                 <button class="btn btn--ghost" id="btn-cancel-fav">取消</button>
                 <button class="btn btn--danger-text" id="btn-remove-fav" style="display:none;">移除</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ══════════════════════════════════════
+     对比悬浮栏与比武大盘
+     ══════════════════════════════════════ -->
+    <div id="cmp-float-bar" class="float-bar" style="display:none;">
+        <span>已加入 <strong id="cmp-count" class="text-accent" style="font-size:14px;">0</strong> 款测试字体</span>
+        <button id="btn-open-cmp" class="btn btn--primary" style="padding:4px 12px; font-weight:600;">去对比</button>
+        <button id="btn-clear-cmp" class="btn btn--ghost" style="padding:4px 8px;">清空</button>
+    </div>
+
+    <div id="modal-compare-font" class="modal-overlay" style="display:none;">
+        <div class="modal"
+            style="width:90%; max-width:400px; padding:0; display:flex; flex-direction:column; max-height:85vh; background:var(--bg)">
+            <div style="padding:16px 16px 0 16px;">
+                <div class="modal__title" style="display:flex; justify-content:space-between; align-items:center;">
+                    <span class="text-pink">⚔️ 多维字体比武台</span>
+                    <button class="btn btn--ghost btn--xs" id="btn-close-cmp" style="padding:2px 6px;">关闭</button>
+                </div>
+                <textarea id="cmp-preview-text" class="input--full mb-2" rows="2"
+                    style="font-size:14px; background:var(--bg-lighter);"
+                    placeholder="在此输入用于对比测试的漫画旁白或对白…">在这个名为「羁绊」的战场上，我绝不会退缩！</textarea>
+            </div>
+
+            <div id="cmp-list-container"
+                style="flex:1; overflow-y:auto; padding:0 16px 16px 16px; display:flex; flex-direction:column; gap:8px;">
+                <!-- 动态生成对比列表 -->
             </div>
         </div>
     </div>

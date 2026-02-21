@@ -1,9 +1,10 @@
 // styleTool.js - 排版段落预设引
 
 class StyleManager {
-    constructor(csInterface, extPath) {
+    constructor(csInterface, extPath, dataDir) {
         this.cs = csInterface;
         this.extPath = extPath;
+        this.dataDir = dataDir;
         this.presets = []; // [{ id, name, fontPostScriptName, fontName, size, leadingType, leadingValue }]
         this.initDOM();
         this.bindEvents();
@@ -109,7 +110,7 @@ class StyleManager {
 
     // JSON 预设文件化存储
     loadPresets() {
-        const path = this.extPath + "/data/style_presets.json";
+        const path = this.dataDir + "/style_presets.json";
         const readResult = window.cep.fs.readFile(path);
         if (readResult.err === window.cep.fs.NO_ERROR && readResult.data) {
             try {
@@ -122,7 +123,7 @@ class StyleManager {
     }
 
     savePresets() {
-        const path = this.extPath + "/data/style_presets.json";
+        const path = this.dataDir + "/style_presets.json";
         window.cep.fs.writeFile(path, JSON.stringify(this.presets));
     }
 

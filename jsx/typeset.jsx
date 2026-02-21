@@ -100,16 +100,18 @@ function generateTextLayersBulk(dialogsJson, styleJson) {
                 textItem.justification = Justification.LEFT;
             } catch (e) { }
 
-            // 计算排版位置并挪移图层：防止所有图层诞生在相同的坐标导致难点选
-            // X轴横向瀑布流
-            var startX = 200 + ((i % 5) * 60);
-            // Y轴阶梯递增
-            var startY = 100 + (Math.floor(i / 5) * 200);
+            // 智能排版落点计算 (防遮挡的斜向大落差大跨度瀑布流)
+            // 这一改进解决了之前密密麻麻全堆在左上角导致光标穿不透、没法改字的严重痛点
+            var colWidth = doc.width.as("px") / 4; // 分为 4 列
+            var rowHeight = 250;
 
-            // 若超出了画板边界就统一堆在最后
-            if (startY > docHeight - 50) {
-                startY = docHeight - 80;
-                startX = 60 + ((i % 5) * 40); // 往侧边偏移点
+            var startX = 100 + ((i % 4) * colWidth);
+            var startY = 100 + (Math.floor(i / 4) * rowHeight);
+
+            // 如果超出画板底端，强制拉回到另外一条垂直阶梯排列，并增加横向缩进
+            if (startY > docHeight - 100) {
+                startY = 150 + (i * 40 % (docHeight / 2));
+                startX = 100 + ((i % 3) * 150);
             }
 
             textItem.position = [new UnitValue(startX, "px"), new UnitValue(startY, "px")];
@@ -257,9 +259,9 @@ function applyFontToLayer(postScriptName) {
 }
 
 /**
- * [双向绑定] 读取选中图层的文本内容
+ * [双向绑定] 读取选中图层的详细文本多维属性 (文本、字号、字体、颜色、行距)
  */
-function readActiveLayerText() {
+function readActiveLayerProperties() {
     try {
         if (app.documents.length === 0) return "错误：没有打开的文档";
         var doc = app.activeDocument;
@@ -269,16 +271,59 @@ function readActiveLayerText() {
             return "错误：请选中一个【文本图层】进行读取";
         }
 
-        return layer.textItem.contents;
+        var ti = layer.textItem;
+
+        // 解析颜色为 HEX
+        var hexColor = "#000000";
+        try {
+            if (ti.color && ti.color.rgb) {
+                var r = Math.round(ti.color.rgb.red).toString(16);
+                var g = Math.round(ti.color.rgb.green).toString(16);
+                var b = Math.round(ti.color.rgb.blue).toString(16);
+                if (r.length === 1) r = "0" + r;
+                if (g.length === 1) g = "0" + g;
+                if (b.length === 1) b = "0" + b;
+                hexColor = "#" + r + g + b;
+            }
+        } catch (ec) { }
+
+        // ES3 ExtendScript 引擎缺失原生 JSON 支持，使用兼容的转义与拼接
+        function esc(str) {
+            if (typeof str !== "string") return str;
+            return str.replace(/\\/g, "\\\\")
+                .replace(/"/g, "\\\"")
+                .replace(/\r/g, "\\r")
+                .replace(/\n/g, "\\n")
+                .replace(/\t/g, "\\t");
+        }
+
+        var txt = esc(ti.contents || "");
+        var font = esc(ti.font || "");
+        var size = ti.size ? parseFloat(ti.size) : "";
+
+        var leading = "";
+        try {
+            if (ti.useAutoLeading) {
+                try { leading = ti.autoLeadingAmount ? Math.round(ti.autoLeadingAmount) + "%" : ""; } catch (ea) { leading = "120%"; }
+            } else {
+                leading = ti.leading ? parseFloat(ti.leading) : "";
+            }
+        } catch (el) { }
+
+        var color = esc(hexColor);
+
+        var jsonResult = '{"text":"' + txt + '","font":"' + font + '","size":"' + size + '","leading":"' + leading + '","color":"' + color + '"}';
+
+        return "SUCCESS|||" + jsonResult;
     } catch (e) {
         return "错误: " + e.toString();
     }
 }
 
 /**
- * [双向绑定] 将文本强制写入选中图层
+ * [双向绑定] 覆写图层文本并一并应用多维排版属性
  */
-function writeActiveLayerText(newText) {
+function applyActiveLayerProperties(jsonStr) {
     try {
         if (app.documents.length === 0) return "错误：没有打开的文档";
         var doc = app.activeDocument;
@@ -288,9 +333,133 @@ function writeActiveLayerText(newText) {
             return "错误：请先选中一个【文本图层】才能写入。";
         }
 
-        layer.textItem.contents = newText;
+        // ES3 ExtendScript 下使用 eval 安全代偿解析前端传来的字串
+        var params = eval("(" + jsonStr + ")");
+        var ti = layer.textItem;
+
+        // 写入文本
+        if (params.text !== undefined) {
+            ti.contents = params.text;
+        }
+
+        // 写入字体
+        if (params.font && params.font !== "") {
+            try { ti.font = params.font; } catch (ef) { }
+        }
+
+        // 写入字号
+        if (params.size && !isNaN(parseFloat(params.size))) {
+            ti.size = new UnitValue(parseFloat(params.size), "pt");
+        }
+
+        // 写入行距
+        if (params.leading) {
+            var ldStr = String(params.leading);
+            if (ldStr.indexOf('%') > -1) {
+                ti.useAutoLeading = true;
+                try { ti.autoLeadingAmount = parseFloat(ldStr.replace('%', '')); } catch (ea) { }
+            } else if (!isNaN(parseFloat(ldStr))) {
+                ti.useAutoLeading = false;
+                try { ti.leading = new UnitValue(parseFloat(ldStr), "pt"); } catch (ea) { }
+            } else {
+                ti.useAutoLeading = true;
+            }
+        } else {
+            ti.useAutoLeading = true;
+        }
+
+        // 写入颜色
+        if (params.color && params.color.indexOf("#") === 0) {
+            var hex = params.color.substring(1);
+            var solidColor = new SolidColor();
+            solidColor.rgb.red = parseInt(hex.substring(0, 2), 16);
+            solidColor.rgb.green = parseInt(hex.substring(2, 4), 16);
+            solidColor.rgb.blue = parseInt(hex.substring(4, 6), 16);
+            ti.color = solidColor;
+        }
+
         return "SUCCESS";
     } catch (e) {
         return "错误: " + e.toString();
+    }
+}
+
+/**
+ * 跨图层组按图层名精确查找并设置为当前工作焦点 (前端双向定位)
+ * ActionManager 能够以极高的效率遍历整个文档树
+ */
+function locateTextLayer(targetName) {
+    try {
+        if (app.documents.length === 0) return "错误：没有打开的文档";
+        var doc = app.activeDocument;
+
+        // 【方案A】DOM 常规遍历 (易受编组阻挡)
+        // var target = doc.layers.getByName(targetName); 
+        // 遇到层级套嵌时会报错找不到，这里直接改用更强大的 AM
+
+        var idslct = charIDToTypeID("slct");
+        var descTarget = new ActionDescriptor();
+        var idnull = charIDToTypeID("null");
+        var refLayer = new ActionReference();
+        var idLyr = charIDToTypeID("Lyr ");
+
+        // 优先根据字符串精确匹配图层名 (无需递归查找)
+        refLayer.putName(idLyr, targetName);
+        descTarget.putReference(idnull, refLayer);
+
+        // 设置不改变原有选区的扩展方式
+        var idMkVs = charIDToTypeID("MkVs");
+        descTarget.putBoolean(idMkVs, false);
+
+        executeAction(idslct, descTarget, DialogModes.NO);
+
+        return "SUCCESS";
+    } catch (e) {
+        return "错误：在画布中未能找到编号为 [" + targetName + "] 的文本图层。可能已被重命名或删除。";
+    }
+}
+
+/**
+ * 遍历提取当前文档内的所有文本图层，拼接成插件标准的导入格式返回前端。
+ */
+function exportAllTextLayersToTXT() {
+    try {
+        if (app.documents.length === 0) return "错误：没有打开的文档";
+        var doc = app.activeDocument;
+        var textLayersData = [];
+
+        // 递归抽取函数
+        function collectText(layers) {
+            // 倒序遍历更符合视觉由上至下的阅读顺位，当然也可以根据坐标排序，目前先采用倒序提取
+            for (var i = 0; i < layers.length; i++) {
+                var lr = layers[i];
+                if (lr.typename === "LayerSet") {
+                    collectText(lr.layers);
+                } else if (lr.kind === LayerKind.TEXT && lr.visible) {
+                    textLayersData.push(lr.textItem.contents);
+                }
+            }
+        }
+
+        collectText(doc.layers);
+
+        // 倒置回来，因为如果图层是从上往下建的，那么下面的层通常是第一句对白
+        textLayersData.reverse();
+
+        if (textLayersData.length === 0) {
+            return "提示：当前画板没有找到任何可见的文本图层。";
+        }
+
+        var outTXT = "=== 第 1 页: " + doc.name + " ===\n";
+        for (var k = 0; k < textLayersData.length; k++) {
+            var lines = textLayersData[k].replace(/\r/g, '\n').split('\n');
+            outTXT += "[" + (k + 1) + "] " + lines.join("\n") + "\n";
+        }
+
+        // 以特殊的分隔符返回，方便前端辨识
+        return "EXPORT_TXT_SUCCESS|||" + outTXT;
+
+    } catch (e) {
+        return "提取画板文本失败: " + e.toString();
     }
 }

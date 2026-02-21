@@ -1,11 +1,15 @@
 // fontTool.js - 字体库管理与快捷应用
 
 class FontManager {
-    constructor(csInterface, extPath) {
+    constructor(csInterface, extPath, dataDir) {
         this.cs = csInterface;
         this.extPath = extPath;
+        this.dataDir = dataDir;
         this.allFonts = [];
         this.favFonts = []; // { postScriptName, name, alias, category }
+        this.recentFonts = []; // 最近使用记录
+        this.compareFonts = []; // 当前加入对比测试的字库合集
+        this.draggedFont = null; // 用于拖拽暂存
 
         this.onlineFonts = []; // Array of { name, author, style, url, previewUrl, source }
         this.onlineSource = 'zeoseven'; // 'zeoseven' or 'google'
@@ -18,6 +22,7 @@ class FontManager {
         this.bindEvents();
 
         this.loadFavFonts();
+        this.loadRecentFonts();
         this.loadFonts();
     }
 
@@ -58,6 +63,17 @@ class FontManager {
         this.btnSaveFav = document.getElementById('btn-save-fav');
         this.btnCancelFav = document.getElementById('btn-cancel-fav');
         this.btnRemoveFav = document.getElementById('btn-remove-fav');
+
+        // Compare
+        this.cmpFloatBar = document.getElementById('cmp-float-bar');
+        this.cmpCount = document.getElementById('cmp-count');
+        this.btnOpenCmp = document.getElementById('btn-open-cmp');
+        this.btnClearCmp = document.getElementById('btn-clear-cmp');
+
+        this.modalCmp = document.getElementById('modal-compare-font');
+        this.btnCloseCmp = document.getElementById('btn-close-cmp');
+        this.cmpText = document.getElementById('cmp-preview-text');
+        this.cmpList = document.getElementById('cmp-list-container');
     }
 
     bindEvents() {
@@ -206,12 +222,36 @@ class FontManager {
                 this.renderFonts();
             });
         }
+
+        // 对比台事件
+        if (this.btnOpenCmp) {
+            this.btnOpenCmp.addEventListener('click', () => {
+                this.openCompareModal();
+            });
+        }
+        if (this.btnClearCmp) {
+            this.btnClearCmp.addEventListener('click', () => {
+                this.compareFonts = [];
+                this.updateCompareBar();
+                this.renderFonts();
+            });
+        }
+        if (this.btnCloseCmp) {
+            this.btnCloseCmp.addEventListener('click', () => {
+                this.modalCmp.style.display = 'none';
+            });
+        }
+        if (this.cmpText) {
+            this.cmpText.addEventListener('input', () => {
+                this.renderCompareList();
+            });
+        }
     }
 
     // ------------ 持久性收藏夹管理 ------------
 
     loadFavFonts() {
-        const path = this.extPath + "/data/favorite_fonts.json";
+        const path = this.dataDir + "/favorite_fonts.json";
         const readResult = window.cep.fs.readFile(path);
         if (readResult.err === window.cep.fs.NO_ERROR && readResult.data) {
             try {
@@ -223,8 +263,27 @@ class FontManager {
     }
 
     saveFavFonts() {
-        const path = this.extPath + "/data/favorite_fonts.json";
+        const path = this.dataDir + "/favorite_fonts.json";
         window.cep.fs.writeFile(path, JSON.stringify(this.favFonts));
+    }
+
+    loadRecentFonts() {
+        const path = this.dataDir + "/recent_fonts.json";
+        const readResult = window.cep.fs.readFile(path);
+        if (readResult.err === window.cep.fs.NO_ERROR && readResult.data) {
+            try { this.recentFonts = JSON.parse(readResult.data); }
+            catch (e) { this.recentFonts = []; }
+        }
+    }
+
+    saveRecentFont(font) {
+        // 先剔除旧的相同字体，再插到开头，保持最多 10 个
+        this.recentFonts = this.recentFonts.filter(f => f.postScriptName !== font.postScriptName);
+        this.recentFonts.unshift(font);
+        if (this.recentFonts.length > 10) this.recentFonts.pop();
+
+        const path = this.dataDir + "/recent_fonts.json";
+        window.cep.fs.writeFile(path, JSON.stringify(this.recentFonts));
     }
 
     openFavModal(fontObj) {
@@ -277,7 +336,7 @@ class FontManager {
     loadFonts(forceRefresh = false) {
         if (!this.listContainer) return;
 
-        const cachePath = this.extPath + "/data/font_cache.json";
+        const cachePath = this.dataDir + "/font_cache.json";
 
         const readCacheAndRender = () => {
             const readResult = window.cep.fs.readFile(cachePath);
@@ -334,12 +393,31 @@ class FontManager {
 
         const cjkRegex = /[\u4e00-\u9fa5\u3040-\u309f\u30a0-\u30ff]/;
 
+        // 如果是系统全部字体且无搜索状态，先渲染最近使用
+        if (this.currentMode === 'system' && this.sysFilter === 'all' && !q && this.recentFonts.length > 0) {
+            const recentTitle = document.createElement('div');
+            recentTitle.className = 'placeholder text-accent';
+            recentTitle.style.textAlign = 'left';
+            recentTitle.style.padding = '4px 8px';
+            recentTitle.innerHTML = '🕒 最近使用';
+            this.listContainer.appendChild(recentTitle);
+
+            for (let i = 0; i < this.recentFonts.length; i++) {
+                this.listContainer.appendChild(this.createFontItemNode(this.recentFonts[i]));
+            }
+
+            const divLine = document.createElement('div');
+            divLine.style.height = '1px';
+            divLine.style.background = 'var(--bg-lighter)';
+            divLine.style.margin = '8px 0';
+            this.listContainer.appendChild(divLine);
+        }
+
         // 判定展示的数据源
         let sourceList = this.currentMode === 'favorite' ? this.favFonts : this.allFonts;
 
         for (let i = 0; i < sourceList.length; i++) {
             const font = sourceList[i];
-            const fontAliasOrName = font.alias || font.name;
 
             // 过滤逻辑
             if (this.currentMode === 'system') {
@@ -356,61 +434,212 @@ class FontManager {
             }
 
             count++;
-
-            // 是否已经被收藏
-            const isFav = this.favFonts.findIndex(f => f.postScriptName === font.postScriptName) > -1;
-
-            // 构建DOM
-            const item = document.createElement('div');
-            item.className = 'dialog-row';
-            item.style.cursor = 'pointer';
-
-            const actionIcon = isFav ? "★" : "＋";
-            const actionClass = isFav ? "text-accent" : "text-faint";
-
-            item.innerHTML = `
-                <div class="flex-1" title="PostScript: ${font.postScriptName}\n点击即可应用于图层">
-                    <div style="font-size:12px; font-weight:600; color:var(--text-bright); margin-bottom:2px;">${fontAliasOrName}</div>
-                    <div style="font-size:10px; color:var(--text-faint);">${this.currentMode === 'favorite' ? (font.category || '未分类') : font.postScriptName}</div>
-                </div>
-                <div class="fav-action-btn ${actionClass}" style="padding:4px 8px; font-size:14px; margin-left:8px;" title="编辑中文别名和分类收藏">
-                    ${actionIcon}
-                </div>
-            `;
-
-            // 一键点击背景直接应用
-            item.addEventListener('click', (e) => {
-                if (e.target.closest('.fav-action-btn')) return;
-
-                const oldBg = item.style.background;
-                item.style.background = 'var(--accent-dim)';
-                setTimeout(() => item.style.background = oldBg, 200);
-
-                this.applyFontToActiveLayer(font.postScriptName);
-            });
-
-            // 点击收藏图标进行绑定
-            const btnFav = item.querySelector('.fav-action-btn');
-            btnFav.addEventListener('click', (e) => {
-                e.stopPropagation();
-                this.openFavModal(font);
-            });
-
-            this.listContainer.appendChild(item);
+            this.listContainer.appendChild(this.createFontItemNode(font));
         }
 
         if (this.labCount) this.labCount.innerText = `共 ${count} 款`;
 
-        if (count === 0) {
+        if (count === 0 && this.recentFonts.length === 0) {
             this.listContainer.innerHTML = '<div class="placeholder">没有任何相关联的字体记录</div>';
         }
     }
 
-    applyFontToActiveLayer(postScriptName) {
-        this.cs.evalScript(`applyFontToLayer('${postScriptName}')`, (res) => {
+    createFontItemNode(font) {
+        const fontAliasOrName = font.alias || font.name;
+        // 是否已经被收藏
+        const isFav = this.favFonts.findIndex(f => f.postScriptName === font.postScriptName) > -1;
+
+        const item = document.createElement('div');
+        item.className = 'dialog-row';
+        item.style.cursor = 'pointer';
+        item.dataset.postScript = font.postScriptName;
+
+        const actionIcon = isFav ? "★" : "＋";
+        const actionClass = isFav ? "text-accent" : "text-faint";
+
+        const isCmp = this.compareFonts.findIndex(f => f.postScriptName === font.postScriptName) > -1;
+        const cmpClass = isCmp ? "text-accent" : "text-faint";
+        const cmpText = isCmp ? "已加入" : "对比";
+        const cmpStyle = isCmp ? "background:var(--accent-dim); border-color:var(--accent);" : "background:var(--bg-dark);";
+
+        item.innerHTML = `
+            <div class="flex-1" title="PostScript: ${font.postScriptName}\n点击即可应用于图层" style="min-width: 0;">
+                <div style="font-family: '${font.postScriptName}', '${font.name}', sans-serif; font-size: 20px; line-height: 1.2; margin-bottom: 6px; color: var(--text-bright); white-space: nowrap; overflow: hidden;">永远的漫画 Manga</div>
+                <div style="font-size:12px; font-weight:600; color:var(--text-bright); margin-bottom:2px;">${fontAliasOrName}</div>
+                <div style="font-size:10px; color:var(--text-faint);">${this.currentMode === 'favorite' ? (font.category || '未分类') : font.postScriptName}</div>
+            </div>
+            <div class="btn-col" style="margin-left:8px; justify-content:center;">
+                <div class="fav-action-btn ${actionClass}" style="padding:4px 8px; font-size:14px; text-align:center;" title="编辑中文别名和分类收藏">
+                    ${actionIcon}
+                </div>
+                <div class="cmp-action-btn ${cmpClass}" style="padding:2px 6px; font-size:10px; border:1px solid var(--border-color); border-radius:3px; margin-top:4px; text-align:center; ${cmpStyle}" title="加入/移除对比台">
+                    ${cmpText}
+                </div>
+            </div>
+        `;
+
+        // 一键点击背景直接应用
+        item.addEventListener('click', (e) => {
+            if (e.target.closest('.fav-action-btn') || e.target.closest('.cmp-action-btn')) return;
+
+            const oldBg = item.style.background;
+            item.style.background = 'var(--accent-dim)';
+            setTimeout(() => item.style.background = oldBg, 200);
+
+            this.applyFontToActiveLayer(font);
+        });
+
+        // 点击收藏图标进行绑定
+        const btnFav = item.querySelector('.fav-action-btn');
+        btnFav.addEventListener('click', (e) => {
+            e.stopPropagation();
+            this.openFavModal(font);
+        });
+
+        // 对比功能占位，下个任务实现
+        const btnCmp = item.querySelector('.cmp-action-btn');
+        btnCmp.addEventListener('click', (e) => {
+            e.stopPropagation();
+            this.toggleCompare(font);
+        });
+
+        // 如果是收藏夹模式，开启拖拽支持
+        if (this.currentMode === 'favorite') {
+            item.setAttribute('draggable', 'true');
+            item.addEventListener('dragstart', (e) => this.handleDragStart(e, font, item));
+            item.addEventListener('dragover', (e) => this.handleDragOver(e, item));
+            item.addEventListener('dragenter', (e) => this.handleDragEnter(e, item));
+            item.addEventListener('dragleave', (e) => this.handleDragLeave(e, item));
+            item.addEventListener('drop', (e) => this.handleDrop(e, font, item));
+            item.addEventListener('dragend', (e) => this.handleDragEnd(e, item));
+        }
+
+        return item;
+    }
+
+    // --- HTML5 Drag and Drop Sorting ---
+    handleDragStart(e, font, item) {
+        this.draggedFont = font;
+        e.dataTransfer.effectAllowed = 'move';
+        item.style.opacity = '0.4';
+    }
+
+    handleDragOver(e, item) {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+        return false;
+    }
+
+    handleDragEnter(e, item) {
+        if (this.draggedFont && this.draggedFont.postScriptName !== item.dataset.postScript) {
+            item.style.borderTop = '2px solid var(--accent)';
+        }
+    }
+
+    handleDragLeave(e, item) {
+        item.style.borderTop = '';
+    }
+
+    handleDrop(e, targetFont, item) {
+        e.stopPropagation();
+        item.style.borderTop = '';
+        if (this.draggedFont && this.draggedFont.postScriptName !== targetFont.postScriptName) {
+            const fromIdx = this.favFonts.findIndex(f => f.postScriptName === this.draggedFont.postScriptName);
+            const toIdx = this.favFonts.findIndex(f => f.postScriptName === targetFont.postScriptName);
+
+            if (fromIdx > -1 && toIdx > -1) {
+                const [moved] = this.favFonts.splice(fromIdx, 1);
+                this.favFonts.splice(toIdx, 0, moved);
+                this.saveFavFonts();
+                this.renderFonts();
+            }
+        }
+        return false;
+    }
+
+    handleDragEnd(e, item) {
+        item.style.opacity = '1';
+        this.draggedFont = null;
+    }
+
+    applyFontToActiveLayer(font) {
+        this.cs.evalScript(`applyFontToLayer('${font.postScriptName}')`, (res) => {
             if (res && res.indexOf("错误") > -1) {
                 alert(res);
+            } else {
+                this.saveRecentFont(font);
+                // 仅当目前处于无搜索系统区时局部重刷挂载最近项
+                if (this.currentMode === 'system' && this.sysFilter === 'all' && (!this.inputSearch || !this.inputSearch.value.trim())) {
+                    this.renderFonts();
+                }
             }
+        });
+    }
+
+    toggleCompare(font) {
+        const idx = this.compareFonts.findIndex(f => f.postScriptName === font.postScriptName);
+        if (idx > -1) {
+            this.compareFonts.splice(idx, 1);
+        } else {
+            if (this.compareFonts.length >= 6) {
+                alert("比武台名额有限，最多只能同时上台对比 6 款字体！");
+                return;
+            }
+            this.compareFonts.push(font);
+        }
+        this.updateCompareBar();
+        this.renderFonts(); // 刷新按钮高亮态
+    }
+
+    updateCompareBar() {
+        if (!this.cmpFloatBar) return;
+        if (this.compareFonts.length > 0) {
+            this.cmpFloatBar.style.display = 'flex';
+            this.cmpCount.innerText = this.compareFonts.length;
+        } else {
+            this.cmpFloatBar.style.display = 'none';
+        }
+    }
+
+    openCompareModal() {
+        if (this.compareFonts.length === 0) return;
+        this.modalCmp.style.display = 'flex';
+        this.renderCompareList();
+    }
+
+    renderCompareList() {
+        if (!this.cmpList) return;
+        this.cmpList.innerHTML = '';
+        const previewText = this.cmpText.value || "没有输入对比文字…";
+
+        this.compareFonts.forEach(font => {
+            const fontAliasOrName = font.alias || font.name;
+            const item = document.createElement('div');
+            item.className = 'card mb-2';
+            item.style.padding = '12px';
+            item.style.background = 'var(--surface)';
+            item.style.border = '1px solid var(--border-color)';
+            item.style.borderRadius = '6px';
+
+            item.innerHTML = `
+                <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:8px;">
+                    <div>
+                        <div style="font-size:13px; font-weight:600; color:var(--text-bright);">${fontAliasOrName}</div>
+                        <div style="font-size:10px; color:var(--text-faint);">${font.postScriptName}</div>
+                    </div>
+                    <button class="btn btn--primary btn--xs btn-cmp-apply" data-psname="${font.postScriptName}" style="padding:2px 10px;">应用到图层</button>
+                </div>
+                <div style="font-family: '${font.postScriptName}', '${font.name}', sans-serif; font-size: 24px; line-height: 1.4; color: var(--text-bright); white-space: pre-wrap; word-break: break-all; min-height:40px; border-top:1px dashed var(--border-color); padding-top: 8px;">
+                    ${previewText.replace(/\n/g, '<br>')}
+                </div>
+            `;
+
+            const btnApply = item.querySelector('.btn-cmp-apply');
+            btnApply.addEventListener('click', () => {
+                this.applyFontToActiveLayer(font);
+            });
+
+            this.cmpList.appendChild(item);
         });
     }
 

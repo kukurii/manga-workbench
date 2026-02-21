@@ -685,10 +685,36 @@ select {
     padding: 5px 7px;
     border-radius: 3px;
     transition: background var(--transition);
+    cursor: pointer;
+    border: 1px solid transparent;
 }
 
 .dialog-row:hover {
     background: var(--surface-2);
+}
+
+.dialog-row.active-row {
+    background: #2a1f26;
+    border: 1px solid var(--pink);
+}
+
+/* Diff 版本变更高亮 */
+.dialog-row.changed {
+    border-left: 3px solid #ff9800;
+    /* 左侧橙色粗线提醒 */
+    background: rgba(255, 152, 0, 0.08);
+}
+
+.dialog-badge {
+    background: #ff9800;
+    color: #fff;
+    font-size: 9px;
+    padding: 1px 4px;
+    border-radius: 2px;
+    align-self: center;
+    margin-left: auto;
+    /* 靠最右边 */
+    font-weight: 500;
 }
 
 .dialog-row+.dialog-row {
@@ -934,4 +960,27 @@ select {
 
 .fw-500 {
     font-weight: 500;
+}
+
+/* --- 悬浮对比条 --- */
+.float-bar {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--surface-2);
+    border: 1px solid var(--border-color);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.6);
+    padding: 8px 16px;
+    border-radius: 20px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    z-index: 100;
+}
+
+.float-bar span {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-bright);
 }

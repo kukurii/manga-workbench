@@ -1,9 +1,10 @@
 // presets.js - 全局预设、本地存储与缓存管理
 
 class PresetsManager {
-    constructor(csInterface, extPath) {
+    constructor(csInterface, extPath, dataDir) {
         this.cs = csInterface;
         this.extPath = extPath;
+        this.dataDir = dataDir;
 
         this.initDOM();
         this.bindEvents();
@@ -22,7 +23,7 @@ class PresetsManager {
         if (this.btnClearFontCache) {
             this.btnClearFontCache.addEventListener('click', () => {
                 if (confirm("确定要清理通过长时间深层扫描生成的字体缓存文件吗？\n下次打开应用将再次耗费大量时间重新生成缓存！")) {
-                    const cachePath = this.extPath + "/data/font_cache.json";
+                    const cachePath = this.dataDir + "/font_cache.json";
                     const result = window.cep.fs.deleteFile(cachePath);
                     if (result.err === window.cep.fs.NO_ERROR) {
                         alert("字体缓存清理成功。");
