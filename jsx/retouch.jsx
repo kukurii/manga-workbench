@@ -139,175 +139,23 @@ function fillWhiteSelection(expandPx) {
 }
 
 /**
- * 进阶：基于色彩范围智能选择特定颜色文字
- * 支持模式：
- * 'black'      - 选取阴影/黑色 (适用于普通白底黑字)
- * 'white'      - 选取高光/白色 (适用于黑底白字或反白)
- * 'foreground' - 根据当前工具条的前景色选取 (用户可以用吸管提色后选取)
+ * 修复魔棒选区（闭合内部文字破洞）
+ * 原理：形态学闭运算。通过大幅外扩选区吞并文字造成的破洞，再以等量数值边缘收缩还原本来的外边界。
  */
-function selectByColorRange(mode) {
-    try {
-        if (app.documents.length === 0) return "错误：没有打开的文档";
-
-        var idsetd = charIDToTypeID("setd");
-        var desc1 = new ActionDescriptor();
-        var idnull = charIDToTypeID("null");
-        var ref1 = new ActionReference();
-        var idChnl = charIDToTypeID("Chnl");
-        var idfsel = charIDToTypeID("fsel");
-        ref1.putProperty(idChnl, idfsel);
-        desc1.putReference(idnull, ref1);
-        var idT = charIDToTypeID("T   ");
-        var desc2 = new ActionDescriptor();
-
-        // 默认容差 40
-        var idFzns = charIDToTypeID("Fzns");
-        desc2.putInteger(idFzns, 40);
-
-        if (mode === "black") {
-            // 选取阴影 (黑色)
-            var idBlck = charIDToTypeID("Blck");
-            desc1.putEnumerated(idT, idBlck, idBlck);
-        } else if (mode === "white") {
-            // 选取高光 (白色)
-            var idWht = charIDToTypeID("Wht ");
-            desc1.putEnumerated(idT, idWht, idWht);
-        } else if (mode === "foreground") {
-            // 按照前景色 (Foreground) 选取
-            var idssli = charIDToTypeID("ssli");
-            var idrgba = stringIDToTypeID("rgba");
-            desc2.putEnumerated(idssli, idrgba, idrgba);
-            // 模糊处理
-            var idRng = stringIDToTypeID("Rng ");
-            desc2.putDouble(idRng, 40.000000);
-
-            // 构造 RGB
-            var fgColor = app.foregroundColor.rgb;
-            var descColor = new ActionDescriptor();
-            var idRd = charIDToTypeID("Rd  ");
-            descColor.putDouble(idRd, fgColor.red);
-            var idGrn = charIDToTypeID("Grn ");
-            descColor.putDouble(idGrn, fgColor.green);
-            var idBl = charIDToTypeID("Bl  ");
-            descColor.putDouble(idBl, fgColor.blue);
-            var idRGBC = charIDToTypeID("RGBC");
-            desc2.putObject(charIDToTypeID("Clr "), idRGBC, descColor);
-
-            var idRClr = charIDToTypeID("RClr");
-            desc1.putObject(idT, idRClr, desc2);
-        } else {
-            return "错误：不支持的色彩选取模式。";
-        }
-
-        executeAction(idsetd, desc1, DialogModes.NO);
-        return "选取【" + mode + "】成功";
-    } catch (e) {
-        return "色彩选区建立失败，请检查图层。" + e.toString();
-    }
-}
-
-/**
- * 终极智能进阶：一键圈抓全图的“白底黑字”气泡
- *  [原理]
- *  1. 选取全图高光（白色/气泡底）
- *  2. 适度收缩选区 (Contract 20px)，防止被网点纸高光和人物白边干扰
- *  3. 进入相交模式 (Intersect)，强行要求只能选中以上选区内的阴影 (黑色)
- */
-function autoSelectBubbles() {
+function healSelectionHoles() {
     try {
         if (app.documents.length === 0) return "错误：没有打开的文档";
         var doc = app.activeDocument;
-        var layer = doc.activeLayer;
 
-        doc.selection.deselect();
+        if (!hasSelection(doc)) return "失败：请先用魔棒或快速选择工具建立带破洞的气泡选区。";
 
-        // --- STEP 1: 选取白色 ---
-        var idsetdWhite = charIDToTypeID("setd");
-        var descW1 = new ActionDescriptor();
-        var idnullW = charIDToTypeID("null");
-        var refW = new ActionReference();
-        refW.putProperty(charIDToTypeID("Chnl"), charIDToTypeID("fsel"));
-        descW1.putReference(idnullW, refW);
-        var descW2 = new ActionDescriptor();
-        descW2.putInteger(charIDToTypeID("Fzns"), 100); // 容差大些
-        var idWht = charIDToTypeID("Wht ");
-        var idT = charIDToTypeID("T   ");
-        descW1.putEnumerated(idT, idWht, idWht);
-        descW1.putObject(idT, charIDToTypeID("RClr"), descW2);
-        executeAction(idsetdWhite, descW1, DialogModes.NO);
+        // 外扩吞并所有文字区域
+        doc.selection.expand(new UnitValue(15, "px"));
+        // 收缩还原外侧边缘，内部已被完全填充为实心状态
+        doc.selection.contract(new UnitValue(15, "px"));
 
-        // 如果连白色都没有直接退出
-        if (!hasSelection(doc)) return "失败：此页面可能没有白色气泡底。";
-
-        // --- STEP 2: 收缩选区 ---
-        // 这一步极为关键，可以剔除线条夹角的纯白高光，保证只留下成片的大气泡
-        doc.selection.contract(new UnitValue(12, "px"));
-
-        // 我们甚至需要再羽化一点，不让边界太生硬
-        // 避免因为压缩过猛漏过贴着气泡边缘的字
-        doc.selection.expand(new UnitValue(5, "px"));
-
-        // --- STEP 3: 和黑色执行相交 (Intersect) ---
-        // 等效于按住 Alt+Shift 用魔棒选黑色
-        var idsetdBlack = charIDToTypeID("setd");
-        var descB1 = new ActionDescriptor();
-        var refB = new ActionReference();
-        refB.putProperty(charIDToTypeID("Chnl"), charIDToTypeID("fsel"));
-        descB1.putReference(charIDToTypeID("null"), refB);
-        var descB2 = new ActionDescriptor();
-        descB2.putInteger(charIDToTypeID("Fzns"), 60);
-        var idBlck = charIDToTypeID("Blck");
-        descB1.putEnumerated(idT, idBlck, idBlck);
-        descB1.putObject(idT, charIDToTypeID("RClr"), descB2);
-
-        // 关键相交指令，ActionManager 的 Intersect 需要传入当前 Selection 作为来源并进行通道操作
-        // 不过有个更直接的黑客做法：直接呼叫选区覆盖，但带上相交参数。
-        // Photoshop原生里不支持一次性选色同时相交。所以通过 JS 拷贝存为通道或依靠 ExtendScript 选区交叉能力。
-
-        // [迂回方案]：先将气泡白底存为 Alpha 通道
-        var bubbleChannel = doc.channels.add();
-        bubbleChannel.name = "TempBubbleZone";
-        bubbleChannel.kind = ChannelType.SELECTEDAREA;
-        doc.selection.store(bubbleChannel, SelectionType.REPLACE);
-        doc.selection.deselect();
-
-        // [迂回步骤2]：选全图黑字
-        executeAction(idsetdBlack, descB1, DialogModes.NO);
-
-        // [迂回步骤3]：以相交模式加载 Alpha 通道
-        var idsetdIntersect = charIDToTypeID("setd");
-        var descInt1 = new ActionDescriptor();
-        var refIntTarget = new ActionReference();
-        refIntTarget.putProperty(charIDToTypeID("Chnl"), charIDToTypeID("fsel"));
-        descInt1.putReference(charIDToTypeID("null"), refIntTarget);
-        var refIntSrc = new ActionReference();
-        refIntSrc.putName(charIDToTypeID("Chnl"), "TempBubbleZone");
-        descInt1.putReference(charIDToTypeID("T   "), refIntSrc);
-
-        var executeIntersect = true;
-        try {
-            // Action Manager Intersect (以当前选区底盘，叠加 Alpha 相交)
-            var idIntr = charIDToTypeID("Intr");
-            var tempDesc = new ActionDescriptor();
-            tempDesc.putReference(charIDToTypeID("null"), refIntTarget);
-            tempDesc.putReference(charIDToTypeID("From"), refIntSrc);
-            executeAction(idIntr, tempDesc, DialogModes.NO);
-        } catch (e) {
-            executeIntersect = false;
-        }
-
-        // 扫尾删除通道
-        try { bubbleChannel.remove(); } catch (e) { }
-
-        if (executeIntersect && hasSelection(doc)) {
-            return "侦测完毕，已框选全画板位于浅色气泡内的深色文字！\n接下来请检查并点击【一键去字】即可。";
-        } else {
-            // 没找到或者出错了
-            doc.selection.deselect();
-            return "失败：算法未能提取到气泡内的文字相交信息。请调整图片灰度后再试。";
-        }
-
+        return ""; // 静默成功
     } catch (e) {
-        return "气泡侦测算法执行中断: " + e.toString();
+        return "修复选区执行中断: " + e.toString();
     }
 }

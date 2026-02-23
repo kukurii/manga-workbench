@@ -284,7 +284,7 @@
             <div class="section">
                 <div class="inline-bar mb-3">
                     <span class="form-label">扩边像素</span>
-                    <input type="number" id="input-expand-pixel" value="3" min="-50" max="50" class="input--sm">
+                    <input type="number" id="input-expand-pixel" value="-4" min="-50" max="50" class="input--sm">
                     <span class="form-hint">正=外扩 · 负=内缩</span>
                 </div>
 
@@ -296,28 +296,17 @@
                 <hr class="divider">
 
                 <div class="section-head">
-                    <div class="section-title section-title--pink">文字色彩追踪选区</div>
+                    <div class="section-title section-title--pink">文字与气泡选中</div>
                 </div>
 
                 <div class="btn-col mb-2">
                     <button id="btn-create-selection-auto" class="btn btn--primary btn--block btn--lg mb-1"
-                        title="智能侦测白底气泡中的深色文字">
-                        ✨ 终极魔棒：探测全页气泡文字
+                        title="如果用魔棒点击气泡导致文字漏选，点击此按钮可瞬间闭合选区破洞包裹住文字。">
+                        🩹 修复选区：闭合破洞包裹文字
                     </button>
-                    <div class="btn-row">
-                        <button id="btn-create-selection-black" class="btn btn--tint btn--flex2" title="基于色彩范围自动选中黑色文字">
-                            全图黑字
-                        </button>
-                        <button id="btn-create-selection-white" class="btn btn--tint btn--flex2" title="适用于黑底白字或深色底白字">
-                            全图白字
-                        </button>
-                    </div>
+                    <p class="form-hint pb-2" style="text-align: center; margin-top:-2px;">默认扩边像素为 -4，结合修复选区可内缩保护黑边不被去除。
+                    </p>
                 </div>
-
-                <button id="btn-create-selection-foreground" class="btn btn--orange btn--block mt-2"
-                    title="请先使用吸管工具(I)吸取画面中要去除的文字颜色，然后点击此按钮">
-                    💉 吸管提取：按前景色追踪彩字
-                </button>
 
             </div>
 

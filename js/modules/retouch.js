@@ -14,9 +14,6 @@ class RetouchManager {
         this.btnFillWhite = document.getElementById('btn-fill-white');
         this.inputExpandPixel = document.getElementById('input-expand-pixel');
 
-        this.btnSelectBlack = document.getElementById('btn-create-selection-black');
-        this.btnSelectWhite = document.getElementById('btn-create-selection-white');
-        this.btnSelectFg = document.getElementById('btn-create-selection-foreground');
         this.btnSelectAuto = document.getElementById('btn-create-selection-auto');
         this.inputExpandPixel = document.getElementById('input-expand-pixel');
     }
@@ -44,28 +41,13 @@ class RetouchManager {
             });
         }
 
-        // 色彩范围选取多态绑定
-        const bindColorSelect = (btn, mode) => {
-            if (btn) {
-                btn.addEventListener('click', () => {
-                    this.cs.evalScript(`selectByColorRange("${mode}")`, (res) => {
-                        if (res && res.indexOf("失败") > -1) alert(res);
-                    });
-                });
-            }
-        };
-
-        bindColorSelect(this.btnSelectBlack, "black");
-        bindColorSelect(this.btnSelectWhite, "white");
-        bindColorSelect(this.btnSelectFg, "foreground");
-
         if (this.btnSelectAuto) {
             this.btnSelectAuto.addEventListener('click', () => {
-                this.cs.evalScript(`autoSelectBubbles()`, (res) => {
-                    if (res && res.indexOf("失败") > -1) {
+                this.cs.evalScript(`healSelectionHoles()`, (res) => {
+                    if (res && res.indexOf("错误") > -1) {
                         alert(res);
                     } else if (res) {
-                        alert(res); // 成功的话也要弹出提示用户去点去字
+                        alert(res); // 错误或提示
                     }
                 });
             });
