@@ -166,7 +166,7 @@ class PageManager {
             this.btnRemoveSel.addEventListener('click', () => {
                 const checkboxes = document.querySelectorAll('.page-checkbox:checked');
                 if (checkboxes.length === 0) {
-                    alert("请先在列表中勾选要移除的页面（点击图片右上角复选框）");
+                    showToast('请先勾选要移除的页面（点击右上角复选框）', 'error');
                     return;
                 }
                 const pathsToRemove = Array.from(checkboxes).map(cb => cb.value);
@@ -212,44 +212,41 @@ class PageManager {
 
         if (this.btnBatchRename) {
             this.btnBatchRename.addEventListener('click', () => {
-                if (this.pages.length === 0) return alert("队列为空");
-                const template = prompt(
+                if (this.pages.length === 0) return showToast('队列为空', 'error');
+
+                const desc =
                     "命名模板说明：\n" +
-                    "  {prefix}  = 你输入的前缀文字\n" +
-                    "  {n}       = 页码序号（从1开始，如 1、2、3…）\n" +
-                    "  {nn}      = 两位页码（如 01、02…）\n" +
-                    "  {name}    = 原始文件名（不含扩展名）\n\n" +
+                    "  {n}    = 页码序号（1, 2, 3…）\n" +
+                    "  {nn}   = 两位页码（01, 02…）\n" +
+                    "  {name} = 原始文件名\n\n" +
                     "示例：第06话_{nn}  →  第06话_01.jpg\n\n" +
-                    "请输入命名模板：",
-                    "第00话_{nn}"
-                );
-                if (!template) return;
+                    "请输入命名模板：";
 
-                this.pages.forEach((p, idx) => {
-                    // 提取原始名（不含扩展名）
-                    const dotIdx = p.name.lastIndexOf('.');
-                    const origBase = dotIdx > 0 ? p.name.substring(0, dotIdx) : p.name;
-                    const origExt = dotIdx > 0 ? p.name.substring(dotIdx) : '';
-                    const pageNum = idx + 1;
-                    const nn = String(pageNum).padStart(2, '0');
-
-                    const newBase = template
-                        .replace(/\{prefix\}/g, '')
-                        .replace(/\{nn\}/g, nn)
-                        .replace(/\{n\}/g, String(pageNum))
-                        .replace(/\{name\}/g, origBase);
-
-                    p.name = newBase + origExt;
-                });
-                this.renderThumbnails();
-                this.scheduleSaveProjectState();
+                showPromptModal(desc, '第00话_{nn}', (template) => {
+                    if (!template) return;
+                    this.pages.forEach((p, idx) => {
+                        const dotIdx = p.name.lastIndexOf('.');
+                        const origBase = dotIdx > 0 ? p.name.substring(0, dotIdx) : p.name;
+                        const origExt = dotIdx > 0 ? p.name.substring(dotIdx) : '';
+                        const pageNum = idx + 1;
+                        const nn = String(pageNum).padStart(2, '0');
+                        const newBase = template
+                            .replace(/\{prefix\}/g, '')
+                            .replace(/\{nn\}/g, nn)
+                            .replace(/\{n\}/g, String(pageNum))
+                            .replace(/\{name\}/g, origBase);
+                        p.name = newBase + origExt;
+                    });
+                    this.renderThumbnails();
+                    this.scheduleSaveProjectState();
+                }, '批量改名');
             });
         }
 
         // 自动检测当前文档状态并同步到页面列表
         if (this.btnAutoDetectStatus) {
             this.btnAutoDetectStatus.addEventListener('click', () => {
-                if (this.activePageIndex < 0) return alert("请先点击页面列表中的一个页面以激活它");
+                if (this.activePageIndex < 0) return showToast('请先点击页面列表中的一个页面以激活它', 'error');
                 this.cs.evalScript(`detectDocumentStatus()`, (res) => {
                     if (res && res !== 'none') {
                         this.pages[this.activePageIndex].status = res;
@@ -270,7 +267,7 @@ class PageManager {
         // 下一页工作流：将当前页状态推进一级，并打开下一页
         if (this.btnNextPage) {
             this.btnNextPage.addEventListener('click', () => {
-                if (this.pages.length === 0) return alert("页面列表为空");
+                if (this.pages.length === 0) return showToast('页面列表为空', 'error');
 
                 // 先将当前页状态推进到 typeset（若已是 done 则保持）
                 if (this.activePageIndex >= 0) {
@@ -303,7 +300,7 @@ class PageManager {
                 this.scheduleSaveProjectState();
 
                 if (nextIdx < 0) {
-                    alert("🎉 全部页面均已完成！");
+                    showToast('全部页面均已完成！', 'success');
                     return;
                 }
 
@@ -346,10 +343,10 @@ class PageManager {
 
         if (this.btnBatchExport) {
             this.btnBatchExport.addEventListener('click', () => {
-                if (this.pages.length === 0) return alert("当前列表为空，无图可导");
+                if (this.pages.length === 0) return showToast('当前列表为空，无图可导', 'error');
 
                 const outDir = this.inputExportDir ? this.inputExportDir.value : '';
-                if (!outDir) return alert("请先选择导出文件夹");
+                if (!outDir) return showToast('请先选择导出文件夹', 'error');
 
                 const format = this.selExportFormat ? this.selExportFormat.value : 'jpg';
 
@@ -359,25 +356,27 @@ class PageManager {
                 const safeJson = JSON.stringify(this.pages);
 
                 this.cs.evalScript(`batchExportAllPages(${JSON.stringify(safeJson)}, '${outDir.replace(/\\/g, '\\\\')}', '${format}')`, (res) => {
-                    alert(res);
-                    this.btnBatchExport.innerText = "🚀 一键根据排序输出全部页面";
-                    this.btnBatchExport.disabled = false;
+                    showAlertModal(res, '批量导出结果', () => {
+                        this.btnBatchExport.innerText = "一键根据排序输出全部页面";
+                        this.btnBatchExport.disabled = false;
+                    });
                 });
             });
         }
 
         if (this.btnBatchSavePsd) {
             this.btnBatchSavePsd.addEventListener('click', () => {
-                if (this.pages.length === 0) return alert("当前列表为空");
+                if (this.pages.length === 0) return showToast('当前列表为空', 'error');
 
-                this.btnBatchSavePsd.innerText = "⏳ 批量保存中...";
+                this.btnBatchSavePsd.innerText = "批量保存中...";
                 this.btnBatchSavePsd.disabled = true;
 
                 const safeJson = JSON.stringify(this.pages);
                 this.cs.evalScript(`batchSaveAllDocs(${JSON.stringify(safeJson)})`, (res) => {
-                    alert(res);
-                    this.btnBatchSavePsd.innerText = "💾 批量静默保存列表的所有 PSD";
-                    this.btnBatchSavePsd.disabled = false;
+                    showAlertModal(res, '批量保存结果', () => {
+                        this.btnBatchSavePsd.innerText = "批量静默保存列表的所有 PSD";
+                        this.btnBatchSavePsd.disabled = false;
+                    });
                 });
             });
         }

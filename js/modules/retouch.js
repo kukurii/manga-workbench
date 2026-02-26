@@ -14,7 +14,6 @@ class RetouchManager {
         this.btnAutoErase = document.getElementById('btn-auto-erase');
         this.btnFillWhite = document.getElementById('btn-fill-white');
         this.btnFillColor = document.getElementById('btn-fill-color');
-        this.inputFillColor = document.getElementById('input-fill-color');
         this.inputExpandPixel = document.getElementById('input-expand-pixel');
 
         this.btnHealSelection = document.getElementById('btn-create-selection-auto');
@@ -33,7 +32,7 @@ class RetouchManager {
                 const expandPx = this.inputExpandPixel ? this.inputExpandPixel.value : 3;
                 this.cs.evalScript(`autoEraseSelection(${expandPx})`, (res) => {
                     if (shouldAlert(res)) {
-                        alert(res);
+                        showToast(res, 'error');
                     }
                 });
             });
@@ -44,7 +43,7 @@ class RetouchManager {
                 const expandPx = this.inputExpandPixel ? this.inputExpandPixel.value : 3;
                 this.cs.evalScript(`fillWhiteSelection(${expandPx})`, (res) => {
                     if (shouldAlert(res)) {
-                        alert(res);
+                        showToast(res, 'error');
                     }
                 });
             });
@@ -53,12 +52,12 @@ class RetouchManager {
         // 取色填充按钮
         if (this.btnFillColor) {
             this.btnFillColor.addEventListener('click', () => {
-                const hex = this.inputFillColor ? this.inputFillColor.value : '#ffffff';
+                const hex = window.getPickerColor ? window.getPickerColor('fill-color') : '#ffffff';
                 const rgb = this._hexToRgb(hex);
                 const expandPx = this.inputExpandPixel ? this.inputExpandPixel.value : 0;
                 this.cs.evalScript(`fillColorSelection(${rgb.r}, ${rgb.g}, ${rgb.b}, ${expandPx})`, (res) => {
                     if (shouldAlert(res)) {
-                        alert(res);
+                        showToast(res, 'error');
                     }
                 });
             });
@@ -71,7 +70,7 @@ class RetouchManager {
 
                 this.cs.evalScript(`healSelectionHolesOnly()`, (res) => {
                     if (res && (res.indexOf("错误") > -1 || res.indexOf("失败") > -1 || res.indexOf("中断") > -1)) {
-                        alert(res);
+                        showToast(res, 'error');
                         return;
                     }
                     if (res === "READY") {
@@ -90,7 +89,7 @@ class RetouchManager {
             this.btnHealConfirm.addEventListener('click', () => {
                 this.cs.evalScript(`fillWhiteSelection(0)`, (res) => {
                     if (shouldAlert(res)) {
-                        alert(res);
+                        showToast(res, 'error');
                     }
                     this._resetHealState();
                 });

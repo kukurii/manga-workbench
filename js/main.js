@@ -1,4 +1,255 @@
+// ═══════════════════════════════════════
+// 全局工具：自定义颜色选择器
+// ═══════════════════════════════════════
+
+/**
+ * ColorPicker — 管理页面内所有自定义颜色选择器
+ * HTML 结构：.cp-wrap[data-cp-id][data-cp-value] > .cp-swatch + .cp-panel
+ */
+(function () {
+    // 预设颜色面板色板（16色）
+    const PRESETS = [
+        '#000000', '#ffffff', '#808080', '#c0c0c0',
+        '#ff0000', '#ff6600', '#ffff00', '#00cc00',
+        '#00ccff', '#0066ff', '#6600ff', '#ff00ff',
+        '#994400', '#006633', '#003399', '#660033'
+    ];
+
+    function buildPanel(wrap) {
+        const panel = wrap.querySelector('.cp-panel');
+        if (panel.dataset.built) return;
+        panel.dataset.built = '1';
+
+        // 色板网格
+        const grid = document.createElement('div');
+        grid.className = 'cp-swatches';
+        PRESETS.forEach(color => {
+            const btn = document.createElement('button');
+            btn.className = 'cp-color-btn';
+            btn.style.background = color;
+            btn.title = color;
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                applyColor(wrap, color);
+                closePanel(wrap);
+            });
+            grid.appendChild(btn);
+        });
+        panel.appendChild(grid);
+
+        // Hex 输入行
+        const hexRow = document.createElement('div');
+        hexRow.className = 'cp-hex-row';
+        const hexLabel = document.createElement('span');
+        hexLabel.className = 'cp-hex-label';
+        hexLabel.textContent = '#';
+        const hexInput = document.createElement('input');
+        hexInput.className = 'cp-hex-input';
+        hexInput.maxLength = 6;
+        hexInput.placeholder = 'rrggbb';
+        hexInput.value = (wrap.dataset.cpValue || '#000000').replace('#', '');
+
+        hexInput.addEventListener('click', e => e.stopPropagation());
+        hexInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                const val = '#' + hexInput.value.replace(/[^0-9a-fA-F]/g, '').substring(0, 6);
+                if (/^#[0-9a-fA-F]{6}$/.test(val)) {
+                    applyColor(wrap, val);
+                    closePanel(wrap);
+                }
+            }
+        });
+        hexRow.appendChild(hexLabel);
+        hexRow.appendChild(hexInput);
+        panel.appendChild(hexRow);
+    }
+
+    function applyColor(wrap, hex) {
+        wrap.dataset.cpValue = hex;
+        const swatch = wrap.querySelector('.cp-swatch');
+        if (swatch) swatch.style.background = hex;
+        // 更新 hex 输入框（如果面板已构建）
+        const hexInput = wrap.querySelector('.cp-hex-input');
+        if (hexInput) hexInput.value = hex.replace('#', '');
+        // 更新选中标记
+        wrap.querySelectorAll('.cp-color-btn').forEach(btn => {
+            btn.classList.toggle('cp-selected', btn.style.background === hexToRgb(hex));
+        });
+    }
+
+    function hexToRgb(hex) {
+        // 用于比较，返回 CSS rgb() 字符串格式
+        const h = hex.replace('#', '');
+        const r = parseInt(h.substring(0, 2), 16);
+        const g = parseInt(h.substring(2, 4), 16);
+        const b = parseInt(h.substring(4, 6), 16);
+        return `rgb(${r}, ${g}, ${b})`;
+    }
+
+    function openPanel(wrap) {
+        buildPanel(wrap);
+        const panel = wrap.querySelector('.cp-panel');
+        // 同步当前值到 hex 输入框
+        const hexInput = panel.querySelector('.cp-hex-input');
+        if (hexInput) hexInput.value = (wrap.dataset.cpValue || '#000000').replace('#', '');
+        panel.style.display = 'block';
+        wrap.dataset.open = '1';
+    }
+
+    function closePanel(wrap) {
+        const panel = wrap.querySelector('.cp-panel');
+        if (panel) panel.style.display = 'none';
+        delete wrap.dataset.open;
+    }
+
+    function closeAll(except) {
+        document.querySelectorAll('.cp-wrap[data-open]').forEach(w => {
+            if (w !== except) closePanel(w);
+        });
+    }
+
+    // 初始化所有颜色选择器
+    function initAll() {
+        document.querySelectorAll('.cp-wrap').forEach(wrap => {
+            const swatch = wrap.querySelector('.cp-swatch');
+            if (!swatch) return;
+            swatch.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const isOpen = wrap.dataset.open === '1';
+                closeAll(wrap);
+                if (isOpen) {
+                    closePanel(wrap);
+                } else {
+                    openPanel(wrap);
+                }
+            });
+        });
+
+        // 点击文档其他区域关闭所有面板
+        document.addEventListener('click', () => closeAll(null));
+    }
+
+    // 暴露全局读取函数（供各模块获取颜色值）
+    window.getPickerColor = function (cpId) {
+        const wrap = document.querySelector(`.cp-wrap[data-cp-id="${cpId}"]`);
+        return wrap ? (wrap.dataset.cpValue || '#000000') : '#000000';
+    };
+
+    window.setPickerColor = function (cpId, hex) {
+        const wrap = document.querySelector(`.cp-wrap[data-cp-id="${cpId}"]`);
+        if (wrap) applyColor(wrap, hex);
+    };
+
+    // DOM 加载后执行
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initAll);
+    } else {
+        initAll();
+    }
+})();
+
+
+// ═══════════════════════════════════════
+// 全局工具：Toast 通知
+// ═══════════════════════════════════════
+
+/**
+ * 弹出轻量 Toast 通知（自动消失）
+ * @param {string} msg 消息内容
+ * @param {'info'|'success'|'error'} type 类型
+ * @param {number} duration 毫秒，默认 3000
+ */
+window.showToast = function (msg, type, duration) {
+    const container = document.getElementById('toast-container');
+    if (!container) { console.warn('[toast]', msg); return; }
+
+    duration = duration || 3000;
+    const toast = document.createElement('div');
+    toast.className = 'toast' + (type === 'error' ? ' toast--error' : type === 'success' ? ' toast--success' : '');
+    toast.textContent = msg;
+    container.appendChild(toast);
+
+    setTimeout(() => {
+        toast.style.animation = 'toastOut .25s ease forwards';
+        setTimeout(() => { if (toast.parentNode) toast.parentNode.removeChild(toast); }, 280);
+    }, duration);
+};
+
+
+// ═══════════════════════════════════════
+// 全局工具：自定义 Alert Modal
+// ═══════════════════════════════════════
+
+/**
+ * 替代 alert()，使用自定义弹窗
+ * @param {string} msg 消息
+ * @param {string} [title] 标题，默认"提示"
+ * @param {Function} [onOk] 点击确定后回调
+ */
+window.showAlertModal = function (msg, title, onOk) {
+    const overlay = document.getElementById('modal-alert');
+    if (!overlay) { alert(msg); if (onOk) onOk(); return; }
+
+    document.getElementById('modal-alert-title').textContent = title || '提示';
+    document.getElementById('modal-alert-msg').textContent = msg;
+    overlay.classList.add('show');
+
+    const btn = document.getElementById('btn-alert-ok');
+    const handler = function () {
+        overlay.classList.remove('show');
+        btn.removeEventListener('click', handler);
+        if (onOk) onOk();
+    };
+    btn.addEventListener('click', handler);
+};
+
+
+// ═══════════════════════════════════════
+// 全局工具：自定义 Prompt Modal
+// ═══════════════════════════════════════
+
+/**
+ * 替代 prompt()，使用自定义弹窗，通过 callback 返回输入值
+ * @param {string} desc 说明文字
+ * @param {string} defaultVal 默认值
+ * @param {Function} callback function(value|null)
+ * @param {string} [title] 标题，默认"输入"
+ */
+window.showPromptModal = function (desc, defaultVal, callback, title) {
+    const overlay = document.getElementById('modal-prompt');
+    if (!overlay) {
+        const val = prompt(desc, defaultVal);
+        callback(val);
+        return;
+    }
+
+    document.getElementById('modal-prompt-title').textContent = title || '输入';
+    document.getElementById('modal-prompt-desc').textContent = desc;
+    const input = document.getElementById('modal-prompt-input');
+    input.value = defaultVal || '';
+    overlay.classList.add('show');
+    setTimeout(() => input.focus(), 80);
+
+    const btnOk = document.getElementById('btn-prompt-ok');
+    const btnCancel = document.getElementById('btn-prompt-cancel');
+
+    function cleanup() {
+        overlay.classList.remove('show');
+        btnOk.removeEventListener('click', onOk);
+        btnCancel.removeEventListener('click', onCancel);
+        input.removeEventListener('keydown', onKey);
+    }
+    function onOk() { const v = input.value; cleanup(); callback(v); }
+    function onCancel() { cleanup(); callback(null); }
+    function onKey(e) { if (e.key === 'Enter') onOk(); if (e.key === 'Escape') onCancel(); }
+
+    btnOk.addEventListener('click', onOk);
+    btnCancel.addEventListener('click', onCancel);
+    input.addEventListener('keydown', onKey);
+};
+
 window.onload = function () {
+
     // 监听导航标签切换
     const navBtns = document.querySelectorAll('.nav-btn');
     const panels = document.querySelectorAll('.panel');

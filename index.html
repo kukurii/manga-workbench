@@ -327,7 +327,10 @@
                 </div>
 
                 <div class="inline-bar mt-2 mb-1">
-                    <input type="color" id="input-fill-color" value="#ffffff" class="input--color" title="选择填充颜色">
+                    <div class="cp-wrap" data-cp-id="fill-color" data-cp-value="#ffffff">
+                        <button class="cp-swatch" style="background:#ffffff;" title="选择填充颜色"></button>
+                        <div class="cp-panel" style="display:none;"></div>
+                    </div>
                     <button id="btn-fill-color" class="btn btn--ghost btn--flex2">取色填充选区</button>
                 </div>
 
@@ -481,7 +484,10 @@
                     </div>
                     <div class="form-row mb-2">
                         <span class="form-label">颜色</span>
-                        <input type="color" id="input-sync-color" value="#000000" class="input--color">
+                        <div class="cp-wrap" data-cp-id="sync-color" data-cp-value="#000000">
+                            <button class="cp-swatch" style="background:#000000;" title="文字颜色"></button>
+                            <div class="cp-panel" style="display:none;"></div>
+                        </div>
                     </div>
                     <button id="btn-sync-write-layer" class="btn btn--primary btn--block mb-3">应用文本与排版</button>
 
@@ -584,8 +590,10 @@
 
                     <div class="form-row mb-3">
                         <span class="form-label">描边颜色</span>
-                        <input type="color" id="input-stroke-color" value="#000000" class="input--color ml-1"
-                            title="自定义描边颜色">
+                        <div class="cp-wrap" data-cp-id="stroke-color" data-cp-value="#000000">
+                            <button class="cp-swatch" style="background:#000000;" title="自定义描边颜色"></button>
+                            <div class="cp-panel" style="display:none;"></div>
+                        </div>
                     </div>
 
                     <div class="btn-row mb-3">
@@ -606,7 +614,10 @@
                 <div class="card">
                     <div class="form-row mb-2">
                         <span class="form-label">发光颜色</span>
-                        <input type="color" id="input-glow-color" value="#ffffff" class="input--color ml-1">
+                        <div class="cp-wrap" data-cp-id="glow-color" data-cp-value="#ffffff">
+                            <button class="cp-swatch" style="background:#ffffff;" title="发光颜色"></button>
+                            <div class="cp-panel" style="display:none;"></div>
+                        </div>
                         <span class="form-label ml-2">大小</span>
                         <input type="number" id="input-glow-size" value="5" min="1" max="50" class="input--sm">
                         <span class="form-unit">px</span>
@@ -615,7 +626,10 @@
 
                     <div class="form-row mb-2">
                         <span class="form-label">投影颜色</span>
-                        <input type="color" id="input-shadow-color" value="#000000" class="input--color ml-1">
+                        <div class="cp-wrap" data-cp-id="shadow-color" data-cp-value="#000000">
+                            <button class="cp-swatch" style="background:#000000;" title="投影颜色"></button>
+                            <div class="cp-panel" style="display:none;"></div>
+                        </div>
                         <span class="form-label ml-2">距离</span>
                         <input type="number" id="input-shadow-dist" value="3" min="0" max="50" class="input--sm">
                         <span class="form-unit">px</span>
@@ -877,6 +891,37 @@
                 <button class="btn btn--red" id="btn-confirm-clear" style="background: var(--red-dim);">确定清空</button>
                 <button class="btn btn--secondary" id="btn-cancel-clear">取消</button>
             </div>
+        </div>
+    </div>
+
+    <!-- ══════════════════════════════════════
+     全局 Toast 通知容器
+     ══════════════════════════════════════ -->
+    <div id="toast-container"></div>
+
+    <!-- ══════════════════════════════════════
+     通用输入弹窗（替代系统 prompt）
+     ══════════════════════════════════════ -->
+    <div id="modal-prompt" class="modal-overlay">
+        <div class="modal">
+            <div class="modal__title" id="modal-prompt-title">输入</div>
+            <p class="modal__meta mb-2" id="modal-prompt-desc" style="white-space:pre-wrap; line-height:1.6;"></p>
+            <input type="text" id="modal-prompt-input" class="input--full mb-3" placeholder="">
+            <div class="btn-row">
+                <button class="btn btn--primary" id="btn-prompt-ok">确定</button>
+                <button class="btn btn--ghost" id="btn-prompt-cancel">取消</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ══════════════════════════════════════
+     通用警告弹窗（替代系统 alert）
+     ══════════════════════════════════════ -->
+    <div id="modal-alert" class="modal-overlay">
+        <div class="modal">
+            <div class="modal__title" id="modal-alert-title">提示</div>
+            <p class="modal__desc" id="modal-alert-msg" style="font-size:11px; color:var(--text-dim); margin-bottom:16px; white-space:pre-wrap; line-height:1.6;"></p>
+            <button class="btn btn--primary btn--block" id="btn-alert-ok">确定</button>
         </div>
     </div>
 
