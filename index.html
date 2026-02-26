@@ -135,7 +135,24 @@
                     <div class="section-title">当前文档内操作</div>
                 </div>
 
+                <div class="btn-row mb-2">
+                    <button id="btn-auto-detect-status" class="btn btn--tint btn--flex2"
+                        title="根据 PS 图层结构自动推断当前文档的完成状态">🔍 自动检测状态</button>
+                    <button id="btn-next-page" class="btn btn--primary btn--flex2" title="将当前页状态推进一级，并自动切换到下一个未完成的页面">▶
+                        下一页</button>
+                </div>
+
                 <button id="btn-toggle-compare" class="btn btn--tint btn--block mb-2">开启原图对比</button>
+
+                <!-- 透明度滑块对比 -->
+                <div class="inline-bar mb-2" id="compare-opacity-row" style="display:none;">
+                    <span class="form-label">透明度</span>
+                    <input type="range" id="input-compare-opacity" min="0" max="100" value="100" class="input--flex"
+                        style="cursor:pointer;">
+                    <span id="compare-opacity-val" class="form-unit"
+                        style="min-width:32px; text-align:right;">100%</span>
+                </div>
+
                 <button id="btn-save-psd-compare" class="btn btn--orange btn--block mb-2"
                     title="拷贝底层原图为顶层参考组并保存">将对比组带入连同保存</button>
             </div>
@@ -198,6 +215,22 @@
                     <div class="section-title">PS 工具切换</div>
                 </div>
                 <div class="tool-grid">
+                    <button class="tool-btn" data-tool="removeTool" title="移除工具 (J)">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="m20.2 8.5-7.7 7.7" />
+                            <path d="M12.5 16.2 8.5 20.2a2.83 2.83 0 0 1-4-4l4-4" />
+                            <path d="m20.2 8.5-4-4a2.83 2.83 0 0 0-4 4l4 4" />
+                        </svg>
+                        移除工具
+                    </button>
+                    <button class="tool-btn" data-tool="marqueeRectTool" title="矩形选框 (M)">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+                        </svg>
+                        矩形选框
+                    </button>
                     <button class="tool-btn" data-tool="lassoTool" title="套索 (L)">
                         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                             stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -293,6 +326,11 @@
                     <button id="btn-fill-white" class="btn btn--secondary btn--block">涂白处理 — 直接填充白底</button>
                 </div>
 
+                <div class="inline-bar mt-2 mb-1">
+                    <input type="color" id="input-fill-color" value="#ffffff" class="input--color" title="选择填充颜色">
+                    <button id="btn-fill-color" class="btn btn--ghost btn--flex2">取色填充选区</button>
+                </div>
+
                 <hr class="divider">
 
                 <div class="section-head">
@@ -304,8 +342,12 @@
                         title="如果用魔棒点击气泡导致文字漏选，点击此按钮可瞬间闭合选区破洞包裹住文字。">
                         🩹 修复选区：闭合破洞包裹文字
                     </button>
-                    <p class="form-hint pb-2" style="text-align: center; margin-top:-2px;">默认扩边像素为 -4，结合修复选区可内缩保护黑边不被去除。
-                    </p>
+                    <p class="form-hint pb-2" style="text-align: center; margin-top:-2px;">点击后在 PS 中检查选区，再选择下方操作。</p>
+                    <!-- 两步确认行：默认隐藏，修复选区后显示 -->
+                    <div id="heal-confirm-row" class="btn-row" style="display:none;">
+                        <button id="btn-heal-confirm" class="btn btn--green btn--flex2">✅ 确认填充白色</button>
+                        <button id="btn-heal-cancel" class="btn btn--ghost">✖ 取消</button>
+                    </div>
                 </div>
 
             </div>
@@ -325,149 +367,141 @@
         <div id="panel-typeset" class="panel">
             <div class="panel-title">文本嵌字</div>
 
-            <!-- 二级标签 -->
-            <div class="tab-bar" id="typeset-mode-tabs">
-                <button class="tab-bar__item active" data-mode="import">批量导入与生成</button>
-                <button class="tab-bar__item" data-mode="correct">修改与修正</button>
-            </div>
-
-            <!-- 解析后共享 UI：所见即所点双向关联列表 -->
-            <div id="typeset-shared-list" class="card mb-2" style="display:none;">
-                <div class="form-row mb-2">
-                    <span class="form-label">当前页</span>
-                    <select id="sel-page-list" class="input--flex"></select>
+            <!-- ====== 1. 导入区（可折叠） ====== -->
+            <div class="collapse-section open" id="sec-import">
+                <div class="collapse-header" data-toggle="sec-import-body">
+                    <span class="collapse-arrow">▼</span>
+                    <span class="collapse-title">📥 导入与解析文稿</span>
                 </div>
-                <div id="dialog-list" class="dialog-list"></div>
-            </div>
-
-            <!-- 导入与生成 -->
-            <div id="typeset-import-tools">
-                <div class="section">
+                <div class="collapse-body" id="sec-import-body">
                     <div class="btn-row mb-2">
                         <button id="btn-import-txt" class="btn btn--primary">导入 TXT 文件</button>
                         <button id="btn-copy-ai-prompt" class="btn btn--tint">复制 AI 排版要求</button>
                     </div>
-
-                    <textarea id="txt-source" class="input--full mb-2" rows="5"
-                        placeholder="在此粘贴文稿，或点击上方导入 TXT&#10;&#10;支持格式：&#10;=== 第 1 页: 001.jpg ===&#10;[1] 你好，世界。&#10;[2] 翻译文本"></textarea>
-
-                    <button id="btn-parse-txt" class="btn btn--green btn--block mb-3">解析文稿内容</button>
-
-                    <!-- 解析后 UI -->
-                    <div id="typeset-ui-area" class="card" style="display:none;">
-                        <div class="form-row mb-2">
-                            <span class="form-label">场景预设</span>
-                            <select id="sel-typeset-preset" class="input--flex">
-                                <option value="">（选择参数后自动覆盖下方配置）</option>
-                            </select>
-                        </div>
-
-                        <div class="form-row mb-1">
-                            <span class="form-label">字体</span>
-                            <select id="sel-font-family" class="input--flex">
-                                <option value="">（匹配默认）</option>
-                            </select>
-                        </div>
-
-                        <div class="form-row mb-1">
-                            <span class="form-label">方向</span>
-                            <select id="sel-text-direction" class="input--flex">
-                                <option value="VERTICAL">⬇️ 竖排 (日漫标准要求)</option>
-                                <option value="HORIZONTAL">➡️ 横排 (条漫/韩漫标准)</option>
-                            </select>
-                        </div>
-
-                        <div class="form-row mb-3">
-                            <span class="form-label">字号</span>
-                            <input type="number" id="input-font-size" value="16" min="1" max="200" class="input--sm">
-                            <span class="form-unit">pt</span>
-                            <span class="form-hint">不同画幅需要的字号可能不同</span>
-                        </div>
-
-                        <button id="btn-auto-typeset" class="btn btn--primary btn--block btn--lg">
-                            批量生成文本图层
-                        </button>
-                    </div>
+                    <textarea id="txt-source" class="input--full mb-2" rows="4"
+                        placeholder="在此粘贴文稿，或点击上方导入 TXT&#10;&#10;=== 第 1 页: 001.jpg ===&#10;[1] 你好，世界。"></textarea>
+                    <button id="btn-parse-txt" class="btn btn--green btn--block">解析文稿内容</button>
                 </div>
             </div>
 
-            <!-- 修改与修正 -->
-            <div id="typeset-correct-tools" style="display:none;">
-
-                <!-- 属性联调与读写 -->
-                <div class="section">
-                    <div class="card mb-3">
-                        <div class="section-head">
-                            <div class="section-title">图层属性调控</div>
-                            <div class="btn-row">
-                                <button id="btn-sync-read-layer" class="btn btn--tint btn--sm"
-                                    title="读取所选的单层文本图层内容与排版属性">提取图层信息</button>
-                                <button id="btn-sync-read-all" class="btn btn--tint btn--sm"
-                                    title="读取当前画板中的所有文本图层，汇出合并为带序号的文稿格式">📥 全页提取</button>
-                            </div>
-                        </div>
-
-                        <textarea id="input-sync-text" class="input--full mb-2" rows="3"
-                            placeholder="在 PS 中选中一个文本图层，然后点击右上角「提取图层信息」…"></textarea>
-
-                        <!-- 高级属性控制台 -->
-                        <div class="form-row mb-1">
-                            <span class="form-label">字体</span>
-                            <select id="sel-sync-font" class="input--flex">
-                                <option value="">（保持不变）</option>
-                            </select>
-                        </div>
-
-                        <div class="form-row mb-1">
-                            <span class="form-label">字号</span>
-                            <input type="number" id="input-sync-size" placeholder="如 16" min="1" max="200"
-                                class="input--flex">
-                            <span class="form-unit ml-1">pt</span>
-                        </div>
-
-                        <div class="form-row mb-1">
-                            <span class="form-label">行距</span>
-                            <input type="text" id="input-sync-leading" placeholder="留空为自动" class="input--flex">
-                            <span class="form-unit ml-1">pt/%</span>
-                        </div>
-
-                        <div class="form-row mb-2">
-                            <span class="form-label">颜色</span>
-                            <input type="color" id="input-sync-color" value="#000000" class="input--color ml-1">
-                        </div>
-
-                        <button id="btn-sync-write-layer" class="btn btn--primary btn--block">向图层应用文本与排版</button>
-                    </div>
+            <!-- ====== 2. 对话列表（始终可见，核心中枢） ====== -->
+            <div id="typeset-shared-list" class="card mb-2 mt-2" style="display:none;">
+                <div class="form-row mb-2">
+                    <span class="form-label">当前页</span>
+                    <select id="sel-page-list" class="input--flex"></select>
                 </div>
+                <div id="dialog-list" class="dialog-list">
+                    <div class="placeholder">尚未解析文稿，请在上方导入并解析</div>
+                </div>
+            </div>
 
-                <!-- 排版修正 -->
-                <div class="section">
-                    <div class="card">
-                        <div class="section-head">
-                            <div class="section-title section-title--pink">排版修正工具</div>
-                        </div>
-
-                        <div class="inline-bar mb-3">
-                            <span class="form-label fw-500">断句控制</span>
-                            <span class="form-unit">每</span>
-                            <input type="number" id="input-auto-break-num" value="7" min="2" max="50" class="input--sm">
-                            <span class="form-unit">字换行</span>
-                            <button id="btn-auto-break-text" class="btn btn--pink-solid btn--xs"
-                                title="根据字数上限自动气泡折行">执行断句</button>
-                        </div>
-
-                        <div class="btn-row mb-2">
-                            <button id="btn-fix-punctuation" class="btn btn--ghost btn--sm" title="弯引号→直角引号，修正全半角">
-                                「」标点规范化
-                            </button>
-                            <button id="btn-fix-bang-question" class="btn btn--ghost btn--sm" title="！？→半角 !?">
-                                !? 全半角降级
-                            </button>
-                        </div>
-                        <button id="btn-fix-dash" class="btn btn--tint btn--block btn--sm" title="修正破折号中间断开（负字距）">
-                            —— 连补破折号 ——
-                        </button>
+            <!-- ====== 3. 批量生成（可折叠） ====== -->
+            <div id="typeset-ui-area" class="collapse-section" id="sec-batch" style="display:none;">
+                <div class="collapse-header" data-toggle="sec-batch-body">
+                    <span class="collapse-arrow">▶</span>
+                    <span class="collapse-title">⚡ 批量生成文本图层</span>
+                </div>
+                <div class="collapse-body" id="sec-batch-body" style="display:none;">
+                    <div class="form-row mb-2">
+                        <span class="form-label">场景预设</span>
+                        <select id="sel-typeset-preset" class="input--flex">
+                            <option value="">（选择参数后自动覆盖下方配置）</option>
+                        </select>
                     </div>
+                    <div class="form-row mb-1">
+                        <span class="form-label">字体</span>
+                        <select id="sel-font-family" class="input--flex">
+                            <option value="">（匹配默认）</option>
+                        </select>
+                    </div>
+                    <div class="form-row mb-1">
+                        <span class="form-label">方向</span>
+                        <select id="sel-text-direction" class="input--flex">
+                            <option value="VERTICAL">⬇️ 竖排</option>
+                            <option value="HORIZONTAL">➡️ 横排</option>
+                        </select>
+                    </div>
+                    <div class="form-row mb-2">
+                        <span class="form-label">字号</span>
+                        <input type="number" id="input-font-size" value="16" min="1" max="200" class="input--sm">
+                        <span class="form-unit">pt</span>
+                    </div>
+                    <button id="btn-auto-typeset" class="btn btn--primary btn--block btn--lg">
+                        批量生成文本图层
+                    </button>
+                </div>
+            </div>
+
+            <!-- ====== 4. 单条精调（可折叠） ====== -->
+            <div class="collapse-section" id="sec-adjust">
+                <div class="collapse-header" data-toggle="sec-adjust-body">
+                    <span class="collapse-arrow">▶</span>
+                    <span class="collapse-title">🔧 单条修改与精调</span>
+                </div>
+                <div class="collapse-body" id="sec-adjust-body" style="display:none;">
+
+                    <!-- 框选气泡创建 -->
+                    <div class="section-head mt-1">
+                        <div class="section-title section-title--green">框选气泡 → 创建文本框</div>
+                    </div>
+                    <textarea id="input-selection-text" class="input--full mb-2" rows="2"
+                        placeholder="（可选）预填入文字内容"></textarea>
+                    <button id="btn-create-from-selection" class="btn btn--primary btn--block mb-3">
+                        🔲 框选气泡 → 创建文本框
+                    </button>
+
+                    <hr class="divider">
+
+                    <!-- 图层属性读写 -->
+                    <div class="section-head">
+                        <div class="section-title">图层属性调控</div>
+                        <div class="btn-row">
+                            <button id="btn-sync-read-layer" class="btn btn--tint btn--sm">提取图层</button>
+                            <button id="btn-sync-read-all" class="btn btn--tint btn--sm">📥 全页提取</button>
+                        </div>
+                    </div>
+                    <textarea id="input-sync-text" class="input--full mb-2" rows="2"
+                        placeholder="选中文本图层后点击「提取图层」…"></textarea>
+
+                    <div class="form-row mb-1">
+                        <span class="form-label">字体</span>
+                        <select id="sel-sync-font" class="input--flex">
+                            <option value="">（保持不变）</option>
+                        </select>
+                    </div>
+                    <div class="form-row mb-1">
+                        <span class="form-label">字号</span>
+                        <input type="number" id="input-sync-size" placeholder="16" class="input--flex">
+                        <span class="form-unit">pt</span>
+                    </div>
+                    <div class="form-row mb-1">
+                        <span class="form-label">行距</span>
+                        <input type="text" id="input-sync-leading" placeholder="自动" class="input--flex">
+                        <span class="form-unit">pt/%</span>
+                    </div>
+                    <div class="form-row mb-2">
+                        <span class="form-label">颜色</span>
+                        <input type="color" id="input-sync-color" value="#000000" class="input--color">
+                    </div>
+                    <button id="btn-sync-write-layer" class="btn btn--primary btn--block mb-3">应用文本与排版</button>
+
+                    <hr class="divider">
+
+                    <!-- 排版修正 -->
+                    <div class="section-head">
+                        <div class="section-title section-title--pink">排版修正</div>
+                    </div>
+                    <div class="inline-bar mb-2">
+                        <span class="form-label">每</span>
+                        <input type="number" id="input-auto-break-num" value="7" min="2" max="50" class="input--sm">
+                        <span class="form-unit">字换行</span>
+                        <button id="btn-auto-break-text" class="btn btn--pink-solid btn--xs">执行断句</button>
+                    </div>
+                    <div class="btn-row mb-2">
+                        <button id="btn-fix-punctuation" class="btn btn--ghost btn--sm">「」标点规范化</button>
+                        <button id="btn-fix-bang-question" class="btn btn--ghost btn--sm">!? 全半角降级</button>
+                    </div>
+                    <button id="btn-fix-dash" class="btn btn--tint btn--block btn--sm">—— 连补破折号 ——</button>
                 </div>
             </div>
         </div>
@@ -542,18 +576,51 @@
                     <div class="section-title">外描边生成</div>
                 </div>
                 <div class="card">
-                    <div class="form-row mb-3">
+                    <div class="form-row mb-2">
                         <span class="form-label">描边粗细</span>
                         <input type="number" id="input-stroke-size" value="3" min="1" max="50" class="input--sm">
                         <span class="form-unit">px</span>
                     </div>
 
+                    <div class="form-row mb-3">
+                        <span class="form-label">描边颜色</span>
+                        <input type="color" id="input-stroke-color" value="#000000" class="input--color ml-1"
+                            title="自定义描边颜色">
+                    </div>
+
                     <div class="btn-row mb-3">
                         <button id="btn-stroke-black" class="btn btn--secondary">加黑边</button>
                         <button id="btn-stroke-white" class="btn btn--secondary">加白边</button>
+                        <button id="btn-stroke-custom" class="btn btn--tint" title="使用左侧颜色选择器中选定的颜色">自定颜色</button>
                     </div>
 
                     <button id="btn-clear-layer-style" class="btn btn--danger-text btn--block">清除该图层所有特效</button>
+                </div>
+            </div>
+
+            <!-- 常用漫画效果 -->
+            <div class="section mt-2">
+                <div class="section-head">
+                    <div class="section-title">常用漫画效果</div>
+                </div>
+                <div class="card">
+                    <div class="form-row mb-2">
+                        <span class="form-label">发光颜色</span>
+                        <input type="color" id="input-glow-color" value="#ffffff" class="input--color ml-1">
+                        <span class="form-label ml-2">大小</span>
+                        <input type="number" id="input-glow-size" value="5" min="1" max="50" class="input--sm">
+                        <span class="form-unit">px</span>
+                    </div>
+                    <button id="btn-add-outer-glow" class="btn btn--green btn--block mb-3">✨ 添加外发光</button>
+
+                    <div class="form-row mb-2">
+                        <span class="form-label">投影颜色</span>
+                        <input type="color" id="input-shadow-color" value="#000000" class="input--color ml-1">
+                        <span class="form-label ml-2">距离</span>
+                        <input type="number" id="input-shadow-dist" value="3" min="0" max="50" class="input--sm">
+                        <span class="form-unit">px</span>
+                    </div>
+                    <button id="btn-add-drop-shadow" class="btn btn--secondary btn--block">🌑 添加投影</button>
                 </div>
             </div>
 
@@ -599,23 +666,76 @@
                 <div class="btn-row mb-2" id="fav-category-filters" style="flex-wrap:wrap;">
                     <!-- JS 动态生成收藏分类按钮 -->
                 </div>
+                <div class="btn-row mb-2">
+                    <button id="btn-export-fav-json" class="btn btn--ghost btn--sm" title="将收藏数据导出为 JSON 文件备份">📤
+                        导出收藏</button>
+                    <button id="btn-import-fav-json" class="btn btn--ghost btn--sm" title="从 JSON 文件导入收藏数据（合并模式）">📥
+                        导入收藏</button>
+                    <input type="file" id="input-import-fav-file" accept=".json" style="display:none;">
+                </div>
             </div>
 
             <!-- 在线字库工具 -->
             <div id="font-online-tools" style="display:none;">
-                <div class="note mb-3">
-                    受版权与系统限制，工作台不内嵌网络商城。请查阅下方 AI 推荐后<strong>点击直达版权合规站</strong>挑选。
+
+                <!-- AI 字体参谋区 -->
+                <div class="section-head">
+                    <div class="section-title section-title--pink">🤖 AI 字体参谋</div>
+                </div>
+                <div class="card mb-3">
+                    <textarea id="input-online-search" class="input--full mb-2" rows="2"
+                        placeholder="描述漫画场景或情绪，让 AI 推荐字体风格…&#10;如：愤怒男主的大吗、少女心事手账、魔法读心术内心独白…"></textarea>
+                    <div class="btn-row">
+                        <button id="btn-ai-recommend" class="btn btn--primary btn--flex2">🤖 AI 分析推荐</button>
+                        <button id="btn-ai-clear" class="btn btn--ghost btn--sm">清空</button>
+                    </div>
                 </div>
 
-                <div class="btn-row mb-3">
-                    <button class="btn btn--primary" id="btn-jump-zfont">字由 zfont</button>
-                    <button class="btn btn--green" id="btn-jump-zeoseven">ZeoSeven</button>
+                <!-- AI 推荐结果区 -->
+                <div id="ai-result-area" style="display:none;">
+                    <div class="section-head">
+                        <div class="section-title text-accent">推荐结果</div>
+                    </div>
+                    <div id="ai-result-cards" class="mb-3"></div>
                 </div>
 
-                <div class="form-row mb-3">
-                    <input type="text" id="input-online-search" placeholder="描述你需要的字体风格…" class="input--flex">
-                    <button id="btn-ai-recommend" class="btn btn--tint btn--sm" title="调用大模型推荐">AI 参谋</button>
+                <!-- 小分割 -->
+                <hr class="divider">
+
+                <!-- 在线精选免费字体库 -->
+                <div class="section-head">
+                    <div class="section-title section-title--green">✨ 常用免费商用字库</div>
                 </div>
+
+                <!-- 风格快捷小按鈕 -->
+                <div class="btn-row mb-2" id="online-tag-filters" style="flex-wrap:wrap;">
+                    <button class="btn btn--ghost btn--xs active" data-tag="all">全部</button>
+                    <button class="btn btn--ghost btn--xs" data-tag="黑体">黑体</button>
+                    <button class="btn btn--ghost btn--xs" data-tag="楷体">楷体</button>
+                    <button class="btn btn--ghost btn--xs" data-tag="圆体">圆体</button>
+                    <button class="btn btn--ghost btn--xs" data-tag="标题">标题</button>
+                    <button class="btn btn--ghost btn--xs" data-tag="手写">手写</button>
+                    <button class="btn btn--ghost btn--xs" data-tag="漫画">漫画</button>
+                </div>
+
+                <!-- 字体卡片列表 -->
+                <div id="online-font-list"></div>
+
+                <hr class="divider">
+                <div class="btn-row mb-1">
+                    <button class="btn btn--ghost btn--sm btn--flex2" id="btn-jump-zfont">🔗 字由 zfont.cn</button>
+                    <button class="btn btn--ghost btn--sm btn--flex2" id="btn-jump-zeoseven">🔗 ZeoSeven Fonts</button>
+                </div>
+            </div>
+
+            <!-- 应用范围控制 -->
+            <div class="inline-bar mb-2" id="font-apply-scope-row">
+                <span class="form-label fw-500">应用范围</span>
+                <select id="sel-font-apply-scope" class="input--flex" style="font-size: 11px;">
+                    <option value="active">仅当前图层</option>
+                    <option value="selected">当前选中的多个图层（仅文本层）</option>
+                    <option value="all">当前文档全部文本图层</option>
+                </select>
             </div>
 
             <!-- 字体列表 -->
@@ -651,11 +771,27 @@
 
             <!-- API 接入 -->
             <div class="settings-group">
-                <div class="settings-group__title">扩展 API 接入（即将到来）</div>
-                <p class="text-dim mb-2" style="font-size:11px;">填写 API Key 以启用在线字库检索与 AI 推荐。所有 Key 仅保存在本地。</p>
+                <div class="settings-group__title">🔑 扩展 API 接入</div>
+                <p class="text-dim mb-2" style="font-size:11px;">填写 API Key 以启用 AI 字体参谋。所有 Key 仅保存在本地。</p>
 
-                <label class="form-label mb-1" style="display:block;">大模型 API Key（Gemini / OpenAI 等）</label>
-                <input type="password" id="input-api-key" placeholder="在此填入 Key…" class="input--full mb-3">
+                <div class="form-row mb-2">
+                    <span class="form-label">模型类型</span>
+                    <select id="sel-api-model-type" class="input--flex" style="font-size:11px;">
+                        <option value="gemini">Google Gemini</option>
+                        <option value="openai">OpenAI 兼容（DeepSeek / Kimi / 本地等）</option>
+                    </select>
+                </div>
+
+                <label class="form-label mb-1" style="display:block;">API Key</label>
+                <input type="password" id="input-api-key" placeholder="在此填入 Key…" class="input--full mb-2">
+
+                <div id="api-openai-extra" style="display:none;">
+                    <label class="form-label mb-1" style="display:block;">Base URL</label>
+                    <input type="text" id="input-api-base-url" placeholder="https://api.deepseek.com/v1"
+                        class="input--full mb-2">
+                    <label class="form-label mb-1" style="display:block;">模型名〈可选〉</label>
+                    <input type="text" id="input-api-model-name" placeholder="deepseek-chat" class="input--full mb-2">
+                </div>
 
                 <button id="btn-save-api-key" class="btn btn--primary btn--block">保存 API 配置</button>
             </div>
@@ -722,6 +858,24 @@
             <div id="cmp-list-container"
                 style="flex:1; overflow-y:auto; padding:0 16px 16px 16px; display:flex; flex-direction:column; gap:8px;">
                 <!-- 动态生成对比列表 -->
+            </div>
+        </div>
+    </div>
+
+    </div>
+
+    <!-- ══════════════════════════════════════
+     清空确认弹窗
+     ══════════════════════════════════════ -->
+    <div id="modal-clear-confirm" class="modal-overlay">
+        <div class="modal">
+            <div class="modal__title" style="color: var(--red);">⚠️ 清空列表警告</div>
+            <p class="modal__desc" style="font-size: 11px; color: var(--text-dim); margin-bottom: 16px;">
+                确定要清空所有已导入的页面列表吗？此操作不会删除本地文件，但进度将重置。
+            </p>
+            <div class="btn-row">
+                <button class="btn btn--red" id="btn-confirm-clear" style="background: var(--red-dim);">确定清空</button>
+                <button class="btn btn--secondary" id="btn-cancel-clear">取消</button>
             </div>
         </div>
     </div>

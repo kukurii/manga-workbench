@@ -41,6 +41,7 @@ window.onload = function () {
 
     // 我们在此告诉系统要加载哪些模块文件
     const jsxModules = [
+        "jsx/json2.jsx",       // 必须第一个加载，为 ExtendScript(ES3) 补全 JSON.parse/stringify
         "jsx/main.jsx",
         "jsx/pageManager.jsx",
         "jsx/compare.jsx",
@@ -49,72 +50,68 @@ window.onload = function () {
         "jsx/retouch.jsx"
     ];
 
-    jsxModules.forEach(modulePath => {
-        // 利用绝对路径强制 PS 也就是 ExtendScript 读取载入。
-        // $.evalFile 在 ExtendScript 中用于加载外部脚本
-        const absPath = extPath + "/" + modulePath;
-        cs.evalScript(`$.evalFile("${absPath.replace(/\\/g, '\\\\')}");`);
-    });
+    // IMPORTANT:
+    // cs.evalScript 是异步的；如果用 forEach 并发加载，会导致模块加载顺序不确定
+    // （json2.jsx 可能还没加载完就执行了依赖 JSON 的脚本）。
+    // 这里改为严格串行加载，且每个文件只加载一次。
+    function loadJsxModulesSerial(modules, done) {
+        let i = 0;
+        const next = () => {
+            if (i >= modules.length) {
+                if (done) done();
+                return;
+            }
+            const modulePath = modules[i++];
+            const absPath = extPath + "/" + modulePath;
+            const safeAbsPath = absPath.replace(/\\/g, '\\\\');
+            cs.evalScript(`$.evalFile("${safeAbsPath}")`, next);
+        };
+        next();
+    }
 
-    // 确保数据隔离目录存在 (放置 json 等缓存文件)
-    // 【第十一阶段重构】：从有更新覆写风险的 extPath/data 迁移至安全的 USER_DATA
-    const userDataPath = cs.getSystemPath(SystemPath.USER_DATA);
-    const dataDir = userDataPath + "/MangaWorkbenchData";
+    // 确保数据目录存在 (放置 font 缓存、收藏、最近使用等 json 文件)
+    // 统一使用插件自身的 data/ 目录，便于直接读取预置的 font-cn-cache.json
+    const dataDir = extPath + "/data";
     const dirResult = window.cep.fs.stat(dataDir);
     if (dirResult.err !== window.cep.fs.NO_ERROR) {
         window.cep.fs.makedir(dataDir);
     }
 
     // --- 实例化各模块的前端逻辑 ---
-    window.pageManager = new PageManager(cs, extPath, dataDir);
-    window.typesetManager = new TypesetManager(cs, extPath, dataDir);
-    window.styleManager = new StyleManager(cs, extPath, dataDir);
-    window.fxManager = new FxManager(cs, extPath, dataDir);
-    window.retouchManager = new RetouchManager(cs, extPath, dataDir);
-    window.fontManager = new FontManager(cs, extPath, dataDir);
-    window.presetsManager = new PresetsManager(cs, extPath, dataDir);
+    // 延迟初始化，确保所有 DOM 和 JSX 模块已准备就绪
+    function initPanels() {
+        window.pageManager = new PageManager(cs, extPath, dataDir);
+        window.typesetManager = new TypesetManager(cs, extPath, dataDir);
+        window.styleManager = new StyleManager(cs, extPath, dataDir);
+        window.fxManager = new FxManager(cs, extPath, dataDir);
+        window.retouchManager = new RetouchManager(cs, extPath, dataDir);
+        window.fontManager = new FontManager(cs, extPath, dataDir);
+        window.presetsManager = new PresetsManager(cs, extPath, dataDir);
 
-    // 原图对比快捷操作
-    const btnCompare = document.getElementById('btn-toggle-compare');
+        // 原图对比的旧逻辑在 pageManager.js 中已重构，这里仅保留以防万一
+        const btnCompare = document.getElementById('btn-toggle-compare');
+        if (btnCompare && !window.pageManager) { // 仅当 pageManager 未初始化时才执行旧逻辑
+            btnCompare.addEventListener('click', () => {
+                cs.evalScript(`backupOriginalLayer()`, () => cs.evalScript(`toggleOriginalCompare()`));
+                btnCompare.classList.toggle('active-contrast');
+                btnCompare.innerText = btnCompare.classList.contains('active-contrast')
+                    ? "👁️ 隐藏原图查看嵌字 (长按对比)"
+                    : "👀 点击开启原图对比";
+            });
+        }
+    }
+
+    // 串行加载全部 JSX 后再初始化各面板
+    loadJsxModulesSerial(jsxModules, () => {
+        setTimeout(initPanels, 100); // 双重保险：确保 DOM/JSX 均已准备就绪
+    });
+
+    // 原图对比快捷操作（此部分逻辑已移至 pageManager.js，为安全起见注释掉旧代码）
+    /* const btnCompare = document.getElementById('btn-toggle-compare');
     if (btnCompare) {
         btnCompare.addEventListener('click', () => {
-            // 先尝试运行一次备份，再执行切换以确保已经备份过了
-            cs.evalScript(`backupOriginalLayer()`, function (res) {
-                cs.evalScript(`toggleOriginalCompare()`);
-            });
-            // 切换按钮高亮状态
-            btnCompare.classList.toggle('active-contrast');
-            if (btnCompare.classList.contains('active-contrast')) {
-                btnCompare.innerText = "👁️ 隐藏原图查看嵌字 (长按对比)";
-            } else {
-                btnCompare.innerText = "👀 点击开启原图对比";
-            }
-        });
-
-        // 允许长按对比
-        let tHover;
-        btnCompare.addEventListener('mousedown', () => {
-            if (!btnCompare.classList.contains('active-contrast')) {
-                cs.evalScript(`backupOriginalLayer()`, () => {
-                    cs.evalScript(`toggleOriginalCompare()`);
-                });
-            }
-        });
-        btnCompare.addEventListener('mouseup', () => {
-            if (!btnCompare.classList.contains('active-contrast')) {
-                cs.evalScript(`toggleOriginalCompare()`);
-            }
-        });
-        btnCompare.addEventListener('mouseleave', () => {
-            if (!btnCompare.classList.contains('active-contrast')) {
-                // 如果本来就没常开，鼠标移出时确保关闭
-                cs.evalScript(`
-                 var d=app.activeDocument;
-                 for(var i=0;i<d.layers.length;i++){
-                    if(d.layers[i].name==="【原图参考】") d.layers[i].visible=false;
-                 }
-               `);
-            }
+            // ...
         });
     }
+    */
 };

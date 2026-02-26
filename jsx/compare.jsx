@@ -44,6 +44,35 @@ function backupOriginalLayer() {
 }
 
 /**
+ * 设置原图参考图层的不透明度（0-100）
+ * 用于滑块对比：实时调整原图参考组的透明度
+ */
+function setCompareGroupOpacity(opacity) {
+    try {
+        if (app.documents.length === 0) return "No doc";
+
+        var doc = app.activeDocument;
+        var backupLayerName = "【原图参考】";
+        var opacityVal = parseInt(opacity);
+        if (isNaN(opacityVal)) opacityVal = 100;
+        if (opacityVal < 0) opacityVal = 0;
+        if (opacityVal > 100) opacityVal = 100;
+
+        for (var i = 0; i < doc.layers.length; i++) {
+            if (doc.layers[i].name === backupLayerName) {
+                doc.layers[i].opacity = opacityVal;
+                // 确保可见（透明度非零时自动显示）
+                doc.layers[i].visible = (opacityVal > 0);
+                return "OK";
+            }
+        }
+        return "No backup found";
+    } catch (e) {
+        return e.toString();
+    }
+}
+
+/**
  * 切换原图参考的可见性 (开/关)
  */
 function toggleOriginalCompare() {

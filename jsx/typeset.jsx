@@ -1,14 +1,6 @@
 // typeset.jsx - 嵌字排版相关的 Photoshop ExtendScript
 
 /**
- * 获取当前 PS 环境所有的字体列表
- * 已废弃：直接转 JSON 传给前端容易因数据量过大造成 PS 进程卡死
- */
-function getInstalledFonts() {
-    return "[]";
-}
-
-/**
  * 极速版字体拉取：提取后直接写为本地缓存文件，避开 CEP String 传输上限
  */
 function generateFontCacheFile(exportPath) {
@@ -48,8 +40,8 @@ function generateTextLayersBulk(dialogsJson, styleJson) {
         if (app.documents.length === 0) return "错误：当前 Photoshop 没有打开任何文档进行放置。";
 
         var doc = app.activeDocument;
-        var dialogs = eval("(" + dialogsJson + ")");
-        var styleParams = eval("(" + styleJson + ")");
+        var dialogs = JSON.parse(dialogsJson);
+        var styleParams = JSON.parse(styleJson);
 
         // 创建或获取【翻译文字】图层组
         var groupName = "【翻译文字】";
@@ -259,6 +251,119 @@ function applyFontToLayer(postScriptName) {
 }
 
 /**
+ * 批量应用字体：对“当前选择的多个图层”中的文本图层应用字体
+ * - 若当前仅单选，则等同于 applyFontToLayer
+ * 返回：SUCCESS|||{"total":x,"applied":y,"skipped":z}
+ */
+function applyFontToSelectedTextLayers(postScriptName) {
+    try {
+        if (app.documents.length === 0) return "错误：没有打开的文档";
+        var doc = app.activeDocument;
+
+        function getSelectedLayerIndices() {
+            var indices = [];
+            try {
+                var ref = new ActionReference();
+                ref.putProperty(charIDToTypeID("Prpr"), stringIDToTypeID("targetLayers"));
+                ref.putEnumerated(charIDToTypeID("Dcmn"), charIDToTypeID("Ordn"), charIDToTypeID("Trgt"));
+                var desc = executeActionGet(ref);
+                if (!desc.hasKey(stringIDToTypeID("targetLayers"))) return indices;
+
+                var list = desc.getList(stringIDToTypeID("targetLayers"));
+                for (var i = 0; i < list.count; i++) {
+                    var ref2 = list.getReference(i);
+                    var idx = ref2.getIndex();
+                    indices.push(idx);
+                }
+            } catch (e) { }
+            return indices;
+        }
+
+        function selectLayerByIndex(idx) {
+            var idslct = charIDToTypeID("slct");
+            var desc = new ActionDescriptor();
+            var idnull = charIDToTypeID("null");
+            var ref = new ActionReference();
+            ref.putIndex(charIDToTypeID("Lyr "), idx);
+            desc.putReference(idnull, ref);
+            desc.putBoolean(charIDToTypeID("MkVs"), false);
+            executeAction(idslct, desc, DialogModes.NO);
+        }
+
+        var selected = getSelectedLayerIndices();
+        // 若没有拿到多选信息，降级为单层处理（兼容某些版本 PS）
+        if (!selected || selected.length === 0) {
+            return applyFontToLayer(postScriptName);
+        }
+
+        var applied = 0;
+        var skipped = 0;
+        var total = selected.length;
+
+        for (var k = 0; k < selected.length; k++) {
+            try {
+                selectLayerByIndex(selected[k]);
+                var lr = doc.activeLayer;
+                if (lr && lr.kind === LayerKind.TEXT) {
+                    lr.textItem.font = postScriptName;
+                    applied++;
+                } else {
+                    skipped++;
+                }
+            } catch (e1) {
+                skipped++;
+            }
+        }
+
+        return 'SUCCESS|||{"total":' + total + ',"applied":' + applied + ',"skipped":' + skipped + "}";
+    } catch (e) {
+        return "更改字体失败: " + e.toString();
+    }
+}
+
+/**
+ * 批量应用字体：对“当前文档全部文本图层”（含编组内）应用字体
+ * 返回：SUCCESS|||{"total":x,"applied":y,"skipped":z}
+ */
+function applyFontToAllTextLayers(postScriptName) {
+    try {
+        if (app.documents.length === 0) return "错误：没有打开的文档";
+        var doc = app.activeDocument;
+
+        var applied = 0;
+        var skipped = 0;
+        var total = 0;
+
+        function walk(layers) {
+            for (var i = 0; i < layers.length; i++) {
+                var lr = layers[i];
+                if (lr.typename === "LayerSet") {
+                    walk(lr.layers);
+                } else {
+                    total++;
+                    if (lr.kind === LayerKind.TEXT) {
+                        try {
+                            lr.textItem.font = postScriptName;
+                            applied++;
+                        } catch (e1) {
+                            skipped++;
+                        }
+                    } else {
+                        skipped++;
+                    }
+                }
+            }
+        }
+
+        walk(doc.layers);
+
+        return 'SUCCESS|||{"total":' + total + ',"applied":' + applied + ',"skipped":' + skipped + "}";
+    } catch (e) {
+        return "更改字体失败: " + e.toString();
+    }
+}
+
+/**
  * [双向绑定] 读取选中图层的详细文本多维属性 (文本、字号、字体、颜色、行距)
  */
 function readActiveLayerProperties() {
@@ -333,8 +438,7 @@ function applyActiveLayerProperties(jsonStr) {
             return "错误：请先选中一个【文本图层】才能写入。";
         }
 
-        // ES3 ExtendScript 下使用 eval 安全代偿解析前端传来的字串
-        var params = eval("(" + jsonStr + ")");
+        var params = JSON.parse(jsonStr);
         var ti = layer.textItem;
 
         // 写入文本
@@ -416,6 +520,156 @@ function locateTextLayer(targetName) {
         return "SUCCESS";
     } catch (e) {
         return "错误：在画布中未能找到编号为 [" + targetName + "] 的文本图层。可能已被重命名或删除。";
+    }
+}
+
+/**
+ * 框选气泡后创建文本框：读取当前选区 bounds，在其中心创建段落文本图层
+ */
+function createTextLayerInSelection(text, fontPostScriptName, fontSize, direction) {
+    try {
+        if (app.documents.length === 0) return "错误：没有打开的文档";
+        var doc = app.activeDocument;
+
+        // 读取选区边界
+        var bounds;
+        try {
+            bounds = doc.selection.bounds;
+        } catch (e) {
+            return "失败：请先框选气泡区域，再点击此按钮。";
+        }
+
+        // Photoshop selection.bounds 顺序为: [left, top, right, bottom]
+        var left   = bounds[0].as("px");
+        var top    = bounds[1].as("px");
+        var right  = bounds[2].as("px");
+        var bottom = bounds[3].as("px");
+        var w = right - left;
+        var h = bottom - top;
+
+        if (w < 4 || h < 4) return "失败：选区过小，请重新框选气泡。";
+
+        // 取消选区以防干扰图层操作
+        doc.selection.deselect();
+
+        // 获取或创建【翻译文字】组
+        var groupName = "【翻译文字】";
+        var txtGroup;
+        try {
+            txtGroup = doc.layerSets.getByName(groupName);
+        } catch (e) {
+            txtGroup = doc.layerSets.add();
+            txtGroup.name = groupName;
+            txtGroup.move(doc.layers[0], ElementPlacement.PLACEBEFORE);
+        }
+
+        // 创建段落文本图层
+        var textLayer = txtGroup.artLayers.add();
+        textLayer.kind = LayerKind.TEXT;
+
+        var ti = textLayer.textItem;
+        ti.kind = TextType.PARAGRAPHTEXT;
+
+        // 设置方向
+        var isVertical = (direction === "VERTICAL");
+        ti.direction = isVertical ? Direction.VERTICAL : Direction.HORIZONTAL;
+
+        // 设置字体
+        if (fontPostScriptName && fontPostScriptName !== "" && fontPostScriptName !== "undefined") {
+            try { ti.font = fontPostScriptName; } catch (ef) { }
+        }
+
+        // 设置字号
+        var fSize = parseFloat(fontSize) || 16;
+        ti.size = new UnitValue(fSize, "pt");
+        ti.useAutoLeading = true;
+
+        // 居中对齐
+        ti.justification = isVertical ? Justification.CENTER : Justification.CENTER;
+
+        // 文本内容（支持 \n 转实际换行）
+        var content = text ? text.replace(/\\n/g, "\r") : "文字";
+        ti.contents = content;
+
+        // 设置段落文本框的位置与大小
+        // paragraphText: position = 左上角, width/height = 框尺寸
+        ti.position = [new UnitValue(left, "px"), new UnitValue(top, "px")];
+        ti.width    = new UnitValue(w, "px");
+        ti.height   = new UnitValue(h, "px");
+
+        // 选中新图层
+        doc.activeLayer = textLayer;
+
+        return "SUCCESS";
+    } catch (e) {
+        return "框选创建文本框失败: " + e.toString();
+    }
+}
+
+/**
+ * 获取当前文档中所有文本图层的列表（索引、名称、内容），用于批量对比更新
+ */
+function getAllTextLayers() {
+    try {
+        if (app.documents.length === 0) return "错误：没有打开的文档";
+        var doc = app.activeDocument;
+
+        var result = [];
+
+        function esc(str) {
+            if (typeof str !== "string") return "";
+            return str.replace(/\\/g, "\\\\")
+                      .replace(/"/g, '\\"')
+                      .replace(/\r/g, "\\r")
+                      .replace(/\n/g, "\\n");
+        }
+
+        function collect(layers) {
+            for (var i = 0; i < layers.length; i++) {
+                var lr = layers[i];
+                if (lr.typename === "LayerSet") {
+                    collect(lr.layers);
+                } else if (lr.kind === LayerKind.TEXT) {
+                    result.push('{"name":"' + esc(lr.name) + '","text":"' + esc(lr.textItem.contents) + '"}');
+                }
+            }
+        }
+
+        collect(doc.layers);
+
+        return "SUCCESS|||[" + result.join(",") + "]";
+    } catch (e) {
+        return "获取文本图层失败: " + e.toString();
+    }
+}
+
+/**
+ * 按图层名称更新文本内容（前端传来名称和新文本）
+ */
+function updateTextLayerByName(layerName, newText) {
+    try {
+        if (app.documents.length === 0) return "错误：没有打开的文档";
+        var doc = app.activeDocument;
+
+        var newContent = newText.replace(/\\n/g, "\r");
+
+        function findAndUpdate(layers) {
+            for (var i = 0; i < layers.length; i++) {
+                var lr = layers[i];
+                if (lr.typename === "LayerSet") {
+                    if (findAndUpdate(lr.layers)) return true;
+                } else if (lr.kind === LayerKind.TEXT && lr.name === layerName) {
+                    lr.textItem.contents = newContent;
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        var found = findAndUpdate(doc.layers);
+        return found ? "SUCCESS" : "错误：未找到名为 [" + layerName + "] 的文本图层";
+    } catch (e) {
+        return "更新文本图层失败: " + e.toString();
     }
 }
 

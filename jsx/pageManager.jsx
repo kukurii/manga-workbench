@@ -1,14 +1,52 @@
 // pageManager.jsx - 供宿主执行的页面管理相关功能
 
 /**
+ * 检测当前活动文档的图层结构并推断阶段状态
+ * 返回值: "untouched" | "retouched" | "typeset" | "done"
+ */
+function detectDocumentStatus() {
+    try {
+        if (app.documents.length === 0) return "none";
+        var doc = app.activeDocument;
+        var hasTextLayer = false;
+        var hasRetouchMarker = false;
+
+        function walkLayers(layers) {
+            for (var i = 0; i < layers.length; i++) {
+                var lyr = layers[i];
+                try {
+                    if (lyr.kind === LayerKind.TEXT) {
+                        hasTextLayer = true;
+                    }
+                    var n = lyr.name;
+                    if (n.indexOf("修图") > -1 || n.indexOf("去字") > -1 ||
+                        n.indexOf("内容感知") > -1 || n.indexOf("涂白") > -1) {
+                        hasRetouchMarker = true;
+                    }
+                    if (lyr.typename === "LayerSet") {
+                        walkLayers(lyr.layers);
+                    }
+                } catch (le) { }
+            }
+        }
+
+        walkLayers(doc.layers);
+
+        if (hasTextLayer) return "typeset";
+        if (hasRetouchMarker) return "retouched";
+        return "untouched";
+    } catch (e) {
+        return "untouched";
+    }
+}
+
+/**
  * 前端传入导入的文件列表（JSON格式）
  */
+// 占位存根：当前仅用于接收前端传来的页面列表，暂无后端持久化逻辑。
 function receiveImportedPages(pagesJson) {
     try {
-        // 由于没有用 json2，这里利用 extendscript 原生的 eval 简易解析数组
-        // 或者使用上面注入前端拼装好字面量
-        var pages = eval("(" + pagesJson + ")");
-        // 后续可以在后台持久化记录这些文档
+        JSON.parse(pagesJson); // 仅做格式校验，暂不使用解析结果
         return "Pages registered backend.";
     } catch (e) {
         return e.toString();
@@ -110,7 +148,7 @@ function saveCurrentDocumentAsPsd(withCompareGroup) {
  * 遍历所有【已处于活动打开状态】的文档，统统进行一键无脑保存
  * 适用于一次性爆改几十张图后，懒得逐张 Ctrl+S
  */
-function batchSaveAllDocs(pagesJson) {
+function batchSaveAllDocs() {
     try {
         var len = app.documents.length;
         if (len === 0) return "没有检测到任何已被开启的文档！";
@@ -145,7 +183,7 @@ function batchExportAllPages(pagesJson, outputDirStr, format) {
         // 关闭所有的中间弹窗，实现真正的静默
         app.displayDialogs = DialogModes.NO;
 
-        var pages = eval("(" + pagesJson + ")");
+        var pages = JSON.parse(pagesJson);
         if (!pages || pages.length === 0) return "接收到的批处理队列为空";
 
         var outFolder = new Folder(outputDirStr);

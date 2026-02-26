@@ -115,6 +115,152 @@ function applyLayerStroke(r, g, b, strokeSizePx) {
     }
 }
 
+// --- 图层特效：外发光 ---
+
+function addOuterGlow(r, g, b, sizePx) {
+    try {
+        if (app.documents.length === 0) return "错误：没有打开的文档";
+
+        var idsetd = charIDToTypeID("setd");
+        var desc1 = new ActionDescriptor();
+        var idnull = charIDToTypeID("null");
+        var ref1 = new ActionReference();
+        var idPrpr = charIDToTypeID("Prpr");
+        var idLefx = charIDToTypeID("Lefx");
+        ref1.putProperty(idPrpr, idLefx);
+        var idLyr = charIDToTypeID("Lyr ");
+        var idOrdn = charIDToTypeID("Ordn");
+        var idTrgt = charIDToTypeID("Trgt");
+        ref1.putEnumerated(idLyr, idOrdn, idTrgt);
+        desc1.putReference(idnull, ref1);
+
+        var idT = charIDToTypeID("T   ");
+        var desc2 = new ActionDescriptor();
+        var idScl = charIDToTypeID("Scl ");
+        var idPrc = charIDToTypeID("#Prc");
+        desc2.putUnitDouble(idScl, idPrc, 100.0);
+
+        var idOrGl = charIDToTypeID("OrGl");
+        var descGlow = new ActionDescriptor();
+        descGlow.putBoolean(charIDToTypeID("enab"), true);
+        descGlow.putBoolean(stringIDToTypeID("present"), true);
+        descGlow.putBoolean(stringIDToTypeID("showInDialog"), true);
+
+        // blend mode: screen
+        descGlow.putEnumerated(charIDToTypeID("BlnM"), charIDToTypeID("BlnM"), charIDToTypeID("Scrn"));
+        // opacity
+        descGlow.putUnitDouble(charIDToTypeID("Opct"), idPrc, 75.0);
+        // noise
+        descGlow.putUnitDouble(stringIDToTypeID("noise"), idPrc, 0.0);
+        // color fill type
+        descGlow.putEnumerated(stringIDToTypeID("glowTechnique"), stringIDToTypeID("matteTechnique"), stringIDToTypeID("softMatte"));
+
+        // color
+        var descClr = new ActionDescriptor();
+        descClr.putDouble(charIDToTypeID("Rd  "), r);
+        descClr.putDouble(charIDToTypeID("Grn "), g);
+        descClr.putDouble(charIDToTypeID("Bl  "), b);
+        descGlow.putObject(charIDToTypeID("Clr "), charIDToTypeID("RGBC"), descClr);
+
+        // spread & size
+        descGlow.putUnitDouble(charIDToTypeID("Ckmt"), idPrc, 0.0);
+        descGlow.putUnitDouble(charIDToTypeID("blur"), charIDToTypeID("#Pxl"), sizePx);
+        descGlow.putUnitDouble(charIDToTypeID("ShdN"), idPrc, 50.0);
+
+        desc2.putObject(idOrGl, idOrGl, descGlow);
+        desc1.putObject(idT, idLefx, desc2);
+
+        executeAction(idsetd, desc1, DialogModes.NO);
+        return "SUCCESS";
+    } catch (e) {
+        return "错误: 添加外发光失败 " + e.toString();
+    }
+}
+
+// --- 图层特效：投影 ---
+
+function addDropShadow(r, g, b, distPx, sizePx) {
+    try {
+        if (app.documents.length === 0) return "错误：没有打开的文档";
+
+        var idsetd = charIDToTypeID("setd");
+        var desc1 = new ActionDescriptor();
+        var idnull = charIDToTypeID("null");
+        var ref1 = new ActionReference();
+        var idPrpr = charIDToTypeID("Prpr");
+        var idLefx = charIDToTypeID("Lefx");
+        ref1.putProperty(idPrpr, idLefx);
+        var idLyr = charIDToTypeID("Lyr ");
+        var idOrdn = charIDToTypeID("Ordn");
+        var idTrgt = charIDToTypeID("Trgt");
+        ref1.putEnumerated(idLyr, idOrdn, idTrgt);
+        desc1.putReference(idnull, ref1);
+
+        var idT = charIDToTypeID("T   ");
+        var desc2 = new ActionDescriptor();
+        var idScl = charIDToTypeID("Scl ");
+        var idPrc = charIDToTypeID("#Prc");
+        desc2.putUnitDouble(idScl, idPrc, 100.0);
+
+        var idDrSh = charIDToTypeID("DrSh");
+        var descShadow = new ActionDescriptor();
+        descShadow.putBoolean(charIDToTypeID("enab"), true);
+        descShadow.putBoolean(stringIDToTypeID("present"), true);
+        descShadow.putBoolean(stringIDToTypeID("showInDialog"), true);
+
+        // blend mode: multiply
+        descShadow.putEnumerated(charIDToTypeID("BlnM"), charIDToTypeID("BlnM"), charIDToTypeID("Mltp"));
+        // color
+        var descClr = new ActionDescriptor();
+        descClr.putDouble(charIDToTypeID("Rd  "), r);
+        descClr.putDouble(charIDToTypeID("Grn "), g);
+        descClr.putDouble(charIDToTypeID("Bl  "), b);
+        descShadow.putObject(charIDToTypeID("Clr "), charIDToTypeID("RGBC"), descClr);
+        // opacity
+        descShadow.putUnitDouble(charIDToTypeID("Opct"), idPrc, 75.0);
+        // use global light
+        descShadow.putBoolean(stringIDToTypeID("useGlobalAngle"), false);
+        // angle
+        descShadow.putUnitDouble(charIDToTypeID("lagl"), charIDToTypeID("#Ang"), 120.0);
+        // distance
+        descShadow.putUnitDouble(charIDToTypeID("Dstn"), charIDToTypeID("#Pxl"), distPx);
+        // choke
+        descShadow.putUnitDouble(charIDToTypeID("Ckmt"), idPrc, 0.0);
+        // size
+        descShadow.putUnitDouble(charIDToTypeID("blur"), charIDToTypeID("#Pxl"), sizePx);
+        // noise
+        descShadow.putUnitDouble(stringIDToTypeID("noise"), idPrc, 0.0);
+        // layer knocks out drop shadow
+        descShadow.putBoolean(stringIDToTypeID("layerConceals"), true);
+
+        desc2.putObject(idDrSh, idDrSh, descShadow);
+        desc1.putObject(idT, idLefx, desc2);
+
+        executeAction(idsetd, desc1, DialogModes.NO);
+        return "SUCCESS";
+    } catch (e) {
+        return "错误: 添加投影失败 " + e.toString();
+    }
+}
+
+// --- 图层特效：设置组透明度 ---
+
+function setCompareGroupOpacity(groupName, opacity) {
+    try {
+        if (app.documents.length === 0) return "错误：没有打开的文档";
+        var doc = app.activeDocument;
+        for (var i = 0; i < doc.layers.length; i++) {
+            if (doc.layers[i].name === groupName) {
+                doc.layers[i].opacity = opacity;
+                return "SUCCESS";
+            }
+        }
+        return "错误：未找到图层组 " + groupName;
+    } catch (e) {
+        return "错误: 设置透明度失败 " + e.toString();
+    }
+}
+
 function clearLayerStyle() {
     try {
         if (app.documents.length === 0) return "错误：没有打开的文档";

@@ -13,10 +13,7 @@ class TypesetManager {
     }
 
     initDOM() {
-        // Tab 切换控制
-        this.modeBtns = document.getElementById('typeset-mode-tabs');
-        this.importTools = document.getElementById('typeset-import-tools');
-        this.correctTools = document.getElementById('typeset-correct-tools');
+        // 取消旧的 Tab 切换控制 variables
 
         // 第一区：导入与生成
         this.btnImportTxt = document.getElementById('btn-import-txt');
@@ -80,33 +77,20 @@ class TypesetManager {
         });
     }
 
-    loadSystemFonts() {
-        // 已废弃。该逻辑移动至 fontTool.js 的 loadFonts 统一处理缓存。
-    }
-
     bindEvents() {
-        // 二级导航标签模式切换
-        if (this.modeBtns) {
-            this.modeBtns.addEventListener('click', (e) => {
-                if (e.target.tagName !== 'BUTTON') return;
+        // ── 折叠面板通用逻辑 ──
+        document.querySelectorAll('.collapse-header').forEach(header => {
+            header.addEventListener('click', () => {
+                const section = header.closest('.collapse-section');
+                const bodyId = header.dataset.toggle;
+                const body = document.getElementById(bodyId);
+                const arrow = header.querySelector('.collapse-arrow');
 
-                // 移除所有激活状态
-                Array.from(this.modeBtns.children).forEach(btn => btn.classList.remove('active'));
-
-                // 添加当前点击的按钮为激活
-                e.target.classList.add('active');
-
-                const targetMode = e.target.getAttribute('data-mode');
-
-                if (targetMode === 'import') {
-                    if (this.importTools) this.importTools.style.display = 'block';
-                    if (this.correctTools) this.correctTools.style.display = 'none';
-                } else if (targetMode === 'correct') {
-                    if (this.importTools) this.importTools.style.display = 'none';
-                    if (this.correctTools) this.correctTools.style.display = 'block';
-                }
+                const isOpen = section.classList.toggle('open');
+                body.style.display = isOpen ? 'block' : 'none';
+                arrow.textContent = isOpen ? '▼' : '▶';
             });
-        }
+        });
 
         if (this.btnImportTxt) {
             this.btnImportTxt.addEventListener('click', () => {
@@ -170,19 +154,6 @@ class TypesetManager {
             });
         }
 
-        // 粘贴板由于 CEP 环境安全限制通常需前端 navigator.clipboard
-        if (this.btnParseClip) {
-            this.btnParseClip.addEventListener('click', async () => {
-                try {
-                    const text = await navigator.clipboard.readText();
-                    this.txtSource.value = text;
-                    this.parseText(text);
-                } catch (e) {
-                    alert("无法读取剪贴板，请手动粘贴到输入框内。\n(原因: " + e.message + ")");
-                }
-            });
-        }
-
         // --- 预设覆盖联动 --- 
         if (this.selTypesetPreset) {
             // 当鼠标移入选框时动态刷新文件内容，以防在另一个面板刚建好预设
@@ -198,17 +169,25 @@ class TypesetManager {
                 if (idx === "") return;
                 const preset = this.stylePresets[idx];
                 if (preset) {
+                    let fontFound = false;
                     // 覆写通用字体
                     if (this.selFontFamily && preset.fontPostScriptName) {
-                        this.selFontFamily.value = preset.fontPostScriptName;
+                        // 检查字体是否存在于下拉列表中
+                        for (let i = 0; i < this.selFontFamily.options.length; i++) {
+                            if (this.selFontFamily.options[i].value === preset.fontPostScriptName) {
+                                this.selFontFamily.selectedIndex = i;
+                                fontFound = true;
+                                break;
+                            }
+                        }
+                        if (!fontFound) {
+                            alert(`预设字体 "${preset.fontName || preset.fontPostScriptName}" 在当前字体列表中未找到，请检查字体是否已安装。`);
+                        }
                     }
                     // 覆写字号
                     if (this.inputFontSize && preset.fontSize) {
                         this.inputFontSize.value = preset.fontSize;
                     }
-
-                    // 注: 别的详细参数(如行距) 在嵌字生成时并不适用。
-                    // 嵌字主要决定初步图层生成，复杂的格式推荐通过样式面板赋予。
                 }
             });
         }
@@ -248,6 +227,36 @@ class TypesetManager {
                     this.btnAutoTypeset.innerText = "批量生成文本图层";
                     this.btnAutoTypeset.style.opacity = "1";
                 });
+            });
+        }
+
+        // 框选气泡 → 创建文本框
+        const btnCreateFromSel = document.getElementById('btn-create-from-selection');
+        if (btnCreateFromSel) {
+            btnCreateFromSel.addEventListener('click', () => {
+                const textVal = (document.getElementById('input-selection-text') || {}).value || '';
+                const font = this.selFontFamily ? this.selFontFamily.value : '';
+                const size = this.inputFontSize ? this.inputFontSize.value : '16';
+                const dir = this.selTextDirection ? this.selTextDirection.value : 'VERTICAL';
+
+                const safeText = JSON.stringify(textVal);
+                const safeFont = JSON.stringify(font);
+                const safeSize = JSON.stringify(size);
+                const safeDir = JSON.stringify(dir);
+
+                btnCreateFromSel.textContent = '创建中…';
+                btnCreateFromSel.disabled = true;
+
+                this.cs.evalScript(
+                    `createTextLayerInSelection(${safeText}, ${safeFont}, ${safeSize}, ${safeDir})`,
+                    (res) => {
+                        btnCreateFromSel.textContent = '🔲 框选气泡 → 创建文本框';
+                        btnCreateFromSel.disabled = false;
+                        if (res && res !== 'SUCCESS') {
+                            alert(res);
+                        }
+                    }
+                );
             });
         }
 
@@ -347,9 +356,13 @@ class TypesetManager {
                 // 去掉最后多出来的回车
                 this.inputSyncText.value = resultText.trim();
 
-                // 顺手写入画布
-                const safeJson = JSON.stringify(this.inputSyncText.value.replace(/\n/g, '\r'));
-                this.cs.evalScript(`writeActiveLayerText(${safeJson})`);
+                // 顺手写入画布（使用 applyActiveLayerProperties，与"应用属性"按钮保持一致）
+                const params = { text: this.inputSyncText.value.replace(/\n/g, '\r') };
+                const safeJson = JSON.stringify(params);
+                const escapedForJSX = safeJson.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+                this.cs.evalScript(`applyActiveLayerProperties('${escapedForJSX}')`, (res) => {
+                    if (res && res.indexOf("错误") > -1) console.warn(res);
+                });
             });
         }
     }

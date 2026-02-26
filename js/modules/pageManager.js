@@ -1,12 +1,21 @@
 // pageManager.js - 页面管理面板逻辑前端
 class PageManager {
-    constructor(csInterface, extPath) {
+    constructor(csInterface, extPath, dataDir) {
         this.cs = csInterface;
         this.extPath = extPath;
-        this.pages = []; // 存储导入的文件路径
+        this.dataDir = dataDir || null;
+
+        this.pages = []; // 存储导入的文件对象: {path,name,status}
+
+        // ==== 项目持久化 ====
+        this.projectStatePath = this.dataDir ? (this.dataDir + "/project_state.json") : null;
+        this._saveTimer = null;
 
         this.initDOM();
         this.bindEvents();
+
+        // 恢复上次项目（若存在）
+        this.loadProjectState();
     }
 
     initDOM() {
@@ -27,21 +36,129 @@ class PageManager {
         // ==== 全局文档操作 ====
         this.btnSavePsd = document.getElementById('btn-save-psd');
         this.btnSavePsdCompare = document.getElementById('btn-save-psd-compare');
+
+        // ==== 原图对比 ====
+        this.btnToggleCompare = document.getElementById('btn-toggle-compare');
+        this.compareOpacityRow = document.getElementById('compare-opacity-row');
+        this.inputCompareOpacity = document.getElementById('input-compare-opacity');
+        this.compareOpacityVal = document.getElementById('compare-opacity-val');
+        this.compareGroupVisible = false;
+
+        // ==== 工作流：下一页 ====
+        this.btnNextPage = document.getElementById('btn-next-page');
+        this.btnAutoDetectStatus = document.getElementById('btn-auto-detect-status');
+
+        // ==== 弹窗元素 ====
+        this.modalClearConfirm = document.getElementById('modal-clear-confirm');
+        this.btnConfirmClear = document.getElementById('btn-confirm-clear');
+        this.btnCancelClear = document.getElementById('btn-cancel-clear');
+
+        // 当前激活的页面索引（与 pages 数组对应）
+        this.activePageIndex = -1;
     }
+
+    // -------------------- 项目持久化 --------------------
+
+    scheduleSaveProjectState() {
+        if (!this.projectStatePath) return;
+        if (this._saveTimer) clearTimeout(this._saveTimer);
+        this._saveTimer = setTimeout(() => this.saveProjectState(), 250);
+    }
+
+    saveProjectState() {
+        if (!this.projectStatePath) return;
+        try {
+            const state = {
+                version: 1,
+                savedAt: Date.now(),
+                pages: this.pages || [],
+                activePageIndex: this.activePageIndex,
+                stateFilter: this.selStateFilter ? this.selStateFilter.value : 'all',
+                exportDir: this.inputExportDir ? this.inputExportDir.value : '',
+                exportFormat: this.selExportFormat ? this.selExportFormat.value : 'jpg'
+            };
+
+            window.cep.fs.writeFile(this.projectStatePath, JSON.stringify(state, null, 2));
+        } catch (e) {
+            console.warn('[project state] save failed:', e);
+        }
+    }
+
+    loadProjectState() {
+        if (!this.projectStatePath) return;
+
+        try {
+            const readResult = window.cep.fs.readFile(this.projectStatePath);
+            if (readResult.err !== window.cep.fs.NO_ERROR || !readResult.data) return;
+
+            const parsed = JSON.parse(readResult.data);
+
+            if (parsed && Array.isArray(parsed.pages)) {
+                // 仅保留最核心字段，防止未来结构变更导致异常
+                this.pages = parsed.pages
+                    .filter(p => p && p.path)
+                    .map(p => ({
+                        path: p.path,
+                        name: p.name || (String(p.path).split('\\').pop().split('/').pop()),
+                        status: p.status || 'untouched'
+                    }));
+
+                // 恢复 UI 状态
+                if (this.selStateFilter && parsed.stateFilter) this.selStateFilter.value = parsed.stateFilter;
+                if (this.inputExportDir && parsed.exportDir) this.inputExportDir.value = parsed.exportDir;
+                if (this.selExportFormat && parsed.exportFormat) this.selExportFormat.value = parsed.exportFormat;
+
+                this.activePageIndex = typeof parsed.activePageIndex === 'number' ? parsed.activePageIndex : -1;
+
+                this.renderThumbnails();
+
+                // 重新激活高亮（如果该项在过滤后仍可见）
+                if (this.activePageIndex >= 0) {
+                    setTimeout(() => {
+                        const items = this.thumbnailContainer ? this.thumbnailContainer.querySelectorAll('.page-item') : [];
+                        items.forEach(el => {
+                            if (parseInt(el.dataset.index) === this.activePageIndex) el.classList.add('active');
+                        });
+                    }, 50);
+                }
+
+                // 同步给 JSX 后端（可选）
+                if (this.cs && typeof this.cs.evalScript === 'function') {
+                    try {
+                        this.cs.evalScript(`receiveImportedPages(${JSON.stringify(this.pages)})`);
+                    } catch (e) { }
+                }
+            }
+        } catch (e) {
+            console.warn('[project state] load failed:', e);
+        }
+    }
+
+    // -------------------- 事件绑定 --------------------
 
     bindEvents() {
         if (this.btnImport) {
             this.btnImport.addEventListener('click', () => {
-                const result = window.cep.fs.showOpenDialog(
-                    true, false,
-                    "请选择要导入的漫画页面 (支持JPG/PNG/PSD等)",
-                    "",
-                    ["jpg", "jpeg", "png", "tiff", "psd"]
-                );
+                // 显示轻提示增强交互感
+                const oldText = this.btnImport.innerText;
+                this.btnImport.innerText = "正在唤起文件选择器...";
+                this.btnImport.disabled = true;
 
-                if (result.err === window.cep.fs.NO_ERROR && result.data.length > 0) {
-                    this.handleImportedFiles(result.data);
-                }
+                setTimeout(() => {
+                    const result = window.cep.fs.showOpenDialog(
+                        true, false,
+                        "请选择要导入的漫画页面 (支持JPG/PNG/PSD等)",
+                        "",
+                        ["jpg", "jpeg", "png", "tiff", "psd"]
+                    );
+
+                    this.btnImport.innerText = oldText;
+                    this.btnImport.disabled = false;
+
+                    if (result.err === window.cep.fs.NO_ERROR && result.data.length > 0) {
+                        this.handleImportedFiles(result.data);
+                    }
+                }, 100);
             });
         }
 
@@ -54,16 +171,34 @@ class PageManager {
                 }
                 const pathsToRemove = Array.from(checkboxes).map(cb => cb.value);
                 this.pages = this.pages.filter(p => !pathsToRemove.includes(p.path));
+                // 防止 active 指向非法
+                if (this.activePageIndex >= this.pages.length) this.activePageIndex = this.pages.length - 1;
                 this.renderThumbnails();
+                this.scheduleSaveProjectState();
             });
         }
 
         if (this.btnClear) {
             this.btnClear.addEventListener('click', () => {
-                if (confirm("确定要清空所有已导入的页面列表吗？")) {
-                    this.pages = [];
-                    this.renderThumbnails();
+                if (this.modalClearConfirm) {
+                    this.modalClearConfirm.classList.add('show');
                 }
+            });
+        }
+
+        if (this.btnConfirmClear) {
+            this.btnConfirmClear.addEventListener('click', () => {
+                this.pages = [];
+                this.activePageIndex = -1;
+                this.renderThumbnails();
+                this.scheduleSaveProjectState();
+                if (this.modalClearConfirm) this.modalClearConfirm.classList.remove('show');
+            });
+        }
+
+        if (this.btnCancelClear) {
+            this.btnCancelClear.addEventListener('click', () => {
+                if (this.modalClearConfirm) this.modalClearConfirm.classList.remove('show');
             });
         }
 
@@ -71,23 +206,125 @@ class PageManager {
         if (this.selStateFilter) {
             this.selStateFilter.addEventListener('change', () => {
                 this.renderThumbnails();
+                this.scheduleSaveProjectState();
             });
         }
 
         if (this.btnBatchRename) {
             this.btnBatchRename.addEventListener('click', () => {
                 if (this.pages.length === 0) return alert("队列为空");
-                const prefix = prompt("请输入要批量添加给所有画板文件名的前缀\n如输入 [第06话]：", "第00话_");
-                if (prefix) {
-                    this.pages.forEach((p, idx) => {
-                        // 防止多次叠加同一个前缀
-                        if (!p.name.startsWith(prefix)) {
-                            // 为了保持原文件扩展名格式，做简单的字符串拼接，实际重命名发生在导出阶段
-                            p.name = prefix + p.name;
+                const template = prompt(
+                    "命名模板说明：\n" +
+                    "  {prefix}  = 你输入的前缀文字\n" +
+                    "  {n}       = 页码序号（从1开始，如 1、2、3…）\n" +
+                    "  {nn}      = 两位页码（如 01、02…）\n" +
+                    "  {name}    = 原始文件名（不含扩展名）\n\n" +
+                    "示例：第06话_{nn}  →  第06话_01.jpg\n\n" +
+                    "请输入命名模板：",
+                    "第00话_{nn}"
+                );
+                if (!template) return;
+
+                this.pages.forEach((p, idx) => {
+                    // 提取原始名（不含扩展名）
+                    const dotIdx = p.name.lastIndexOf('.');
+                    const origBase = dotIdx > 0 ? p.name.substring(0, dotIdx) : p.name;
+                    const origExt = dotIdx > 0 ? p.name.substring(dotIdx) : '';
+                    const pageNum = idx + 1;
+                    const nn = String(pageNum).padStart(2, '0');
+
+                    const newBase = template
+                        .replace(/\{prefix\}/g, '')
+                        .replace(/\{nn\}/g, nn)
+                        .replace(/\{n\}/g, String(pageNum))
+                        .replace(/\{name\}/g, origBase);
+
+                    p.name = newBase + origExt;
+                });
+                this.renderThumbnails();
+                this.scheduleSaveProjectState();
+            });
+        }
+
+        // 自动检测当前文档状态并同步到页面列表
+        if (this.btnAutoDetectStatus) {
+            this.btnAutoDetectStatus.addEventListener('click', () => {
+                if (this.activePageIndex < 0) return alert("请先点击页面列表中的一个页面以激活它");
+                this.cs.evalScript(`detectDocumentStatus()`, (res) => {
+                    if (res && res !== 'none') {
+                        this.pages[this.activePageIndex].status = res;
+                        this.renderThumbnails();
+                        this.scheduleSaveProjectState();
+                        // 重新激活高亮
+                        const items = this.thumbnailContainer.querySelectorAll('.page-item');
+                        items.forEach(el => {
+                            if (parseInt(el.dataset.index) === this.activePageIndex) {
+                                el.classList.add('active');
+                            }
+                        });
+                    }
+                });
+            });
+        }
+
+        // 下一页工作流：将当前页状态推进一级，并打开下一页
+        if (this.btnNextPage) {
+            this.btnNextPage.addEventListener('click', () => {
+                if (this.pages.length === 0) return alert("页面列表为空");
+
+                // 先将当前页状态推进到 typeset（若已是 done 则保持）
+                if (this.activePageIndex >= 0) {
+                    const cur = this.pages[this.activePageIndex];
+                    if (cur.status === 'untouched') cur.status = 'retouched';
+                    else if (cur.status === 'retouched') cur.status = 'typeset';
+                    else if (cur.status === 'typeset') cur.status = 'done';
+                    // done 保持不变
+                }
+
+                // 找到下一个未完成的页面
+                let nextIdx = -1;
+                for (let i = this.activePageIndex + 1; i < this.pages.length; i++) {
+                    if (this.pages[i].status !== 'done') {
+                        nextIdx = i;
+                        break;
+                    }
+                }
+                // 如果后面没有未完成页，从头找
+                if (nextIdx < 0) {
+                    for (let i = 0; i < this.pages.length; i++) {
+                        if (this.pages[i].status !== 'done') {
+                            nextIdx = i;
+                            break;
+                        }
+                    }
+                }
+
+                this.renderThumbnails();
+                this.scheduleSaveProjectState();
+
+                if (nextIdx < 0) {
+                    alert("🎉 全部页面均已完成！");
+                    return;
+                }
+
+                // 打开下一页
+                const nextPage = this.pages[nextIdx];
+                this.activePageIndex = nextIdx;
+                this.cs.evalScript(`openOrSwitchDocument("${nextPage.path.replace(/\\/g, '\\\\')}")`);
+
+                // 高亮下一页
+                setTimeout(() => {
+                    const items = this.thumbnailContainer.querySelectorAll('.page-item');
+                    items.forEach(el => {
+                        el.classList.remove('active');
+                        if (parseInt(el.dataset.index) === nextIdx) {
+                            el.classList.add('active');
+                            el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
                         }
                     });
-                    this.renderThumbnails();
-                }
+                }, 100);
+
+                this.scheduleSaveProjectState();
             });
         }
 
@@ -96,7 +333,14 @@ class PageManager {
                 const result = window.cep.fs.showOpenDialog(false, true, "选择批量导出保存的文件夹", "", []);
                 if (result.err === window.cep.fs.NO_ERROR && result.data.length > 0) {
                     this.inputExportDir.value = result.data[0];
+                    this.scheduleSaveProjectState();
                 }
+            });
+        }
+
+        if (this.selExportFormat) {
+            this.selExportFormat.addEventListener('change', () => {
+                this.scheduleSaveProjectState();
             });
         }
 
@@ -112,8 +356,6 @@ class PageManager {
                 this.btnBatchExport.innerText = "⏳ 跑批处理中，请勿操作...";
                 this.btnBatchExport.disabled = true;
 
-                // 将现有的排好序的并且被重命名过的对象数组发送给ExtendScript处理
-                // 为了避免 JSON 传递引号被截断，进行安全化包转
                 const safeJson = JSON.stringify(this.pages);
 
                 this.cs.evalScript(`batchExportAllPages(${JSON.stringify(safeJson)}, '${outDir.replace(/\\/g, '\\\\')}', '${format}')`, (res) => {
@@ -156,6 +398,84 @@ class PageManager {
                 });
             });
         }
+
+        // ==== 原图对比：开关 ====
+        if (this.btnToggleCompare) {
+            this.btnToggleCompare.addEventListener('click', () => {
+                this.compareGroupVisible = !this.compareGroupVisible;
+
+                if (this.compareGroupVisible) {
+                    // 尝试显示原图参考组；若不存在，先调用 backupOriginalLayer 创建
+                    this.cs.evalScript(
+                        `(function(){
+                            try {
+                                if (app.documents.length === 0) return "错误：没有打开的文档";
+                                var doc = app.activeDocument;
+                                var found = false;
+                                for (var i = 0; i < doc.layers.length; i++) {
+                                    if (doc.layers[i].name === "【原图参考】") {
+                                        doc.layers[i].visible = true;
+                                        found = true;
+                                        break;
+                                    }
+                                }
+                                if (!found && typeof backupOriginalLayer === "function") {
+                                    backupOriginalLayer();
+                                }
+                                return "SUCCESS";
+                            } catch(e) { return e.toString(); }
+                        })()`,
+                        (res) => {
+                            if (res && res.indexOf('错误') > -1) {
+                                alert(res);
+                                this.compareGroupVisible = false;
+                                return;
+                            }
+                            if (this.btnToggleCompare) {
+                                this.btnToggleCompare.innerText = '关闭原图对比';
+                                this.btnToggleCompare.classList.add('active');
+                            }
+                            if (this.compareOpacityRow) this.compareOpacityRow.style.display = 'flex';
+                        }
+                    );
+                } else {
+                    // 隐藏原图参考组
+                    this.cs.evalScript(
+                        `(function(){
+                            try {
+                                if (app.documents.length === 0) return "SUCCESS";
+                                var doc = app.activeDocument;
+                                for (var i = 0; i < doc.layers.length; i++) {
+                                    if (doc.layers[i].name === "【原图参考】") {
+                                        doc.layers[i].visible = false;
+                                        break;
+                                    }
+                                }
+                                return "SUCCESS";
+                            } catch(e) { return e.toString(); }
+                        })()`,
+                        () => {
+                            if (this.btnToggleCompare) {
+                                this.btnToggleCompare.innerText = '开启原图对比';
+                                this.btnToggleCompare.classList.remove('active');
+                            }
+                            if (this.compareOpacityRow) this.compareOpacityRow.style.display = 'none';
+                        }
+                    );
+                }
+            });
+        }
+
+        // ==== 原图对比：透明度滑块 ====
+        if (this.inputCompareOpacity) {
+            this.inputCompareOpacity.addEventListener('input', () => {
+                const val = parseInt(this.inputCompareOpacity.value, 10);
+                if (this.compareOpacityVal) this.compareOpacityVal.innerText = val + '%';
+                this.cs.evalScript(`setCompareGroupOpacity("【原图参考】", ${val})`, (res) => {
+                    if (res && res.indexOf('错误') > -1) console.warn('[compare opacity]', res);
+                });
+            });
+        }
     }
 
     handleImportedFiles(filePaths) {
@@ -176,9 +496,9 @@ class PageManager {
         });
 
         this.renderThumbnails();
+        this.scheduleSaveProjectState();
 
-        // 可选：立即通知 PS 后台将这些文件全部打开或只打开第一页
-        // 传递对象数组给 JSX 让其知道有哪些图
+        // 通知 PS 后台
         this.cs.evalScript(`receiveImportedPages(${JSON.stringify(this.pages)})`);
     }
 
@@ -204,6 +524,8 @@ class PageManager {
             item.className = 'page-item';
             item.draggable = true;
             item.dataset.index = index;
+
+            if (this.activePageIndex === index) item.classList.add('active');
 
             // 根据状态渲染对应的圆点颜色类
             const statusClass = `status-${status}`;
@@ -232,11 +554,34 @@ class PageManager {
                 e.stopPropagation();
             });
 
-            // 左键单击：PS激活文档
+            // 左键单击：PS激活文档，并自动检测文档状态
             item.addEventListener('click', () => {
                 document.querySelectorAll('.page-item').forEach(el => el.classList.remove('active'));
                 item.classList.add('active');
-                this.cs.evalScript(`openOrSwitchDocument("${path.replace(/\\/g, '\\\\')}")`);
+                this.activePageIndex = index;
+                this.scheduleSaveProjectState();
+
+                this.cs.evalScript(`openOrSwitchDocument("${path.replace(/\\/g, '\\\\')}")`, () => {
+                    // 打开文档后自动检测状态
+                    this.cs.evalScript(`detectDocumentStatus()`, (statusRes) => {
+                        if (statusRes && statusRes !== 'none' && statusRes !== 'untouched') {
+                            // 仅在检测到更高阶状态时才自动升级（不降级）
+                            const order = ['untouched', 'retouched', 'typeset', 'done'];
+                            const curIdx = order.indexOf(this.pages[index].status);
+                            const newIdx = order.indexOf(statusRes);
+                            if (newIdx > curIdx) {
+                                this.pages[index].status = statusRes;
+                                this.renderThumbnails();
+                                this.scheduleSaveProjectState();
+                                // 保持高亮
+                                const allItems = this.thumbnailContainer.querySelectorAll('.page-item');
+                                allItems.forEach(el => {
+                                    if (parseInt(el.dataset.index) === index) el.classList.add('active');
+                                });
+                            }
+                        }
+                    });
+                });
             });
 
             // 右键菜单：状态流转 (简便轮换)
@@ -247,6 +592,7 @@ class PageManager {
                 if (nidx >= states.length) nidx = 0;
                 this.pages[index].status = states[nidx];
                 this.renderThumbnails();
+                this.scheduleSaveProjectState();
             });
 
             // --- HTML5 原生拖拽 API ---
@@ -284,7 +630,27 @@ class PageManager {
                 const draggedData = this.pages.splice(this.draggedItemIndex, 1)[0];
                 this.pages.splice(index, 0, draggedData);
 
+                // 调整 active 索引：如果拖拽涉及 active 项，修正指向
+                if (this.activePageIndex === this.draggedItemIndex) {
+                    this.activePageIndex = index;
+                } else if (
+                    this.activePageIndex > -1 &&
+                    this.draggedItemIndex < this.activePageIndex &&
+                    index >= this.activePageIndex
+                ) {
+                    // dragged 从 active 前面移到后面，active 左移一位
+                    this.activePageIndex -= 1;
+                } else if (
+                    this.activePageIndex > -1 &&
+                    this.draggedItemIndex > this.activePageIndex &&
+                    index <= this.activePageIndex
+                ) {
+                    // dragged 从 active 后面移到前面，active 右移一位
+                    this.activePageIndex += 1;
+                }
+
                 this.renderThumbnails();
+                this.scheduleSaveProjectState();
             });
 
             this.thumbnailContainer.appendChild(item);
