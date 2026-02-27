@@ -228,6 +228,30 @@ function fillWhiteSelection(expandPx) {
     }
 }
 
+function _fillColorSelectionImpl(r, g, b, expandPx) {
+    var doc = app.activeDocument;
+    var exPx = _parseIntDefault(expandPx, 0);
+    try {
+        if (exPx > 0) {
+            doc.selection.expand(new UnitValue(exPx, "px"));
+        } else if (exPx < 0) {
+            doc.selection.contract(new UnitValue(Math.abs(exPx), "px"));
+        }
+    } catch (e) { }
+
+    // 同白底填充：确保落在可填充的普通像素图层上
+    var fillLayer = _ensureNormalArtLayer(doc, "【取色填充层】");
+    doc.activeLayer = fillLayer;
+
+    var fillColor = new SolidColor();
+    fillColor.rgb.red = parseInt(r) || 0;
+    fillColor.rgb.green = parseInt(g) || 0;
+    fillColor.rgb.blue = parseInt(b) || 0;
+
+    doc.selection.fill(fillColor, ColorBlendMode.NORMAL, 100, false);
+    doc.selection.deselect();
+}
+
 /**
  * 自定义颜色填充 (r, g, b 为 0-255, expandPx 为扩边像素)
  * 【带 suspendHistory 包裹】
@@ -241,32 +265,10 @@ function fillColorSelection(r, g, b, expandPx) {
             return "失败：请先建立选区！";
         }
 
-        var result = "取色填充成功";
+        var paramStr = r + ", " + g + ", " + b + ", " + expandPx;
+        doc.suspendHistory("取色填充", "_fillColorSelectionImpl(" + paramStr + ")");
 
-        doc.suspendHistory("取色填充", function () {
-            var exPx = _parseIntDefault(expandPx, 0);
-            try {
-                if (exPx > 0) {
-                    doc.selection.expand(new UnitValue(exPx, "px"));
-                } else if (exPx < 0) {
-                    doc.selection.contract(new UnitValue(Math.abs(exPx), "px"));
-                }
-            } catch (e) { }
-
-            // 同白底填充：确保落在可填充的普通像素图层上
-            var fillLayer = _ensureNormalArtLayer(doc, "【取色填充层】");
-            doc.activeLayer = fillLayer;
-
-            var fillColor = new SolidColor();
-            fillColor.rgb.red = parseInt(r) || 0;
-            fillColor.rgb.green = parseInt(g) || 0;
-            fillColor.rgb.blue = parseInt(b) || 0;
-
-            doc.selection.fill(fillColor, ColorBlendMode.NORMAL, 100, false);
-            doc.selection.deselect();
-        });
-
-        return result;
+        return "取色填充成功";
     } catch (e) {
         return "取色填充失败: " + e.toString();
     }
@@ -292,6 +294,38 @@ function healSelectionHolesOnly() {
     }
 }
 
+function _createWhiteLayerImpl() {
+    var doc = app.activeDocument;
+    var layer = doc.artLayers.add();
+    layer.name = "【全画幅白底图层】";
+    doc.activeLayer = layer;
+
+    // 全画布选区 → 填白 → 取消选区
+    doc.selection.selectAll();
+    var whiteColor = new SolidColor();
+    whiteColor.rgb.red = 255;
+    whiteColor.rgb.green = 255;
+    whiteColor.rgb.blue = 255;
+    doc.selection.fill(whiteColor, ColorBlendMode.NORMAL, 100, false);
+    doc.selection.deselect();
+
+    // 整理：移入修图管理组并垫底
+    var retouchGroupName = "【修图管理组】";
+    var retouchGroup = null;
+    try {
+        retouchGroup = doc.layerSets.getByName(retouchGroupName);
+    } catch (e) {
+        retouchGroup = doc.layerSets.add();
+        retouchGroup.name = retouchGroupName;
+        retouchGroup.move(doc.layers[0], ElementPlacement.PLACEBEFORE);
+    }
+
+    try {
+        // 这个图层通常垫底使用
+        layer.move(retouchGroup, ElementPlacement.PLACEATEND);
+    } catch (e) { }
+}
+
 /**
  * 新建白色图层 (铺满画布，不依赖选区)
  * 【带 suspendHistory 包裹】
@@ -301,40 +335,9 @@ function createWhiteLayer() {
         if (app.documents.length === 0) return "错误：没有打开的文档";
         var doc = app.activeDocument;
 
-        var result = "已新建白色图层";
+        doc.suspendHistory("新建白色图层", "_createWhiteLayerImpl()");
 
-        doc.suspendHistory("新建白色图层", function () {
-            var layer = doc.artLayers.add();
-            layer.name = "【全画底白底图层】";
-            doc.activeLayer = layer;
-
-            // 全画布选区 → 填白 → 取消选区
-            doc.selection.selectAll();
-            var whiteColor = new SolidColor();
-            whiteColor.rgb.red = 255;
-            whiteColor.rgb.green = 255;
-            whiteColor.rgb.blue = 255;
-            doc.selection.fill(whiteColor, ColorBlendMode.NORMAL, 100, false);
-            doc.selection.deselect();
-
-            // 整理：移入修图管理组并垫底
-            var retouchGroupName = "【修图管理组】";
-            var retouchGroup = null;
-            try {
-                retouchGroup = doc.layerSets.getByName(retouchGroupName);
-            } catch (e) {
-                retouchGroup = doc.layerSets.add();
-                retouchGroup.name = retouchGroupName;
-                retouchGroup.move(doc.layers[0], ElementPlacement.PLACEBEFORE);
-            }
-
-            try {
-                // 这个图层通常垫底使用
-                layer.move(retouchGroup, ElementPlacement.PLACEATEND);
-            } catch (e) { }
-        });
-
-        return result;
+        return "已新建白色图层";
     } catch (e) {
         return "新建白色图层失败: " + e.toString();
     }
@@ -352,10 +355,8 @@ function healSelectionHoles() {
 
         if (!hasSelection(doc)) return "失败：请先用魔棒或快速选择工具建立带破洞的气泡选区。";
 
-        doc.suspendHistory("修复选区破洞", function () {
-            doc.selection.expand(new UnitValue(15, "px"));
-            doc.selection.contract(new UnitValue(15, "px"));
-        });
+        var actionStr = "app.activeDocument.selection.expand(new UnitValue(15, 'px')); app.activeDocument.selection.contract(new UnitValue(15, 'px'));";
+        doc.suspendHistory("修复选区破洞", actionStr);
 
         return "";
     } catch (e) {

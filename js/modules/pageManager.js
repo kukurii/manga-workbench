@@ -385,7 +385,7 @@ class PageManager {
         if (this.btnSavePsd) {
             this.btnSavePsd.addEventListener('click', () => {
                 this.cs.evalScript(`saveCurrentDocumentAsPsd(false)`, (res) => {
-                    if (res && res.indexOf("错误") > -1) alert(res);
+                    if (res && res.indexOf("错误") > -1) showToast(res);
                 });
             });
         }
@@ -393,7 +393,7 @@ class PageManager {
         if (this.btnSavePsdCompare) {
             this.btnSavePsdCompare.addEventListener('click', () => {
                 this.cs.evalScript(`saveCurrentDocumentAsPsd(true)`, (res) => {
-                    if (res && res.indexOf("错误") > -1) alert(res);
+                    if (res && res.indexOf("错误") > -1) showToast(res);
                 });
             });
         }
@@ -426,7 +426,7 @@ class PageManager {
                         })()`,
                         (res) => {
                             if (res && res.indexOf('错误') > -1) {
-                                alert(res);
+                                showToast(res);
                                 this.compareGroupVisible = false;
                                 return;
                             }

@@ -7,8 +7,8 @@ class FontManager {
         this.dataDir = dataDir;
         this.allFonts = [];
         this.favFonts = []; // { postScriptName, name, alias, category }
-        this.recentFonts = []; // 最近使用记�?
-        this.compareFonts = []; // 当前加入对比测试的字库合�?
+        this.recentFonts = []; // 最近使用
+        this.compareFonts = []; // 当前加入对比测试的字库合集
         this.draggedFont = null; // 用于拖拽暂存
 
         this.onlineFonts = []; // Array of { name, author, style, url, previewUrl, source }
@@ -16,7 +16,7 @@ class FontManager {
 
         this.currentMode = 'system'; // 'system' or 'favorite' or 'online'
         this.sysFilter = 'all'; // all, chinese, english
-        this.favFilter = 'all'; // all, 或者用户自定义的类�?
+        this.favFilter = 'all'; // all, 或者用户自定义的分类
 
         this._fontCNMap = null;
         this._userAliases = null;
@@ -24,7 +24,7 @@ class FontManager {
         this.initDOM();
         this.bindEvents();
 
-        this.initFontDisplayNames(false); // 优先读缓�?
+        this.initFontDisplayNames(false); // 优先读缓存
         this.loadFavFonts();
         this.loadRecentFonts();
         this.loadFonts();
@@ -107,18 +107,18 @@ class FontManager {
                     if (this.sysTools) this.sysTools.style.display = 'none';
                     if (this.favTools) this.favTools.style.display = 'block';
                     if (this.onlineTools) this.onlineTools.style.display = 'none';
-                    if (this.listTitle) this.listTitle.parentElement.style.display = 'flex';
+                    if (this.listTitle && this.listTitle.parentElement) this.listTitle.parentElement.style.display = 'flex';
                     if (this.fontInstallTip) this.fontInstallTip.style.display = 'block';
 
                     if (this.listContainer) this.listContainer.style.display = 'block';
-                    if (this.listTitle) this.listTitle.innerText = "我的自建字库�?;
+                    if (this.listTitle) this.listTitle.innerText = "我的自建字库";
                     this.renderFavCategories();
                     this.renderFonts();
                 } else if (this.currentMode === 'online') {
                     if (this.sysTools) this.sysTools.style.display = 'none';
                     if (this.favTools) this.favTools.style.display = 'none';
                     if (this.onlineTools) this.onlineTools.style.display = 'block';
-                    if (this.listTitle) this.listTitle.parentElement.style.display = 'none';
+                    if (this.listTitle && this.listTitle.parentElement) this.listTitle.parentElement.style.display = 'none';
                     if (this.fontInstallTip) this.fontInstallTip.style.display = 'none';
                     if (this.listContainer) this.listContainer.style.display = 'none';
                     // 初始化精选字体卡片（只首次渲染）
@@ -129,7 +129,7 @@ class FontManager {
             });
         }
 
-        // 系统搜索及刷�?
+        // 系统搜索及刷新
         if (this.btnRefresh) {
             this.btnRefresh.addEventListener('click', () => {
                 this.loadFonts(true);
@@ -156,13 +156,13 @@ class FontManager {
         const btnClearCache = document.getElementById('btn-clear-font-cache');
         if (btnClearCache) {
             btnClearCache.addEventListener('click', () => {
-                // 只清�?PS 字体列表缓存，保留中文名映射（font-cn-cache.json�?
+                // 只清除 PS 字体列表缓存，保留中文名映射（font-cn-cache.json）
                 const psCacheList = this.dataDir + "/font_cache.json";
                 const r = window.cep.fs.deleteFile(psCacheList);
                 if (r.err === window.cep.fs.NO_ERROR || r.err === window.cep.fs.ERR_NOT_FOUND) {
                     showToast('字体列表缓存已清除，下次打开字体面板将重新扫描。\n（中文名映射文件已保留）');
                 } else {
-                    showToast('清除失败，错误码�? + r.err);
+                    showToast('清除失败，错误码：' + r.err);
                 }
             });
         }
@@ -173,7 +173,7 @@ class FontManager {
             btnExportFav.addEventListener('click', () => this.exportFavJson());
         }
 
-        // 导入收藏 JSON（通过 CEP 文件对话框，不依赖隐藏的 file input�?
+        // 导入收藏 JSON（通过 CEP 文件对话框，不依赖隐藏的 file input?
         const btnImportFav = document.getElementById('btn-import-fav-json');
         if (btnImportFav) {
             btnImportFav.addEventListener('click', () => this.importFavJson());
@@ -205,7 +205,7 @@ class FontManager {
         if (this.btnAiRecommend) {
             this.btnAiRecommend.addEventListener('click', () => {
                 const query = this.inputOnlineSearch ? this.inputOnlineSearch.value.trim() : '';
-                if (!query) return showToast('请描述漫画场景或情绪，例如：愤怒男主的大吼、少女内心独白、轻描淡写的对话等�?);
+                if (!query) return showToast('请描述漫画场景或情绪，例如：愤怒男主的大吼、少女内心独白、轻描淡写的对话等。');
                 this.callAiFontRecommendation(query);
             });
         }
@@ -218,7 +218,7 @@ class FontManager {
                 if (area) area.style.display = 'none';
             });
         }
-        // 在线字体标签筛�?
+        // 在线字体标签筛选
         const tagFilters = document.getElementById('online-tag-filters');
         if (tagFilters) {
             tagFilters.addEventListener('click', (e) => {
@@ -242,7 +242,7 @@ class FontManager {
                 const postName = this.mPost.innerText;
                 const originalName = this.mName.innerText;
                 const alias = this.mAlias.value.trim();
-                const category = this.mCategory.value.trim() || '未分�?;
+                const category = this.mCategory.value.trim() || '未分类';
 
                 // 保存至旧的独立收藏结构中
                 const idx = this.favFonts.findIndex(f => f.postScriptName === postName);
@@ -292,7 +292,7 @@ class FontManager {
             });
         }
 
-        // 对比台事�?
+        // 对比台事?
         if (this.btnOpenCmp) {
             this.btnOpenCmp.addEventListener('click', () => {
                 this.openCompareModal();
@@ -320,7 +320,7 @@ class FontManager {
     // ------------ 持久性收藏夹管理 ------------
 
     initFontDisplayNames(forceRefresh) {
-        // ── 第一步：优先�?window.cep.fs 直接读取缓存文件（避免中文路径下 Node.js require 失败�?
+        // ── 第一步：优先用 window.cep.fs 直接读取缓存文件（避免中文路径下 Node.js require 失败）
         const cnCachePath = this.dataDir + "/font-cn-cache.json";
 
         if (!forceRefresh) {
@@ -334,11 +334,11 @@ class FontManager {
                         this._loadUserAliases();
                         return;
                     }
-                } catch (e) { /* 缓存损坏，继续往下扫�?*/ }
+                } catch (e) { /* 缓存损坏，继续往下扫描 */ }
             }
         }
 
-        // ── 第二步：缓存不存在或强制刷新时，�?fontNameParser（Node.js）扫描系统字�?
+        // ── 第二步：缓存不存在或强制刷新时，用 fontNameParser（Node.js）扫描系统字体
         try {
             const path = require('path');
             const parserPath = path.join(this.extPath, 'js', 'modules', 'fontNameParser.js');
@@ -351,7 +351,7 @@ class FontManager {
             this._fontCNMap = {};
         }
 
-        // 读用户别�?
+        // 读用户别名
         this._loadUserAliases();
     }
 
@@ -374,13 +374,13 @@ class FontManager {
         // 第一优先：用户自定义别名
         if (this._userAliases && this._userAliases[postScriptName]) {
             return {
-                primary: '�?' + this._userAliases[postScriptName],
+                primary: '⭐ ' + this._userAliases[postScriptName],
                 secondary: familyName || postScriptName,
                 source: 'alias'
             };
         }
 
-        // 第二优先：字体文�?name 表解�?(中文)
+        // 第二优先：字体文件 name 表解析(中文)
         if (this._fontCNMap && this._fontCNMap[postScriptName]) {
             return {
                 primary: this._fontCNMap[postScriptName],
@@ -393,7 +393,7 @@ class FontManager {
         const oldFav = this.favFonts.find(f => f.postScriptName === postScriptName);
         if (oldFav && oldFav.alias) {
             return {
-                primary: '�?' + oldFav.alias,
+                primary: '⭐ ' + oldFav.alias,
                 secondary: familyName || postScriptName,
                 source: 'alias_old'
             };
@@ -434,7 +434,7 @@ class FontManager {
     }
 
     saveRecentFont(font) {
-        // 先剔除旧的相同字体，再插到开头，保持最�?10 �?
+        // 先剔除旧的相同字体，再插到开头，保持最多 10 个
         this.recentFonts = this.recentFonts.filter(f => f.postScriptName !== font.postScriptName);
         this.recentFonts.unshift(font);
         if (this.recentFonts.length > 10) this.recentFonts.pop();
@@ -450,7 +450,7 @@ class FontManager {
         const existing = this.favFonts.find(f => f.postScriptName === fontObj.postScriptName);
         if (existing) {
             this.mAlias.value = existing.alias || fontObj.name;
-            this.mCategory.value = existing.category || '未分�?;
+            this.mCategory.value = existing.category || '未分类';
             this.btnRemoveFav.style.display = 'block';
         } else {
             // 提供智能名称建议
@@ -488,7 +488,7 @@ class FontManager {
         });
     }
 
-    // ------------ 系统字体库缓存管�?------------
+    // ------------ 系统字体库缓存管理 ------------
 
     loadFonts(forceRefresh = false) {
         if (!this.listContainer) return;
@@ -501,17 +501,22 @@ class FontManager {
         const cachePath = this.dataDir + "/font_cache.json";
 
         const readCacheAndRender = () => {
-            const readResult = window.cep.fs.readFile(cachePath);
-            if (readResult.err === window.cep.fs.NO_ERROR && readResult.data) {
-                try {
-                    this.allFonts = JSON.parse(readResult.data);
+            try {
+                const readResult = window.cep.fs.readFile(cachePath);
+                if (readResult.err === window.cep.fs.NO_ERROR && readResult.data) {
+                    let data = readResult.data;
+                    if (data.charCodeAt(0) === 0xFEFF) {
+                        data = data.slice(1);
+                    }
+                    this.allFonts = JSON.parse(data);
                     if (this.currentMode === 'system') this.renderFonts();
                     this.syncToTypesetPanel();
                     if (window.styleManager) window.styleManager.syncFonts(this.allFonts);
                     return true;
-                } catch (e) {
-                    console.error("字体缓存解析失败", e);
                 }
+            } catch (e) {
+                console.error("字体缓存解析失败", e);
+                this._lastReadError = e.message;
             }
             return false;
         };
@@ -520,11 +525,17 @@ class FontManager {
             if (readCacheAndRender()) return;
         }
 
-        this.listContainer.innerHTML = '<div class="placeholder text-accent">首次刷新正在全盘解析字体...这可能需�?0~20秒，请勿操作PS防卡死！</div>';
+        this.listContainer.innerHTML = '<div class="placeholder text-accent">首次刷新正在全盘解析字体...这可能需要 10~20秒，请勿操作PS防卡死！</div>';
         const safePath = cachePath.replace(/\\/g, '\\\\');
         this.cs.evalScript(`generateFontCacheFile("${safePath}")`, (res) => {
             if (res === "SUCCESS") {
-                if (!readCacheAndRender()) this.listContainer.innerHTML = '<div class="placeholder">读取缓存包权限失败�?/div>';
+                // 等待 150ms 避开防病毒软件扫描或文件锁
+                setTimeout(() => {
+                    if (!readCacheAndRender()) {
+                        const errMsg = this._lastReadError ? ' (' + this._lastReadError + ')' : '';
+                        this.listContainer.innerHTML = '<div class="placeholder">读取缓存包权限失败？' + errMsg + '</div>';
+                    }
+                }, 150);
             } else {
                 this.listContainer.innerHTML = `<div class="placeholder text-red">生成缓存崩溃: ${res}</div>`;
             }
@@ -555,13 +566,13 @@ class FontManager {
 
         const cjkRegex = /[\u4e00-\u9fa5\u3040-\u309f\u30a0-\u30ff]/;
 
-        // 如果是系统全部字体且无搜索状态，先渲染最近使�?
+        // 如果是系统全部字体且无搜索状态，先渲染最近使用
         if (this.currentMode === 'system' && this.sysFilter === 'all' && !q && this.recentFonts.length > 0) {
             const recentTitle = document.createElement('div');
             recentTitle.className = 'placeholder text-accent';
             recentTitle.style.textAlign = 'left';
             recentTitle.style.padding = '4px 8px';
-            recentTitle.innerHTML = '🕒 最近使�?;
+            recentTitle.innerHTML = '🕒 最近使用';
             this.listContainer.appendChild(recentTitle);
 
             for (let i = 0; i < this.recentFonts.length; i++) {
@@ -586,7 +597,7 @@ class FontManager {
             if (this.currentMode === 'system') {
                 if (font.name && font.name.indexOf("Adobe") === 0 && font.name.length > 20) continue;
 
-                // 搜索时匹配：中文�?经过解析/别名)、英文族名、PS唯一�?
+                // 搜索时匹配：中文(经过解析/别名)、英文族名、PS唯一名
                 if (q) {
                     const cnName = (display.primary || "").toLowerCase();
                     const enName = (display.secondary || "").toLowerCase();
@@ -596,7 +607,7 @@ class FontManager {
                         continue;
                     }
                 }
-                const isCjk = cjkRegex.test(display.primary) || display.primary.indexOf("GB") > -1 || display.primary.indexOf("SC") > -1 || display.primary.indexOf("TC") > -1 || display.primary.indexOf("�?) > -1 || display.primary.indexOf("�?) > -1 || display.primary.indexOf("�?) > -1 || display.primary.indexOf("�?) > -1;
+                const isCjk = cjkRegex.test(display.primary) || display.primary.indexOf("GB") > -1 || display.primary.indexOf("SC") > -1 || display.primary.indexOf("TC") > -1;
 
                 if (this.sysFilter === 'chinese' && !isCjk) continue;
                 if (this.sysFilter === 'english' && isCjk) continue;
@@ -608,7 +619,7 @@ class FontManager {
             this.listContainer.appendChild(this.createFontItemNode(font));
         }
 
-        if (this.labCount) this.labCount.innerText = `�?${count} 款`;
+        if (this.labCount) this.labCount.innerText = `共 ${count} 款`;
 
         if (count === 0 && this.recentFonts.length === 0) {
             this.listContainer.innerHTML = '<div class="placeholder">没有任何相关联的字体记录</div>';
@@ -617,7 +628,7 @@ class FontManager {
 
     createFontItemNode(font) {
         const display = this.getFontDisplayName(font.postScriptName, font.name || font.family);
-        const previewText = '永远の夢を追いかけて 汉化�?;
+        const previewText = '永远の夢を追いかけて 汉化组';
 
         const isFav = this.favFonts.findIndex(f => f.postScriptName === font.postScriptName) > -1;
         const isCmp = this.compareFonts.findIndex(f => f.postScriptName === font.postScriptName) > -1;
@@ -635,8 +646,8 @@ class FontManager {
                 ${previewText}
             </div>
             <div class="font-item__actions">
-                ${isFav ? `<button class="btn-icon btn-fav text-accent" title="编辑收藏">�?/button>` : `<button class="btn-icon btn-fav" title="添加收藏 / 设别�?>�?/button>`}
-                ${isCmp ? `<button class="btn-icon btn-cmp text-accent" title="移除对比" style="background:var(--accent-dim); border-color:var(--accent);">已加�?/button>` : `<button class="btn-icon btn-cmp" title="加入对比">⚔️</button>`}
+                ${isFav ? `<button class="btn-icon btn-fav text-accent" title="编辑收藏">⭐</button>` : `<button class="btn-icon btn-fav" title="添加收藏 / 设别名">☆</button>`}
+                ${isCmp ? `<button class="btn-icon btn-cmp text-accent" title="移除对比" style="background:var(--accent-dim); border-color:var(--accent);">已加入</button>` : `<button class="btn-icon btn-cmp" title="加入对比">⚔️</button>`}
             </div>
         `;
 
@@ -653,20 +664,24 @@ class FontManager {
 
         // 收藏按钮
         const btnFav = item.querySelector('.btn-fav');
-        btnFav.addEventListener('click', (e) => {
-            e.stopPropagation();
-            // font.name 是原来给弹窗兜底用的主显示词
-            this.openFavModal({ postScriptName: font.postScriptName, name: display.primary });
-        });
+        if (btnFav) {
+            btnFav.addEventListener('click', (e) => {
+                e.stopPropagation();
+                // font.name 是原来给弹窗兜底用的主显示词
+                this.openFavModal({ postScriptName: font.postScriptName, name: display.primary });
+            });
+        }
 
         // 对比按钮
         const btnCmp = item.querySelector('.btn-cmp');
-        btnCmp.addEventListener('click', (e) => {
-            e.stopPropagation();
-            this.toggleCompare(font);
-        });
+        if (btnCmp) {
+            btnCmp.addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.toggleCompare(font);
+            });
+        }
 
-        // 如果是收藏夹模式，开启拖拽支�?
+        // 如果是收藏夹模式，开启拖拽支持
         if (this.currentMode === 'favorite') {
             item.setAttribute('draggable', 'true');
             item.addEventListener('dragstart', (e) => this.handleDragStart(e, font, item));
@@ -730,7 +745,7 @@ class FontManager {
 
         // 大范围操作给一个确认，避免误触
         if (scope === 'all') {
-            const ok = confirm("将对【当前文档全部文本图层】批量套用该字体。确定继续吗�?);
+            const ok = confirm("将对《当前文档全部文本图层》批量套用该字体。确定继续吗？");
             if (!ok) return;
         }
 
@@ -753,12 +768,12 @@ class FontManager {
                     const info = JSON.parse(jsonStr);
                     // 仅批量操作弹出摘要提示；单图层不打扰
                     if (scope !== 'active') {
-                        showToast(`�?字体批量应用完成\n总目�? ${info.total}\n已应�? ${info.applied}\n已跳�? ${info.skipped}`);
+                        showToast(`✅ 字体批量应用完成\n总目标 ${info.total}\n已应用 ${info.applied}\n已跳过 ${info.skipped}`);
                     }
                 } catch (e) { }
             }
 
-            // 成功即记录最近使�?
+            // 成功即记录最近使用
             this.saveRecentFont(font);
 
             // 仅当目前处于无搜索系统区时局部重刷挂载最近项
@@ -774,13 +789,13 @@ class FontManager {
             this.compareFonts.splice(idx, 1);
         } else {
             if (this.compareFonts.length >= 6) {
-                showToast("比武台名额有限，最多只能同时上台对�?6 款字体！");
+                showToast("比武台名额有限，最多只能同时上台对比 6 款字体！");
                 return;
             }
             this.compareFonts.push(font);
         }
         this.updateCompareBar();
-        this.renderFonts(); // 刷新按钮高亮�?
+        this.renderFonts(); // 刷新按钮高亮?
     }
 
     updateCompareBar() {
@@ -802,7 +817,7 @@ class FontManager {
     renderCompareList() {
         if (!this.cmpList) return;
         this.cmpList.innerHTML = '';
-        const previewText = this.cmpText.value || "没有输入对比文字�?;
+        const previewText = this.cmpText.value || "没有输入对比文字?";
 
         this.compareFonts.forEach(font => {
             const fontAliasOrName = font.alias || font.name;
@@ -819,7 +834,7 @@ class FontManager {
                         <div style="font-size:13px; font-weight:600; color:var(--text-bright);">${fontAliasOrName}</div>
                         <div style="font-size:10px; color:var(--text-faint);">${font.postScriptName}</div>
                     </div>
-                    <button class="btn btn--primary btn--xs btn-cmp-apply" data-psname="${font.postScriptName}" style="padding:2px 10px;">应用到图�?/button>
+                    <button class="btn btn--primary btn--xs btn-cmp-apply" data-psname="${font.postScriptName}" style="padding:2px 10px;">应用到图层</button>
                 </div>
                 <div style="font-family: '${font.postScriptName}', '${font.name}', sans-serif; font-size: 24px; line-height: 1.4; color: var(--text-bright); white-space: pre-wrap; word-break: break-all; min-height:40px; border-top:1px dashed var(--border-color); padding-top: 8px;">
                     ${previewText.replace(/\n/g, '<br>')}
@@ -839,10 +854,10 @@ class FontManager {
 
     exportFavJson() {
         if (this.favFonts.length === 0) {
-            showToast('收藏夹为空，没有可导出的数据�?);
+            showToast('收藏夹为空，没有可导出的数据。');
             return;
         }
-        // 使用 CEP 文件保存对话�?
+        // 使用 CEP 文件保存对话?
         const result = window.cep.fs.showSaveDialogWithFilter(
             false,
             '保存收藏字体备份',
@@ -855,9 +870,9 @@ class FontManager {
         const savePath = result.data;
         const writeResult = window.cep.fs.writeFile(savePath, JSON.stringify(this.favFonts, null, 2));
         if (writeResult.err === window.cep.fs.NO_ERROR) {
-            showToast(`�?收藏已导出到：\n${savePath}`);
+            showToast(`✅ 收藏已导出到：\n${savePath}`);
         } else {
-            showToast(`�?导出失败，错误码�?{writeResult.err}`);
+            showToast(`❌ 导出失败，错误码：${writeResult.err}`);
         }
     }
 
@@ -873,7 +888,7 @@ class FontManager {
         const filePath = result.data[0];
         const readResult = window.cep.fs.readFile(filePath);
         if (readResult.err !== window.cep.fs.NO_ERROR || !readResult.data) {
-            showToast('�?读取文件失败，请确认文件完整且可读�?);
+            showToast('读取文件失败，请确认文件完整且可读。');
             return;
         }
 
@@ -881,16 +896,16 @@ class FontManager {
         try {
             imported = JSON.parse(readResult.data);
         } catch (e) {
-            showToast('�?JSON 格式错误，无法解析该文件�?);
+            showToast('JSON 格式错误，无法解析该文件。');
             return;
         }
 
         if (!Array.isArray(imported)) {
-            showToast('�?文件格式不符，期望一�?JSON 数组�?);
+            showToast('文件格式不符，期望一个 JSON 数组。');
             return;
         }
 
-        // 合并模式：以 postScriptName 为主键，导入项会覆盖已有同名�?
+        // 合并模式：以 postScriptName 为主键，导入项会覆盖已有同名?
         let addedCount = 0;
         let updatedCount = 0;
         imported.forEach(item => {
@@ -908,26 +923,25 @@ class FontManager {
         this.saveFavFonts();
         this.renderFavCategories();
         this.renderFonts();
-        showToast(`�?导入完成：新�?${addedCount} 款，更新 ${updatedCount} 款。`);
+        showToast(`✅ 导入完成：新增 ${addedCount} 款，更新 ${updatedCount} 款。`);
     }
 
-    // ── 在线字体精选数据库（内嵌，不需�?API）──
+    // ── 在线字体精选数据库（内嵌，不需?API）──
     getOnlineFontDB() {
         return [
-            { name: '得意�?, psHint: 'Smiley-Sans', style: '现代活泼黑体，斜切风格，个性鲜�?, url: 'https://github.com/atelier-anchor/smiley-sans', tags: ['黑体', '漫画', '标题'] },
-            { name: '霞鹜文楷', psHint: 'LXGWWenKai', style: '开源楷体，温润书写感，内心独白/旁白首�?, url: 'https://github.com/lxgw/LxgwWenKai', tags: ['楷体', '手写', '旁白'] },
-            { name: '霞鹜新致�?, psHint: 'LXGWNeoZhiSong', style: '开源宋体，典雅正文体验', url: 'https://github.com/lxgw/LxgwNeoZhiSong', tags: ['宋体', '正文'] },
-            { name: '阿里巴巴普惠�?, psHint: 'AlibabaPuHuiTi', style: '多字重免费黑体，正文展示均适合', url: 'https://fonts.alibabagroup.com/', tags: ['黑体', '正文', '标题'] },
-            { name: '优设标题�?, psHint: 'YouSheBiaoTiHei', style: '超粗展示黑体，大�?震撼场景利器', url: 'https://www.uisdc.com/', tags: ['黑体', '标题', '漫画'] },
-            { name: '庞门正道标题�?, psHint: 'PangMenZhengDao', style: '设计感标题体，英雄气概十�?, url: 'https://www.fonts.net.cn/', tags: ['标题', '漫画'] },
-            { name: '站酷快乐�?, psHint: 'ZCOOL-KuaiLe', style: '圆润欢快，适合轻松对话/可爱场景', url: 'https://www.zcool.com.cn/', tags: ['圆体', '漫画', '可爱'] },
-            { name: '站酷高端黑体', psHint: 'ZCOOL-GDH', style: '现代高端黑体，科�?都市漫画', url: 'https://www.zcool.com.cn/', tags: ['黑体', '标题'] },
-            { name: 'MiSans', psHint: 'MiSans-Regular', style: '小米无衬线体，干净现代，多字重', url: 'https://hyperos.mi.com/font/', tags: ['黑体', '正文'] },
-            { name: '思源黑体', psHint: 'SourceHanSansCN', style: 'Google/Adobe 联合出品，全字重完备', url: 'https://github.com/adobe-fonts/source-han-sans', tags: ['黑体', '正文', '标题'] },
-            { name: '思源宋体', psHint: 'SourceHanSerifSC', style: 'Google/Adobe 宋体，文学旁白首�?, url: 'https://github.com/adobe-fonts/source-han-serif', tags: ['宋体', '正文', '旁白'] },
-            { name: '江西拙楷', psHint: 'jiangxizhuokai', style: '手拙感楷书，日记/手账风格', url: 'https://github.com/GuiWonder/JxZhuoKai', tags: ['楷体', '手写', '旁白'] },
-            { name: '字魂肥宅快乐�?, psHint: 'zihun39hao-feizhaikuaileti', style: '圆润可爱，轻松搞笑场�?, url: 'https://izihun.com/', tags: ['圆体', '可爱', '漫画'] },
-            { name: 'Noto Sans SC', psHint: 'NotoSansSC-Regular', style: 'Google 开源无衬线，全面兼�?Unicode', url: 'https://fonts.google.com/noto', tags: ['黑体', '正文'] },
+            { name: '得意黑', psHint: 'Smiley-Sans', style: '现代活泼黑体，斜切风格个性鲜明', url: 'https://github.com/atelier-anchor/smiley-sans', tags: ['黑体', '漫画', '标题'] },
+            { name: '霞鹿文楷', psHint: 'LXGWWenKai', style: '开源楷体，温润书写感', url: 'https://github.com/lxgw/LxgwWenKai', tags: ['楷体', '手写', '旁白'] },
+            { name: '霞鹿新致宋', psHint: 'LXGWNeoZhiSong', style: '开源宋体，典雅正文体验', url: 'https://github.com/lxgw/LxgwWenKai', tags: ['宋体', '正文', '旁白'] },
+            { name: '阿里巴巴普惠体', psHint: 'AlibabaPuHuiTi', style: '多字重免费黑体，正文展示均适合', url: 'https://fonts.alibaba.com/', tags: ['黑体', '正文', '商用'] },
+            { name: '优设标题黑', psHint: 'YouSheBiaoTiHei', style: '超粗展示黑体，大震澏场景', url: 'https://www.uisdc.com/', tags: ['黑体', '标题', '漫画'] },
+            { name: '庞门正道标题体', psHint: 'PangMenZhengDao', style: '设计感标题体，英雄气概十足', url: 'https://www.fonts.net.cn/', tags: ['标题', '漫画'] },
+            { name: '站酷快乐体', psHint: 'ZCOOL-KuaiLe', style: '圆润欢快，适合轻松对话', url: 'https://www.zcool.com.cn/', tags: ['圆体', '漫画', '可爱'] },
+            { name: '站酷高端黑体', psHint: 'ZCOOL-GDH', style: '现代高端黑体，都市漫画', url: 'https://www.zcool.com.cn/', tags: ['黑体', '标题'] },
+            { name: '思源宋体', psHint: 'SourceHanSerifSC', style: 'Google/Adobe 宋体，文学旁白首选', url: 'https://github.com/adobe-fonts/source-han-serif', tags: ['宋体', '正文', '旁白'] },
+            { name: '思源黑体', psHint: 'SourceHanSansCN', style: 'Google/Adobe 全字重完备', url: 'https://github.com/adobe-fonts/source-han-sans', tags: ['黑体', '正文'] },
+            { name: '字魂肥宅快乐体', psHint: 'zihun39hao-feizhaikuaileti', style: '圆润可爱，轻松搞笑场景', url: 'https://izihun.com/', tags: ['圆体', '可爱', '漫画'] },
+            { name: 'MiSans', psHint: 'MiSans-Regular', style: '小米无袖线体，干净现代，多字重', url: 'https://hyperos.mi.com/font/', tags: ['黑体', '正文'] },
+            { name: 'Noto Sans SC', psHint: 'NotoSansSC-Regular', style: 'Google 开源无袖线，全面兼容 Unicode', url: 'https://fonts.google.com/noto', tags: ['黑体', '正文'] },
         ];
     }
 
@@ -951,9 +965,9 @@ class FontManager {
                 <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px;">
                     <div>
                         <span style="font-size:13px;font-weight:600;color:var(--text-bright);">${font.name}</span>
-                        ${isInstalled ? '<span style="font-size:10px;color:var(--accent);margin-left:6px;">�?已安�?/span>' : ''}
+                        ${isInstalled ? '<span style="font-size:10px;color:var(--accent);margin-left:6px;">✅ 已安装</span>' : ''}
                     </div>
-                    <button class="btn btn--ghost btn--xs" style="padding:2px 8px;font-size:11px;" data-url="${font.url}">下载�?/button>
+                    <button class="btn btn--ghost btn--xs" style="padding:2px 8px;font-size:11px;" data-url="${font.url}">下载</button>
                 </div>
                 <div style="font-size:11px;color:var(--text-faint);margin-bottom:6px;">${font.style}</div>
                 <div style="display:flex;gap:4px;flex-wrap:wrap;">${font.tags.map(t => `<span style="font-size:10px;background:var(--bg-lighter);color:var(--text-dim);padding:1px 6px;border-radius:10px;">${t}</span>`).join('')}</div>
@@ -963,28 +977,28 @@ class FontManager {
         });
     }
 
-    // ── 升级�?AI 推荐：多模型 + 结构�?JSON 卡片展示 ──
+    // ── 升级?AI 推荐：多模型 + 结构?JSON 卡片展示 ──
     async callAiFontRecommendation(query) {
         const cfg = PresetsManager.getApiConfig();
         if (!cfg.apiKey) {
-            showToast('请前往「设置」页面填入大模型 API Key（支�?Gemini �?DeepSeek �?OpenAI 兼容接口），然后再使�?AI 推荐功能�?);
+            showToast('请前往『设置』页面填入大模型 API Key，然后再使用 AI 推荐功能。');
             return;
         }
 
-        if (this.btnAiRecommend) { this.btnAiRecommend.textContent = '分析中�?; this.btnAiRecommend.disabled = true; }
+        if (this.btnAiRecommend) { this.btnAiRecommend.textContent = '分析中…'; this.btnAiRecommend.disabled = true; }
         const resultArea = document.getElementById('ai-result-area');
         const resultCards = document.getElementById('ai-result-cards');
         if (resultArea) resultArea.style.display = 'none';
-        if (resultCards) resultCards.innerHTML = '<div class="placeholder text-accent">🤖 AI 正在分析情景，匹配最合适的字体风格�?/div>';
+        if (resultCards) resultCards.innerHTML = '<div class="placeholder text-accent">🤖 AI 正在分析情景，匹配最合适的字体风格?/div>';
         if (resultArea) resultArea.style.display = 'block';
 
-        const systemPrompt = `你是专业的漫画排版与字体美学专家。用户描述漫画场景，你推荐最合适的中文字体�?
+        const systemPrompt = `你是专业的漫画排版与字体美学专家。用户描述漫画场景，你推荐最合适的中文字体?
 
-严格�?JSON 格式回复，不要输出其他任何内容，格式�?
+严格?JSON 格式回复，不要输出其他任何内容，格式?
 {
   "analysis": "对场景的简短分析（20字以内）",
   "recommendations": [
-    { "name": "字体名称", "reason": "推荐理由�?5字以内）", "keyword": "搜索关键�? }
+    { "name": "字体名称", "reason": "推荐理由（5字以内）", "keyword": "搜索关键词" }
   ]
 }
 
@@ -1002,7 +1016,7 @@ class FontManager {
                         model: modelName,
                         messages: [
                             { role: 'system', content: systemPrompt },
-                            { role: 'user', content: `场景描述�?{query}` }
+                            { role: 'user', content: `场景描述：${query}` }
                         ],
                         temperature: 0.7
                     })
@@ -1016,7 +1030,7 @@ class FontManager {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        contents: [{ parts: [{ text: `${systemPrompt}\n\n场景描述�?{query}` }] }],
+                        contents: [{ parts: [{ text: `${systemPrompt}\n\n场景描述：${query}` }] }],
                         generationConfig: { temperature: 0.7, responseMimeType: 'application/json' }
                     })
                 });
@@ -1031,12 +1045,12 @@ class FontManager {
             } catch (e) {
                 const match = responseText.match(/\{[\s\S]*\}/);
                 if (match) result = JSON.parse(match[0]);
-                else throw new Error('AI 返回格式错误�? + responseText.substring(0, 80));
+                else throw new Error('AI 返回格式错误：' + responseText.substring(0, 80));
             }
             this._renderAiResultCards(result, resultCards);
 
         } catch (e) {
-            if (resultCards) resultCards.innerHTML = `<div style="color:var(--text-red,#f66);font-size:12px;padding:8px;">�?AI 连接失败�?{e.message.substring(0, 120)}<br><small>请在设置页检�?API Key 和网络�?/small></div>`;
+            if (resultCards) resultCards.innerHTML = `<div style="color:var(--text-red,#f66);font-size:12px;padding:8px;">❌ AI 连接失败：${e.message.substring(0, 120)}<br><small>请在设置页检查 API Key 和网络连接</small></div>`;
         } finally {
             if (this.btnAiRecommend) { this.btnAiRecommend.textContent = '🤖 AI 分析推荐'; this.btnAiRecommend.disabled = false; }
         }
@@ -1053,7 +1067,7 @@ class FontManager {
         }
         const recs = result.recommendations || [];
         if (recs.length === 0) {
-            container.innerHTML = '<div class="placeholder">AI 未返回推荐，请换一种描述方式重试�?/div>';
+            container.innerHTML = '<div class="placeholder">AI 未返回推荐，请换一种描述方式重试。</div>';
             return;
         }
         recs.forEach((rec, idx) => {
@@ -1070,13 +1084,13 @@ class FontManager {
                 <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
                     <div style="font-size:13px;font-weight:600;color:var(--text-bright);">
                         ${idx + 1}. ${rec.name}
-                        ${isInstalled ? '<span style="font-size:10px;color:var(--accent);margin-left:6px;">�?已安�?/span>' : ''}
+                        ${isInstalled ? '<span style="font-size:10px;color:var(--accent);margin-left:6px;">✅ 已安装</span>' : ''}
                     </div>
                 </div>
                 <div style="font-size:11px;color:var(--text-faint);margin-bottom:8px;">${rec.reason || ''}</div>
                 <div style="display:flex;gap:6px;">
-                    <button class="btn btn--ghost btn--xs btn-jump-zf" style="font-size:11px;">字由搜索�?/button>
-                    <button class="btn btn--ghost btn--xs btn-jump-zeo" style="font-size:11px;">ZeoSeven�?/button>
+                    <button class="btn btn--ghost btn--xs btn-jump-zf" style="font-size:11px;">字由搜索</button>
+                    <button class="btn btn--ghost btn--xs btn-jump-zeo" style="font-size:11px;">ZeoSeven</button>
                 </div>
             `;
             card.querySelector('.btn-jump-zf').addEventListener('click', () => window.cep.util.openURLInDefaultBrowser(zfontUrl));

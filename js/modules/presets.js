@@ -23,7 +23,7 @@ class PresetsManager {
     }
 
     bindEvents() {
-        // 切换模型类型时显�?隐藏 OpenAI 额外配置
+        // 切换模型类型时显隐藏 OpenAI 额外配置
         if (this.selModelType) {
             this.selModelType.addEventListener('change', () => {
                 this._updateApiExtraVisibility();
@@ -33,18 +33,18 @@ class PresetsManager {
         // 清理字体缓存文件
         if (this.btnClearFontCache) {
             this.btnClearFontCache.addEventListener('click', () => {
-                if (confirm("确定要清理字体列表缓存吗？\n下次打开字体面板将重新扫描系统字体�?)) {
+                if (confirm("确定要清理字体列表缓存吗？\n下次打开字体面板将重新扫描系统字体。")) {
                     const cachePath = this.dataDir + "/font_cache.json";
                     const result = window.cep.fs.deleteFile(cachePath);
                     if (result.err === window.cep.fs.NO_ERROR || result.err === window.cep.fs.ERR_NOT_FOUND) {
-                        showToast("字体缓存清理成功�?);
+                        showToast("字体缓存清理成功。");
                         if (window.fontManager) {
                             window.fontManager.allFonts = [];
                             const container = document.getElementById('font-list-container');
-                            if (container) container.innerHTML = '<div class="placeholder">缓存已清空，点击刷新按钮重新生成�?/div>';
+                            if (container) container.innerHTML = '<div class="placeholder">缓存已清空，点击刷新按钮重新生成/div>';
                         }
                     } else {
-                        showToast("缓存不存在或清理失败，错误码�? + result.err);
+                        showToast("缓存不存在或清理失败，错误码：" + result.err);
                     }
                 }
             });
@@ -54,14 +54,14 @@ class PresetsManager {
         if (this.btnSaveApiKey) {
             this.btnSaveApiKey.addEventListener('click', () => {
                 this.saveApiSettings();
-                showToast("�?API 配置已保存在本地�?);
+                showToast("API 配置已保存在本地");
             });
         }
 
         // 强杀重载整个 CEP 插件前端环境
         if (this.btnReload) {
             this.btnReload.addEventListener('click', () => {
-                if (confirm("遇到卡死或严重显�?Bug 时，可以执行紧急热重载强杀扩展再重启，确定执行吗？")) {
+                if (confirm("确定要清理字体列表缓存吗？\n下次打开字体面板将重新扫描系统字体。")) {
                     window.location.reload(true);
                 }
             });
@@ -103,11 +103,11 @@ class PresetsManager {
         if (this.selModelType) localStorage.setItem('manga_wb_model_type', this.selModelType.value);
         if (this.inputBaseUrl) localStorage.setItem('manga_wb_base_url', this.inputBaseUrl.value.trim());
         if (this.inputModelName) localStorage.setItem('manga_wb_model_name', this.inputModelName.value.trim());
-        // �?key 兼容保留
+        // key 兼容保留
         if (this.inputApiKey) localStorage.setItem('manga_workbench_api_key', this.inputApiKey.value.trim());
     }
 
-    // ── 静态工具：供其他模块读�?API 配置 ──
+    // ── 静态工具：供其他模块读API 配置 ──
     static getApiConfig() {
         return {
             apiKey: localStorage.getItem('manga_wb_api_key') || localStorage.getItem('manga_workbench_api_key') || '',

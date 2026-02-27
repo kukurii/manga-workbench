@@ -1,4 +1,4 @@
-// styleTool.js - 排版段落预设�?
+// styleTool.js - 排版段落预设库
 
 class StyleManager {
     constructor(csInterface, extPath, dataDir) {
@@ -31,7 +31,7 @@ class StyleManager {
                     if (this.inputLeadingVal.value == '14' || this.inputLeadingVal.value == '') this.inputLeadingVal.value = 125;
                 } else {
                     this.labLeadingUnit.innerText = 'pt';
-                    // 如果原先填的很大的比率（比如125）则重置为正常固定间�?
+                    // 如果原先填的很大的比率（比如125）则重置为正常固定间距
                     if (this.inputLeadingVal.value == '125' || this.inputLeadingVal.value == '') this.inputLeadingVal.value = 14;
                 }
             });
@@ -45,7 +45,7 @@ class StyleManager {
 
         if (this.btnSavePreset) {
             this.btnSavePreset.addEventListener('click', () => {
-                const name = showPromptModal("请为该段落预设起一个好记的名字 (�? 对话-方正宋体-36pt):", "对话样式A");
+                const name = showPromptModal("请为该段落预设起一个好记的名字 (如 对话-方正宋体-36pt):", "对话样式A");
                 if (!name) return;
 
                 const fontPostName = this.selFont.value;
@@ -69,7 +69,7 @@ class StyleManager {
         }
     }
 
-    // �?fontTool.js 回调，用来同步系统字体到此处的下拉菜�?
+    // 由 fontTool.js 回调，用来同步系统字体到此处的下拉菜单
     syncFonts(fontList) {
         if (!this.selFont) return;
         this.selFont.innerHTML = '<option value="">(保持图层原字体不改变)</option>';
@@ -98,8 +98,8 @@ class StyleManager {
         if (isNaN(size) || size <= 0) return showToast('请输入有效的字号');
         if (isNaN(leadingValue) || leadingValue <= 0) return showToast('请输入有效的行距');
 
-        // 发送到 ExtendScript 统一处理段落三参�?
-        // 为避免空�?fontPostName 变成字面�?'undefined' 传进 JSX 导致报错，必须拦�?
+        // 发送到 ExtendScript 统一处理段落三参数
+        // 为避免空的 fontPostName 变成字面值 'undefined' 传进 JSX 导致报错，必须拦截
         const safeFont = fontPostName ? fontPostName : '';
         this.cs.evalScript(`applyParagraphStyle('${safeFont}', ${size}, '${leadingType}', ${leadingValue})`, (res) => {
             if (res && res.indexOf("错误") > -1) {
@@ -108,7 +108,7 @@ class StyleManager {
         });
     }
 
-    // JSON 预设文件化存�?
+    // JSON 预设文件化存储
     loadPresets() {
         const path = this.dataDir + "/style_presets.json";
         const readResult = window.cep.fs.readFile(path);
@@ -149,7 +149,7 @@ class StyleManager {
             nameSpan.style.textAlign = 'left';
 
             const delSpan = document.createElement('span');
-            delSpan.innerText = '�?;
+            delSpan.innerText = '×';
             delSpan.style.cursor = 'pointer';
             delSpan.style.marginLeft = '6px';
             delSpan.style.opacity = '0.5';
@@ -166,7 +166,7 @@ class StyleManager {
 
             delSpan.addEventListener('click', (e) => {
                 e.stopPropagation();
-                if (confirm('确定要彻底删除段落预�? ' + p.name + ' 吗？')) {
+                if (confirm('确定要彻底删除段落预设 ' + p.name + ' 吗？')) {
                     this.presets = this.presets.filter(p2 => p2.id !== p.id);
                     this.savePresets();
                     this.renderPresets();
