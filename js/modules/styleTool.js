@@ -45,26 +45,27 @@ class StyleManager {
 
         if (this.btnSavePreset) {
             this.btnSavePreset.addEventListener('click', () => {
-                const name = showPromptModal("请为该段落预设起一个好记的名字 (如 对话-方正宋体-36pt):", "对话样式A");
-                if (!name) return;
+                showPromptModal("请为该段落预设起一个好记的名字 (如 对话-方正宋体-36pt):", "对话样式A", (name) => {
+                    if (!name) return;
 
-                const fontPostName = this.selFont.value;
-                const fontSelectObj = this.selFont.options[this.selFont.selectedIndex];
-                const fontName = fontSelectObj ? fontSelectObj.text : '';
+                    const fontPostName = this.selFont.value;
+                    const fontSelectObj = this.selFont.options[this.selFont.selectedIndex];
+                    const fontName = fontSelectObj ? fontSelectObj.text : '';
 
-                const preset = {
-                    id: Date.now().toString(),
-                    name: name,
-                    fontPostScriptName: fontPostName,
-                    fontName: fontName,
-                    size: parseFloat(this.inputSize.value),
-                    leadingType: this.selLeadingType.value,
-                    leadingValue: parseFloat(this.inputLeadingVal.value)
-                };
+                    const preset = {
+                        id: Date.now().toString(),
+                        name: name,
+                        fontPostScriptName: fontPostName,
+                        fontName: fontName,
+                        size: parseFloat(this.inputSize.value),
+                        leadingType: this.selLeadingType.value,
+                        leadingValue: parseFloat(this.inputLeadingVal.value)
+                    };
 
-                this.presets.push(preset);
-                this.savePresets();
-                this.renderPresets();
+                    this.presets.push(preset);
+                    this.savePresets();
+                    this.renderPresets();
+                });
             });
         }
     }
