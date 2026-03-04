@@ -543,16 +543,31 @@ class FontManager {
     }
 
     syncToTypesetPanel() {
-        const typesetDropdown = document.getElementById('sel-font-family');
-        if (!typesetDropdown || this.allFonts.length === 0) return;
+        if (this.allFonts.length === 0) return;
 
-        typesetDropdown.innerHTML = '<option value="">(默认匹配 PS 当前预设)</option>';
-        this.allFonts.forEach(f => {
-            const opt = document.createElement('option');
-            opt.value = f.postScriptName;
-            opt.innerText = f.name;
-            typesetDropdown.appendChild(opt);
-        });
+        // 1. 同步到"批量生成"面板的字体选择
+        const typesetDropdown = document.getElementById('sel-font-family');
+        if (typesetDropdown) {
+            typesetDropdown.innerHTML = '<option value="">(默认匹配 PS 当前预设)</option>';
+            this.allFonts.forEach(f => {
+                const opt = document.createElement('option');
+                opt.value = f.postScriptName;
+                opt.innerText = f.name;
+                typesetDropdown.appendChild(opt);
+            });
+        }
+
+        // 2. 同步到"单条精调读取/覆写"面板的字体选择
+        const syncDropdown = document.getElementById('sel-sync-font');
+        if (syncDropdown) {
+            syncDropdown.innerHTML = '<option value="">(保持不变)</option>';
+            this.allFonts.forEach(f => {
+                const opt = document.createElement('option');
+                opt.value = f.postScriptName;
+                opt.innerText = f.name;
+                syncDropdown.appendChild(opt);
+            });
+        }
     }
 
     // ------------ 统一 UI 渲染 ------------

@@ -124,7 +124,7 @@ class TypesetManager {
             });
         }
 
-        // 复制 AI 提示词到剪贴…
+        // 复制 AI 提示词到剪贴板
         if (this.btnCopyAIPrompt) {
             this.btnCopyAIPrompt.addEventListener('click', () => {
                 const promptTemplate = `请帮我翻译以下漫画页面。为了方便我直接导入工作流，请务必严格按照以下格式输出每页的翻译结果：
@@ -146,7 +146,7 @@ class TypesetManager {
                 ta.select();
                 try {
                     document.execCommand('copy');
-                    showToast('…AI 翻译格式要求已复制到剪贴板！', 'success');
+                    showToast('AI 翻译格式要求已复制到剪贴板！', 'success');
                 } catch (e) {
                     showToast('复制失败，请手动复制', 'error');
                 }
@@ -172,7 +172,7 @@ class TypesetManager {
                     let fontFound = false;
                     // 覆写通用字体
                     if (this.selFontFamily && preset.fontPostScriptName) {
-                        // 检查字体是否存在于下拉列表…
+                        // 检查字体是否存在于下拉列表中
                         for (let i = 0; i < this.selFontFamily.options.length; i++) {
                             if (this.selFontFamily.options[i].value === preset.fontPostScriptName) {
                                 this.selFontFamily.selectedIndex = i;
@@ -185,8 +185,8 @@ class TypesetManager {
                         }
                     }
                     // 覆写字号
-                    if (this.inputFontSize && preset.fontSize) {
-                        this.inputFontSize.value = preset.fontSize;
+                    if (this.inputFontSize && preset.size) {
+                        this.inputFontSize.value = preset.size;
                     }
                 }
             });
@@ -204,11 +204,11 @@ class TypesetManager {
                 if (this.parsedData.length === 0) return;
                 const pageData = this.parsedData[this.currentPageIndex];
                 if (!pageData || pageData.dialogs.length === 0) {
-                    showToast("当前页没有可生成的对…");
+                    showToast("当前页没有可生成的对白");
                     return;
                 }
 
-                this.btnAutoTypeset.innerText = "生成…..";
+                this.btnAutoTypeset.innerText = "生成中...";
                 this.btnAutoTypeset.style.opacity = "0.7";
 
                 const safeJson = JSON.stringify(pageData.dialogs);
@@ -230,7 +230,7 @@ class TypesetManager {
             });
         }
 
-        // 框选气……创建文本…
+        // 框选气泡创建文本框
         const btnCreateFromSel = document.getElementById('btn-create-from-selection');
         if (btnCreateFromSel) {
             btnCreateFromSel.addEventListener('click', () => {
@@ -244,13 +244,13 @@ class TypesetManager {
                 const safeSize = JSON.stringify(size);
                 const safeDir = JSON.stringify(dir);
 
-                btnCreateFromSel.textContent = '创建中…';
+                btnCreateFromSel.textContent = '创建中...';
                 btnCreateFromSel.disabled = true;
 
                 this.cs.evalScript(
                     `createTextLayerInSelection(${safeText}, ${safeFont}, ${safeSize}, ${safeDir})`,
                     (res) => {
-                        btnCreateFromSel.textContent = '🔲 框选气……创建文本…';
+                        btnCreateFromSel.textContent = '🔲 框选气泡 → 创建文本框';
                         btnCreateFromSel.disabled = false;
                         if (res && res !== 'SUCCESS') {
                             showToast(res);
@@ -269,7 +269,7 @@ class TypesetManager {
             });
         }
 
-        // 缝合破折…
+        // 缝合破折号
         if (this.btnFixDash) {
             this.btnFixDash.addEventListener('click', () => {
                 this.cs.evalScript(`fixDashKerning()`, (res) => {
@@ -278,7 +278,7 @@ class TypesetManager {
             });
         }
 
-        // 处理感叹问号 (!?) 形态转…(替换为自带立排的单字 Unicode)
+        // 处理感叹问号 (!?) 形态转换(替换为自带立排的单字 Unicode)
         if (this.btnFixBangQuestion) {
             this.btnFixBangQuestion.addEventListener('click', () => {
                 this.cs.evalScript(`fixBangQuestion()`, (res) => {
@@ -287,8 +287,8 @@ class TypesetManager {
             });
         }
 
-        // --- 中间态双向绑定事…---
-        // --- 属性双向联动引…---
+        // --- 中间态双向绑定事件 ---
+        // --- 属性双向联动引擎 ---
         if (this.btnSyncRead) {
             this.btnSyncRead.addEventListener('click', () => {
                 this.cs.evalScript(`readActiveLayerProperties()`, (res) => {
@@ -309,7 +309,7 @@ class TypesetManager {
 
                         // 直接强行执行一次解析并弹窗提示
                         this.parseText(outputTxt);
-                        showToast("提取成功！已将画板内的所有文字反推至源文稿列表中…");
+                        showToast("提取成功！已将画板内的所有文字反推至源文稿列表中！");
                     }
                 });
             });
@@ -324,7 +324,7 @@ class TypesetManager {
                 if (this.selSyncFont && this.selSyncFont.value) params.font = this.selSyncFont.value;
                 if (this.inputSyncSize && this.inputSyncSize.value) params.size = this.inputSyncSize.value;
                 if (this.inputSyncLeading && this.inputSyncLeading.value) params.leading = this.inputSyncLeading.value;
-                // 读取自定义颜色选择器的…
+                // 读取自定义颜色选择器的值
                 const syncColor = window.getPickerColor ? window.getPickerColor('sync-color') : '#000000';
                 if (syncColor) params.color = syncColor;
 
@@ -337,7 +337,7 @@ class TypesetManager {
         }
 
         if (this.inputSyncText) {
-            // 失去焦点时不再自动同步所有属性，以防误改字体字号…
+            // 失去焦点时不再自动同步所有属性，以防误改字体字号等
             // 仅对单纯的文本失去焦点不再进行隐式写入，让用户明确点击[应用属性]
         }
 
@@ -348,17 +348,17 @@ class TypesetManager {
                 const limit = parseInt(this.inputAutoBreakNum.value, 10);
                 if (isNaN(limit) || limit < 2) return showToast('无效字数约束');
 
-                // 去除可能已有的换行符，变成单行纯文字再重新气泡断…
+                // 去除可能已有的换行符，变成单行纯文字再重新气泡断句
                 const flatText = rawText.replace(/\r?\n/g, '');
                 let resultText = '';
                 for (let i = 0; i < flatText.length; i += limit) {
                     resultText += flatText.substring(i, i + limit) + '\n';
                 }
 
-                // 去掉最后多出来的回…
+                // 去掉最后多出来的回车
                 this.inputSyncText.value = resultText.trim();
 
-                // 顺手写入画布（使…applyActiveLayerProperties，与"应用属…按钮保持一致）
+                // 顺手写入画布（使用 applyActiveLayerProperties，与"应用属性"按钮保持一致）
                 const params = { text: this.inputSyncText.value.replace(/\n/g, '\r') };
                 const safeJson = JSON.stringify(params);
                 const escapedForJSX = safeJson.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
@@ -370,15 +370,15 @@ class TypesetManager {
     }
 
     parseText(rawText) {
-        // 支持 \r\n …\n
+        // 支持 \r\n 或 \n
         const lines = rawText.split(/\r?\n/);
         let ObjectPages = [];
         let currentPage = null;
         let currentDialog = null;
 
-        // 匹配页码分隔…=== …1 … 001.jpg ===
-        const pageRegex = /^===\s*第\s*(\d+)\s*…\s*(.*?)\s*===$/;
-        // 匹配对话编号…[1] 为什么，赛…
+        // 匹配页码分隔符，例如 === 第 1 页: 001.jpg ===
+        const pageRegex = /^===\s*第\s*(\d+)\s*页:\s*(.*?)\s*===$/;
+        // 匹配对话编号，例如 [1] 为什么，赛亚人
         const dialogRegex = /^\[(\d+)\]\s*(.*)$/;
 
         lines.forEach(line => {
@@ -430,7 +430,7 @@ class TypesetManager {
             this.lastParsedData = JSON.parse(JSON.stringify(this.parsedData));
         }
 
-        // 核心：若有历史数据，则比对当前页下的所…Dialog，不一样的打上 changed 标签
+        // 核心：若有历史数据，则比对当前页下的所有Dialog，不一样的打上 changed 标签
         if (this.lastParsedData) {
             ObjectPages.forEach((newPage) => {
                 let oldPage = this.lastParsedData.find(p => p.pageNum === newPage.pageNum);
@@ -438,7 +438,7 @@ class TypesetManager {
                     newPage.dialogs.forEach((newDiag) => {
                         let oldDiag = oldPage.dialogs.find(d => d.id === newDiag.id);
                         if (oldDiag && oldDiag.text !== newDiag.text) {
-                            newDiag.isChanged = true; // 挂载被修改过的高亮标…
+                            newDiag.isChanged = true; // 挂载被修改过的高亮标签
                         }
                     });
                 }
@@ -471,7 +471,7 @@ class TypesetManager {
         const page = this.parsedData[this.currentPageIndex];
 
         if (!page || page.dialogs.length === 0) {
-            this.dialogList.innerHTML = '<div class="placeholder">本页无对白数…/div>';
+            this.dialogList.innerHTML = '<div class="placeholder">本页无对白数据</div>';
             return;
         }
 
@@ -489,17 +489,17 @@ class TypesetManager {
                 ${diag.isChanged ? '<div class="dialog-badge">已修改</div>' : ''}
             `;
 
-            // 为每句对白绑定点击事件：点击后通知 PS 选中对应的文本图…
+            // 为每句对白绑定点击事件：点击后通知 PS 选中对应的文本图层
             row.addEventListener('click', () => {
                 // UI 高亮排他
                 const allRows = this.dialogList.querySelectorAll('.dialog-row');
                 allRows.forEach(r => r.classList.remove('active-row'));
                 row.classList.add('active-row');
 
-                // 调用 JSX 接口，按…ID 精准定位图层 
+                // 调用 JSX 接口，按对白ID 精准定位图层 
                 this.cs.evalScript(`locateTextLayer("${diag.id}")`, (res) => {
                     if (res && res.indexOf("错误") > -1) {
-                        // 找不到图层静默处理或不弹扰人窗，仅在控制台告…
+                        // 找不到图层静默处理或不弹扰人窗，仅在控制台警告
                         console.warn(res);
                     } else {
                         // 定位成功后，顺便读取该图层的全套属性充填到“修改与修正”的排版盘中

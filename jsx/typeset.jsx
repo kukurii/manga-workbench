@@ -66,11 +66,26 @@ function generateTextLayersBulk(dialogsJson, styleJson) {
             textLayer.name = diag.id; // 使用对话ID作为图层名
 
             var textItem = textLayer.textItem;
-            // 预处理换行和简单的标点替换：自动将半角问号叹号转成全角
-            var content = diag.text.replace(/\\n/g, '\r').replace(/\?/g, '？').replace(/\!/g, '！');
-            textItem.contents = content;
+            
+            // 核心修复：先用一个英文字符占位，防止提前混入中文字符导致 PS 后续更换字体时文本引擎的包围盒渲染直接损坏（即表现为无法选中、无法光标吸附、无法拖动）
+            textItem.contents = "T";
 
-            // 基础样式
+            // 智能排版落点计算 (防遮挡的斜向大落差大跨度瀑布流)
+            var colWidth = doc.width.as("px") / 4; // 分为 4 列
+            var rowHeight = 250;
+
+            var startX = 100 + ((i % 4) * colWidth);
+            var startY = 100 + (Math.floor(i / 4) * rowHeight);
+
+            // 如果超出画板底端，强制拉回到另外一条垂直阶梯排列，并增加横向缩进
+            if (startY > docHeight - 100) {
+                startY = 150 + (i * 40 % (docHeight / 2));
+                startX = 100 + ((i % 3) * 150);
+            }
+
+            textItem.position = [new UnitValue(startX, "px"), new UnitValue(startY, "px")];
+
+            // 基础样式设置（在占位符上设置）
             try {
                 // 读取并在竖排和横排间切换以匹配不同需求（日漫/韩漫）
                 if (styleParams.direction === 'HORIZONTAL') {
@@ -92,21 +107,10 @@ function generateTextLayersBulk(dialogsJson, styleJson) {
                 textItem.justification = Justification.LEFT;
             } catch (e) { }
 
-            // 智能排版落点计算 (防遮挡的斜向大落差大跨度瀑布流)
-            // 这一改进解决了之前密密麻麻全堆在左上角导致光标穿不透、没法改字的严重痛点
-            var colWidth = doc.width.as("px") / 4; // 分为 4 列
-            var rowHeight = 250;
-
-            var startX = 100 + ((i % 4) * colWidth);
-            var startY = 100 + (Math.floor(i / 4) * rowHeight);
-
-            // 如果超出画板底端，强制拉回到另外一条垂直阶梯排列，并增加横向缩进
-            if (startY > docHeight - 100) {
-                startY = 150 + (i * 40 % (docHeight / 2));
-                startX = 100 + ((i % 3) * 150);
-            }
-
-            textItem.position = [new UnitValue(startX, "px"), new UnitValue(startY, "px")];
+            // 全部排版参数配置完毕后，最后填入正式内容。
+            // 预处理换行和简单的标点替换：自动将半角问号叹号转成全角
+            var content = diag.text.replace(/\\n/g, '\r').replace(/\?/g, '？').replace(/\!/g, '！');
+            textItem.contents = content;
         }
 
         // 选中刚创建的组
