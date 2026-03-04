@@ -391,20 +391,26 @@
             <div id="typeset-shared-list" class="card mb-2 mt-2" style="display:none;">
                 <div class="form-row mb-2">
                     <span class="form-label">当前页</span>
+                    <button id="btn-prev-page-typeset" class="btn btn--ghost btn--sm" title="上一页" style="padding:0 8px; flex-shrink:0;">‹</button>
                     <select id="sel-page-list" class="input--flex"></select>
+                    <button id="btn-next-page-typeset" class="btn btn--ghost btn--sm" title="下一页" style="padding:0 8px; flex-shrink:0;">›</button>
                 </div>
                 <div id="dialog-list" class="dialog-list">
                     <div class="placeholder">尚未解析文稿，请在上方导入并解析</div>
                 </div>
             </div>
 
-            <!-- ====== 3. 批量生成（可折叠） ====== -->
-            <div id="typeset-ui-area" class="collapse-section" id="sec-batch" style="display:none;">
-                <div class="collapse-header" data-toggle="sec-batch-body">
-                    <span class="collapse-arrow">▶</span>
-                    <span class="collapse-title">⚡ 批量生成文本图层</span>
+            <!-- ====== 3 & 4. 子功能 Tab 切换区 ====== -->
+            <div id="typeset-ui-area">
+
+                <!-- Tab 按钮行 -->
+                <div class="tab-bar" id="typeset-sub-tabs">
+                    <button class="tab-bar__item active" data-tab="typeset-tab-batch">⚡ 批量生成</button>
+                    <button class="tab-bar__item" data-tab="typeset-tab-adjust">🔧 单条精调</button>
                 </div>
-                <div class="collapse-body" id="sec-batch-body" style="display:none;">
+
+                <!-- Tab 内容：批量生成 -->
+                <div id="typeset-tab-batch" class="typeset-tab-pane">
                     <div class="form-row mb-2">
                         <span class="form-label">场景预设</span>
                         <select id="sel-typeset-preset" class="input--flex">
@@ -433,15 +439,9 @@
                         批量生成文本图层
                     </button>
                 </div>
-            </div>
 
-            <!-- ====== 4. 单条精调（可折叠） ====== -->
-            <div class="collapse-section" id="sec-adjust">
-                <div class="collapse-header" data-toggle="sec-adjust-body">
-                    <span class="collapse-arrow">▶</span>
-                    <span class="collapse-title">🔧 单条修改与精调</span>
-                </div>
-                <div class="collapse-body" id="sec-adjust-body" style="display:none;">
+                <!-- Tab 内容：单条精调 -->
+                <div id="typeset-tab-adjust" class="typeset-tab-pane" style="display:none;">
 
                     <!-- 框选气泡创建 -->
                     <div class="section-head mt-1">
@@ -509,6 +509,7 @@
                     </div>
                     <button id="btn-fix-dash" class="btn btn--tint btn--block btn--sm">—— 连补破折号 ——</button>
                 </div>
+
             </div>
         </div>
 

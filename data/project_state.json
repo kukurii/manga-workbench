@@ -1,16 +1,16 @@
 {
   "version": 1,
-  "savedAt": 1772518895130,
+  "savedAt": 1772608734000,
   "pages": [
     {
-      "path": "L:/我的云端硬盘/工作台/婚约者/32/001.jpg",
-      "name": "001.jpg",
-      "status": "untouched"
+      "path": "L:/我的云端硬盘/工作台/婚约者/32/001.psd",
+      "name": "001.psd",
+      "status": "retouched"
     },
     {
-      "path": "L:/我的云端硬盘/工作台/婚约者/32/002.jpg",
-      "name": "002.jpg",
-      "status": "untouched"
+      "path": "L:/我的云端硬盘/工作台/婚约者/32/002.psd",
+      "name": "002.psd",
+      "status": "retouched"
     },
     {
       "path": "L:/我的云端硬盘/工作台/婚约者/32/003.jpg",
@@ -163,7 +163,7 @@
       "status": "untouched"
     }
   ],
-  "activePageIndex": 2,
+  "activePageIndex": 31,
   "stateFilter": "all",
   "exportDir": "",
   "exportFormat": "png"

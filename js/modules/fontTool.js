@@ -545,28 +545,31 @@ class FontManager {
     syncToTypesetPanel() {
         if (this.allFonts.length === 0) return;
 
+        const buildOption = (f) => {
+            const opt = document.createElement('option');
+            opt.value = f.postScriptName;
+            const displayInfo = this.getFontDisplayName(f.postScriptName, f.name);
+            // 有中文名时显示 "中文名（英文名）"，否则只显示英文名
+            if (displayInfo.source !== 'fallback') {
+                opt.innerText = `${displayInfo.primary}（${f.name}）`;
+            } else {
+                opt.innerText = f.name;
+            }
+            return opt;
+        };
+
         // 1. 同步到"批量生成"面板的字体选择
         const typesetDropdown = document.getElementById('sel-font-family');
         if (typesetDropdown) {
             typesetDropdown.innerHTML = '<option value="">(默认匹配 PS 当前预设)</option>';
-            this.allFonts.forEach(f => {
-                const opt = document.createElement('option');
-                opt.value = f.postScriptName;
-                opt.innerText = f.name;
-                typesetDropdown.appendChild(opt);
-            });
+            this.allFonts.forEach(f => typesetDropdown.appendChild(buildOption(f)));
         }
 
         // 2. 同步到"单条精调读取/覆写"面板的字体选择
         const syncDropdown = document.getElementById('sel-sync-font');
         if (syncDropdown) {
             syncDropdown.innerHTML = '<option value="">(保持不变)</option>';
-            this.allFonts.forEach(f => {
-                const opt = document.createElement('option');
-                opt.value = f.postScriptName;
-                opt.innerText = f.name;
-                syncDropdown.appendChild(opt);
-            });
+            this.allFonts.forEach(f => syncDropdown.appendChild(buildOption(f)));
         }
     }
 

@@ -22,6 +22,8 @@ class TypesetManager {
         this.btnAutoTypeset = document.getElementById('btn-auto-typeset');
         this.txtSource = document.getElementById('txt-source');
         this.selPageList = document.getElementById('sel-page-list');
+        this.btnPrevPageTypeset = document.getElementById('btn-prev-page-typeset');
+        this.btnNextPageTypeset = document.getElementById('btn-next-page-typeset');
         this.sharedList = document.getElementById('typeset-shared-list');
         this.uiArea = document.getElementById('typeset-ui-area');
         this.dialogList = document.getElementById('dialog-list');
@@ -51,6 +53,21 @@ class TypesetManager {
 
         // 字体加载统一由 fontTool.js 接管
         this.loadStylePresets();
+
+        // Tab 切换 DOM 引用
+        this.subTabBtns = document.querySelectorAll('#typeset-sub-tabs .tab-bar__item');
+        this.tabBatch   = document.getElementById('typeset-tab-batch');
+        this.tabAdjust  = document.getElementById('typeset-tab-adjust');
+    }
+
+    /** 切换子 Tab：'batch' 或 'adjust' */
+    switchTab(name) {
+        const showBatch = name === 'batch';
+        if (this.tabBatch)  this.tabBatch.style.display  = showBatch ? 'block' : 'none';
+        if (this.tabAdjust) this.tabAdjust.style.display = showBatch ? 'none'  : 'block';
+        this.subTabBtns.forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.tab === (showBatch ? 'typeset-tab-batch' : 'typeset-tab-adjust'));
+        });
     }
 
     loadStylePresets() {
@@ -89,6 +106,13 @@ class TypesetManager {
                 const isOpen = section.classList.toggle('open');
                 body.style.display = isOpen ? 'block' : 'none';
                 arrow.textContent = isOpen ? '▼' : '▶';
+            });
+        });
+
+        // ── 子功能 Tab 切换 ──
+        this.subTabBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                this.switchTab(btn.dataset.tab === 'typeset-tab-batch' ? 'batch' : 'adjust');
             });
         });
 
@@ -195,6 +219,28 @@ class TypesetManager {
         if (this.selPageList) {
             this.selPageList.addEventListener('change', (e) => {
                 this.currentPageIndex = e.target.selectedIndex;
+                this.renderDialogList();
+            });
+        }
+
+        if (this.btnPrevPageTypeset) {
+            this.btnPrevPageTypeset.addEventListener('click', () => {
+                if (this.parsedData.length === 0) return;
+                const newIdx = this.currentPageIndex - 1;
+                if (newIdx < 0) return;
+                this.currentPageIndex = newIdx;
+                this.selPageList.selectedIndex = newIdx;
+                this.renderDialogList();
+            });
+        }
+
+        if (this.btnNextPageTypeset) {
+            this.btnNextPageTypeset.addEventListener('click', () => {
+                if (this.parsedData.length === 0) return;
+                const newIdx = this.currentPageIndex + 1;
+                if (newIdx >= this.parsedData.length) return;
+                this.currentPageIndex = newIdx;
+                this.selPageList.selectedIndex = newIdx;
                 this.renderDialogList();
             });
         }
@@ -448,7 +494,6 @@ class TypesetManager {
         this.parsedData = ObjectPages;
         this.currentPageIndex = 0;
 
-        this.uiArea.style.display = "block";
         if (this.sharedList) this.sharedList.style.display = "block";
         this.renderPageSelector();
     }
@@ -502,7 +547,8 @@ class TypesetManager {
                         // 找不到图层静默处理或不弹扰人窗，仅在控制台警告
                         console.warn(res);
                     } else {
-                        // 定位成功后，顺便读取该图层的全套属性充填到“修改与修正”的排版盘中
+                        // 定位成功后：切换到精调 Tab 并读取图层属性
+                        this.switchTab('adjust');
                         this.cs.evalScript(`readActiveLayerProperties()`, (propRes) => {
                             this.populateSyncUI(propRes, false);
                         });
