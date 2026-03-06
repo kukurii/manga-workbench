@@ -1,20 +1,35 @@
 // typeset.jsx - 嵌字排版相关的 Photoshop ExtendScript
 
 /**
- * 极速版字体拉取：提取后直接写为本地缓存文件，避开 CEP String 传输上限
+ * 极速版字体拉取：使用 ActionManager 提取本地化字体名，直接写为本地缓存文件
  */
 function generateFontCacheFile(exportPath) {
     try {
-        var count = app.fonts.length;
         var strChunks = [];
         strChunks.push("[");
 
+        var count = app.fonts.length;
+
         for (var i = 0; i < count; i++) {
             var f = app.fonts[i];
-            // 过滤双引号等非法字符
-            var fName = f.name.replace(/"/g, '\\"');
-            var fPsName = f.postScriptName.replace(/"/g, '\\"');
-            strChunks.push('{"name":"' + fName + '", "postScriptName":"' + fPsName + '"}');
+
+            var fName = "";
+            var fPsName = "";
+            try { fName = f.name.replace(/"/g, '\\"'); } catch (e) { }
+            try { fPsName = f.postScriptName.replace(/"/g, '\\"'); } catch (e) { }
+
+            var fLocal = '';
+            try {
+                if (f.platformName) {
+                    fLocal = f.platformName.replace(/"/g, '\\"');
+                }
+            } catch (ep) { }
+
+            if (!fLocal || fLocal === fName) {
+                try { fLocal = f.family.replace(/"/g, '\\"'); } catch (ef) { }
+            }
+
+            strChunks.push('{"name":"' + fName + '", "postScriptName":"' + fPsName + '", "localName":"' + fLocal + '"}');
             if (i < count - 1) strChunks.push(",");
         }
         strChunks.push("]");
@@ -66,7 +81,7 @@ function generateTextLayersBulk(dialogsJson, styleJson) {
             textLayer.name = diag.id; // 使用对话ID作为图层名
 
             var textItem = textLayer.textItem;
-            
+
             // 核心修复：先用一个英文字符占位，防止提前混入中文字符导致 PS 后续更换字体时文本引擎的包围盒渲染直接损坏（即表现为无法选中、无法光标吸附、无法拖动）
             textItem.contents = "T";
 
@@ -544,9 +559,9 @@ function createTextLayerInSelection(text, fontPostScriptName, fontSize, directio
         }
 
         // Photoshop selection.bounds 顺序为: [left, top, right, bottom]
-        var left   = bounds[0].as("px");
-        var top    = bounds[1].as("px");
-        var right  = bounds[2].as("px");
+        var left = bounds[0].as("px");
+        var top = bounds[1].as("px");
+        var right = bounds[2].as("px");
         var bottom = bounds[3].as("px");
         var w = right - left;
         var h = bottom - top;
@@ -598,8 +613,8 @@ function createTextLayerInSelection(text, fontPostScriptName, fontSize, directio
         // 设置段落文本框的位置与大小
         // paragraphText: position = 左上角, width/height = 框尺寸
         ti.position = [new UnitValue(left, "px"), new UnitValue(top, "px")];
-        ti.width    = new UnitValue(w, "px");
-        ti.height   = new UnitValue(h, "px");
+        ti.width = new UnitValue(w, "px");
+        ti.height = new UnitValue(h, "px");
 
         // 选中新图层
         doc.activeLayer = textLayer;
@@ -623,9 +638,9 @@ function getAllTextLayers() {
         function esc(str) {
             if (typeof str !== "string") return "";
             return str.replace(/\\/g, "\\\\")
-                      .replace(/"/g, '\\"')
-                      .replace(/\r/g, "\\r")
-                      .replace(/\n/g, "\\n");
+                .replace(/"/g, '\\"')
+                .replace(/\r/g, "\\r")
+                .replace(/\n/g, "\\n");
         }
 
         function collect(layers) {

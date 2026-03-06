@@ -10,7 +10,7 @@ class FontManager {
         this.recentFonts = []; // 最近使用
         this.compareFonts = []; // 当前加入对比测试的字库合集
         this.draggedFont = null; // 用于拖拽暂存
-        
+
         this.hiddenFonts = []; // 保存要隐藏的字体的 postScriptName
         this.showHidden = false; // 当前是否处于显示已隐藏字体的状态
 
@@ -43,9 +43,17 @@ class FontManager {
         this.inputSearch = document.getElementById('input-font-search');
         this.btnRefresh = document.getElementById('btn-refresh-fonts');
         this.filterBtns = document.getElementById('font-category-filters');
-        
-        this.btnToggleHidden = document.getElementById('btn-toggle-hidden-fonts');
 
+        this.btnOpenFontManager = document.getElementById('btn-open-font-manager');
+        this.modalFontManager = document.getElementById('modal-font-manager');
+        this.btnCloseFontManager = document.getElementById('btn-close-font-manager');
+        this.inputFmSearch = document.getElementById('input-fm-search');
+        this.selFmFilter = document.getElementById('sel-fm-filter');
+        this.fmListContainer = document.getElementById('fm-list-container');
+        this.fmCountLab = document.getElementById('fm-count-lab');
+        this.chkFmSelectAll = document.getElementById('chk-fm-select-all');
+        this.btnFmHideSel = document.getElementById('btn-fm-hide-sel');
+        this.btnFmShowSel = document.getElementById('btn-fm-show-sel');
         this.favFilterContainer = document.getElementById('fav-category-filters');
 
         this.inputOnlineSearch = document.getElementById('input-online-search');
@@ -156,26 +164,109 @@ class FontManager {
                 this.renderFonts();
             });
         }
-        
-        // 显示已隐藏切换
-        if (this.btnToggleHidden) {
-            this.btnToggleHidden.addEventListener('click', () => {
-                this.showHidden = !this.showHidden;
-                this.renderFonts();
+
+        // 高级字体管理面板打开/关闭
+        if (this.btnOpenFontManager) {
+            this.btnOpenFontManager.addEventListener('click', () => {
+                this.modalFontManager.style.display = 'flex';
+                this.inputFmSearch.value = '';
+                this.selFmFilter.value = 'all';
+                this.renderFontManager();
+            });
+        }
+        if (this.btnCloseFontManager) {
+            this.btnCloseFontManager.addEventListener('click', () => {
+                this.modalFontManager.style.display = 'none';
             });
         }
 
-        // 清理缓存按钮
+        // 管理面板内的搜索和筛选
+        if (this.inputFmSearch) {
+            this.inputFmSearch.addEventListener('input', () => {
+                if (this.chkFmSelectAll) this.chkFmSelectAll.checked = false;
+                this.renderFontManager();
+            });
+        }
+        if (this.selFmFilter) {
+            this.selFmFilter.addEventListener('change', () => {
+                if (this.chkFmSelectAll) this.chkFmSelectAll.checked = false;
+                this.renderFontManager();
+            });
+        }
+
+        // 全选复选框
+        if (this.chkFmSelectAll) {
+            this.chkFmSelectAll.addEventListener('change', (e) => {
+                const checkboxes = this.fmListContainer.querySelectorAll('.fm-chk-item');
+                checkboxes.forEach(chk => chk.checked = e.target.checked);
+            });
+        }
+
+        // 获取当前选中项的辅助函数
+        const getSelectedFontNames = () => {
+            const checkboxes = this.fmListContainer.querySelectorAll('.fm-chk-item:checked');
+            return Array.from(checkboxes).map(chk => chk.value);
+        };
+
+        // 批量选中隐藏/恢复
+        if (this.btnFmHideSel) {
+            this.btnFmHideSel.addEventListener('click', () => {
+                const selectedPsNames = getSelectedFontNames();
+                if (selectedPsNames.length === 0) {
+                    showToast('请先勾选需要隐藏的字体');
+                    return;
+                }
+
+                showConfirmModal(`确定要隐藏这 ${selectedPsNames.length} 款勾选的字体吗？`, () => {
+                    selectedPsNames.forEach(psName => {
+                        if (!this.hiddenFonts.includes(psName)) {
+                            this.hiddenFonts.push(psName);
+                        }
+                    });
+                    this.saveHiddenFonts();
+                    this.renderFonts();
+                    if (this.chkFmSelectAll) this.chkFmSelectAll.checked = false;
+                    this.renderFontManager();
+                });
+            });
+        }
+
+        if (this.btnFmShowSel) {
+            this.btnFmShowSel.addEventListener('click', () => {
+                const selectedPsNames = getSelectedFontNames();
+                if (selectedPsNames.length === 0) {
+                    showToast('请先勾选需要恢复的字体');
+                    return;
+                }
+
+                showConfirmModal(`确定要恢复这 ${selectedPsNames.length} 款勾选的字体的显示吗？`, () => {
+                    selectedPsNames.forEach(psName => {
+                        const idx = this.hiddenFonts.indexOf(psName);
+                        if (idx > -1) this.hiddenFonts.splice(idx, 1);
+                    });
+                    this.saveHiddenFonts();
+                    this.renderFonts();
+                    if (this.chkFmSelectAll) this.chkFmSelectAll.checked = false;
+                    this.renderFontManager();
+                });
+            });
+        }
+
         const btnClearCache = document.getElementById('btn-clear-font-cache');
         if (btnClearCache) {
             btnClearCache.addEventListener('click', () => {
-                // 只清除 PS 字体列表缓存，保留中文名映射（font-cn-cache.json）
+                // 清除 PS 字体列表缓存（下次打开将全盘重扫并重建中文映射）
                 const psCacheList = this.dataDir + "/font_cache.json";
-                const r = window.cep.fs.deleteFile(psCacheList);
-                if (r.err === window.cep.fs.NO_ERROR || r.err === window.cep.fs.ERR_NOT_FOUND) {
-                    showToast('字体列表缓存已清除，下次打开字体面板将重新扫描。\n（中文名映射文件已保留）');
+                const cnCacheList = this.dataDir + "/font-cn-cache.json";
+
+                const r1 = window.cep.fs.deleteFile(psCacheList);
+                const r2 = window.cep.fs.deleteFile(cnCacheList);
+
+                if ((r1.err === window.cep.fs.NO_ERROR || r1.err === window.cep.fs.ERR_NOT_FOUND) &&
+                    (r2.err === window.cep.fs.NO_ERROR || r2.err === window.cep.fs.ERR_NOT_FOUND)) {
+                    showToast('字体列表与中文映射缓存已清除，次回打开字体面板将重新扫描全盘。');
                 } else {
-                    showToast('清除失败，错误码：' + r.err);
+                    showToast('清除失败，请检查文件占用。');
                 }
             });
         }
@@ -333,7 +424,7 @@ class FontManager {
     // ------------ 持久性收藏夹管理 ------------
 
     initFontDisplayNames(forceRefresh) {
-        // ── 第一步：优先用 window.cep.fs 直接读取缓存文件（避免中文路径下 Node.js require 失败）
+        // 优先读取持久化缓存文件（由 _buildCNMapFromFontList 写入）
         const cnCachePath = this.dataDir + "/font-cn-cache.json";
 
         if (!forceRefresh) {
@@ -343,29 +434,42 @@ class FontManager {
                     const parsed = JSON.parse(cacheResult.data);
                     if (parsed && Object.keys(parsed).length > 0) {
                         this._fontCNMap = parsed;
-                        // 读用户别名后直接返回
                         this._loadUserAliases();
                         return;
                     }
-                } catch (e) { /* 缓存损坏，继续往下扫描 */ }
+                } catch (e) { /* 缓存损坏，等 loadFonts 完成后重建 */ }
             }
         }
 
-        // ── 第二步：缓存不存在或强制刷新时，用 fontNameParser（Node.js）扫描系统字体
-        try {
-            const path = require('path');
-            const parserPath = path.join(this.extPath, 'js', 'modules', 'fontNameParser.js');
-            // 清除 require 缓存，防止旧模块残留
-            delete require.cache[require.resolve(parserPath)];
-            const parser = require(parserPath);
-            this._fontCNMap = parser.getFontCNMap(this.dataDir, true);
-        } catch (e) {
-            console.error('fontNameParser 加载失败', e);
-            this._fontCNMap = {};
-        }
-
-        // 读用户别名
+        // 缓存不存在或强制刷新：先置空，等 loadFonts 完成后由 _buildCNMapFromFontList 填充
+        this._fontCNMap = {};
         this._loadUserAliases();
+    }
+
+    /**
+     * 从已加载的 allFonts 中提取 localName（PS 的 platformName），构建中文对照表并持久化。
+     * 彻底替代旧的 fontNameParser Node.js 文件扫描方案，支持 .ttc 且无中文路径问题。
+     */
+    _buildCNMapFromFontList(fontList) {
+        const map = {};
+        for (let i = 0; i < fontList.length; i++) {
+            const f = fontList[i];
+            const local = (f.localName || '').trim();
+            const english = (f.name || '').trim();
+            // 仅当 localName 非空且与英文族名不同时，才视为有效中文/本地名
+            if (local && local !== english) {
+                map[f.postScriptName] = local;
+            }
+        }
+        this._fontCNMap = map;
+
+        // 持久化，下次启动直接读缓存，无需重建
+        const cnCachePath = this.dataDir + "/font-cn-cache.json";
+        try {
+            window.cep.fs.writeFile(cnCachePath, JSON.stringify(map));
+        } catch (e) {
+            console.error('写入 font-cn-cache.json 失败', e);
+        }
     }
 
     _loadUserAliases() {
@@ -507,7 +611,7 @@ class FontManager {
         if (!this.listContainer) return;
 
         if (forceRefresh) {
-            // 顺带强制刷新 node.js 解析别名词典
+            // 强制刷新：清空中文对照表缓存，待 readCacheAndRender 后由 _buildCNMapFromFontList 重建
             this.initFontDisplayNames(true);
         }
 
@@ -523,6 +627,13 @@ class FontManager {
                     }
                     this.allFonts = JSON.parse(data);
                     this.loadHiddenFonts(); // 读完系统字体后再读隐藏字体列表
+
+                    // 利用 PS 导出的 localName 字段构建/刷新中文对照表
+                    // （首次或强制刷新时 _fontCNMap 为空，此处重建并持久化）
+                    if (!this._fontCNMap || Object.keys(this._fontCNMap).length === 0) {
+                        this._buildCNMapFromFontList(this.allFonts);
+                    }
+
                     if (this.currentMode === 'system') this.renderFonts();
                     this.syncToTypesetPanel();
                     if (window.styleManager) window.styleManager.syncFonts(
@@ -563,15 +674,15 @@ class FontManager {
         const path = this.dataDir + "/hidden_fonts.json";
         const readResult = window.cep.fs.readFile(path);
         if (readResult.err === window.cep.fs.NO_ERROR && readResult.data) {
-            try { this.hiddenFonts = JSON.parse(readResult.data); } catch(e) { this.hiddenFonts = []; }
+            try { this.hiddenFonts = JSON.parse(readResult.data); } catch (e) { this.hiddenFonts = []; }
         }
     }
-    
+
     saveHiddenFonts() {
         const path = this.dataDir + "/hidden_fonts.json";
         window.cep.fs.writeFile(path, JSON.stringify(this.hiddenFonts));
     }
-    
+
     toggleHideFont(font) {
         const idx = this.hiddenFonts.indexOf(font.postScriptName);
         if (idx > -1) {
@@ -581,6 +692,123 @@ class FontManager {
         }
         this.saveHiddenFonts();
         this.renderFonts();
+        // 如果管理器正在打开，也同步更新
+        if (this.modalFontManager && this.modalFontManager.style.display !== 'none') {
+            this.renderFontManager();
+        }
+    }
+
+    // --- 高级字体管理面板工具法 ---
+    _getFmFilteredList() {
+        const q = this.inputFmSearch ? this.inputFmSearch.value.toLowerCase().trim() : "";
+        const filterState = this.selFmFilter ? this.selFmFilter.value : "all";
+        let sourceList = this.sortFonts([...this.allFonts]);
+
+        return sourceList.filter(font => {
+            const display = this.getFontDisplayName(font.postScriptName, font.name || font.family);
+            const isHidden = this.hiddenFonts.includes(font.postScriptName);
+
+            // 状态过滤
+            if (filterState === 'visible' && isHidden) return false;
+            if (filterState === 'hidden' && !isHidden) return false;
+
+            // Adobe 过滤（保持一致）
+            if (font.name && font.name.indexOf("Adobe") === 0 && font.name.length > 20) return false;
+
+            // 关键词过滤
+            if (q) {
+                const cnName = (display.primary || "").toLowerCase();
+                const enName = (display.secondary || "").toLowerCase();
+                const psName = (font.postScriptName || "").toLowerCase();
+                const originalName = (font.name || "").toLowerCase();
+                if (cnName.indexOf(q) === -1 && enName.indexOf(q) === -1 && psName.indexOf(q) === -1 && originalName.indexOf(q) === -1) {
+                    return false;
+                }
+            }
+            return true;
+        });
+    }
+
+    // --- 高级字体管理面板渲染 ---
+    renderFontManager() {
+        if (!this.fmListContainer) return;
+        this.fmListContainer.innerHTML = '';
+
+        let filteredList = this._getFmFilteredList();
+        let count = filteredList.length;
+
+        for (let i = 0; i < count; i++) {
+            const font = filteredList[i];
+            const display = this.getFontDisplayName(font.postScriptName, font.name || font.family);
+            const isHidden = this.hiddenFonts.includes(font.postScriptName);
+
+            const item = document.createElement('div');
+            item.className = 'card';
+            item.style.padding = '8px 12px';
+            item.style.display = 'flex';
+            item.style.justifyContent = 'space-between';
+            item.style.alignItems = 'center';
+            item.style.background = isHidden ? 'var(--bg-lighter)' : 'var(--surface)';
+            if (isHidden) item.style.opacity = '0.6';
+
+            item.innerHTML = `
+                <div style="margin-right:8px; display:flex; align-items:flex-start; padding-top:2px;">
+                    <input type="checkbox" class="fm-chk-item" value="${font.postScriptName}">
+                </div>
+                <div style="flex:1; overflow:hidden;">
+                    <div class="fm-font-name" style="font-size:14px; font-weight:600; color: ${isHidden ? 'var(--text-dim)' : 'var(--text-bright)'}; white-space:nowrap; text-overflow:ellipsis;" title="${display.primary}">
+                        ${display.primary}
+                    </div>
+                    <div style="font-size:10px; color:var(--text-faint); margin-top:2px;">
+                        ${display.secondary}
+                    </div>
+                    <div style="font-family: '${font.postScriptName}', sans-serif; font-size:16px; margin-top:6px; margin-bottom: 2px; color: ${isHidden ? 'var(--text-faint)' : 'var(--text)'};">永远の梦を追いかけて 汉化组</div>
+                </div>
+                <div style="margin-left:8px; display:flex; align-items:center;">
+                    <button class="btn-toggle btn btn--sm ${isHidden ? 'btn--primary' : 'btn--ghost'}" style="padding: 4px 10px; font-size:12px; font-weight: 600;">
+                        ${isHidden ? '✅ 恢复' : '🚫 隐藏'}
+                    </button>
+                </div>
+            `;
+
+            const btnToggle = item.querySelector('.btn-toggle');
+            const nameEl = item.querySelector('.fm-font-name');
+            const previewEl = item.querySelector('div[style*="font-family"]');
+            btnToggle.addEventListener('click', () => {
+                // 告诉主层跳过全量重绘
+                this.toggleHideFont(font, true);
+
+                const filterState = this.selFmFilter ? this.selFmFilter.value : "all";
+                const currentlyHidden = this.hiddenFonts.includes(font.postScriptName);
+
+                if (filterState !== 'all') {
+                    // 状态过滤模式下，执行隐藏/恢复即不符合该过滤条件，直接把该项藏起来
+                    item.style.display = 'none';
+                    // 局部倒数
+                    let curLabel = this.fmCountLab.innerText;
+                    let curNum = parseInt(curLabel.replace(/[^0-9]/ig, ""));
+                    if (!isNaN(curNum) && curNum > 0) {
+                        this.fmCountLab.innerText = `筛选出 ${curNum - 1} 款`;
+                    }
+                } else {
+                    // 全显模式下，仅仅变暗/提亮
+                    item.style.background = currentlyHidden ? 'var(--bg-lighter)' : 'var(--surface)';
+                    item.style.opacity = currentlyHidden ? '0.6' : '1';
+                    nameEl.style.color = currentlyHidden ? 'var(--text-dim)' : 'var(--text-bright)';
+                    if (previewEl) previewEl.style.color = currentlyHidden ? 'var(--text-faint)' : 'var(--text)';
+                    btnToggle.className = `btn-toggle btn btn--sm ${currentlyHidden ? 'btn--primary' : 'btn--ghost'}`;
+                    btnToggle.innerText = currentlyHidden ? '✅ 恢复' : '🚫 隐藏';
+                }
+            });
+
+            this.fmListContainer.appendChild(item);
+        }
+
+        if (this.fmCountLab) this.fmCountLab.innerText = `筛选出 ${count} 款`;
+
+        if (count === 0) {
+            this.fmListContainer.innerHTML = '<div class="placeholder">没有查找到符合条件的字体</div>';
+        }
     }
 
     syncToTypesetPanel() {
@@ -614,6 +842,16 @@ class FontManager {
         }
     }
 
+    // --- 字体列表按显示名（中文优先，拼音排序）进行排序 ---
+    sortFonts(fontsList) {
+        return fontsList.sort((a, b) => {
+            const dispA = this.getFontDisplayName(a.postScriptName, a.name || a.family);
+            const dispB = this.getFontDisplayName(b.postScriptName, b.name || b.family);
+            // 使用 localeCompare 按拼音/字母顺序排序
+            return dispA.primary.localeCompare(dispB.primary, 'zh-CN');
+        });
+    }
+
     // ------------ 统一 UI 渲染 ------------
 
     renderFonts() {
@@ -625,8 +863,17 @@ class FontManager {
 
         const cjkRegex = /[\u4e00-\u9fa5\u3040-\u309f\u30a0-\u30ff]/;
 
+        // --- 过滤最近使用中被隐藏的字体 ---
+        let visibleRecentFonts = [];
+        if (this.recentFonts.length > 0) {
+            visibleRecentFonts = this.recentFonts.filter(f => {
+                const isHidden = this.hiddenFonts.includes(f.postScriptName);
+                return !(isHidden && !this.showHidden);
+            });
+        }
+
         // 如果是系统全部字体且无搜索状态，先渲染最近使用
-        if (this.currentMode === 'system' && this.sysFilter === 'all' && !q && this.recentFonts.length > 0) {
+        if (this.currentMode === 'system' && this.sysFilter === 'all' && !q && visibleRecentFonts.length > 0) {
             const recentTitle = document.createElement('div');
             recentTitle.className = 'placeholder text-accent';
             recentTitle.style.textAlign = 'left';
@@ -634,8 +881,8 @@ class FontManager {
             recentTitle.innerHTML = '🕒 最近使用';
             this.listContainer.appendChild(recentTitle);
 
-            for (let i = 0; i < this.recentFonts.length; i++) {
-                this.listContainer.appendChild(this.createFontItemNode(this.recentFonts[i]));
+            for (let i = 0; i < visibleRecentFonts.length; i++) {
+                this.listContainer.appendChild(this.createFontItemNode(visibleRecentFonts[i]));
             }
 
             const divLine = document.createElement('div');
@@ -648,6 +895,9 @@ class FontManager {
         // 判定展示的数据源
         let sourceList = this.currentMode === 'favorite' ? this.favFonts : this.allFonts;
 
+        // --- 对列表进行排序 ---
+        sourceList = this.sortFonts([...sourceList]);
+
         for (let i = 0; i < sourceList.length; i++) {
             const font = sourceList[i];
             const display = this.getFontDisplayName(font.postScriptName, font.name || font.family);
@@ -656,7 +906,7 @@ class FontManager {
             if (this.currentMode === 'system') {
                 const isHidden = this.hiddenFonts.includes(font.postScriptName);
                 if (isHidden && !this.showHidden) continue;
-                
+
                 if (font.name && font.name.indexOf("Adobe") === 0 && font.name.length > 20) continue;
 
                 // 搜索时匹配：中文(经过解析/别名)、英文族名、PS唯一名
@@ -685,23 +935,6 @@ class FontManager {
 
         if (count === 0 && this.recentFonts.length === 0) {
             this.listContainer.innerHTML = '<div class="placeholder">没有任何相关联的字体记录</div>';
-        }
-        
-        // 更新显示隐藏切换按钮状态
-        if (this.currentMode === 'system' && this.btnToggleHidden) {
-            if (this.hiddenFonts.length > 0) {
-                this.btnToggleHidden.style.display = 'block';
-                this.btnToggleHidden.innerText = this.showHidden ? '✅ 退出隐藏显示模式' : `🚫 已隐藏 ${this.hiddenFonts.length} 款（点击查看与恢复）`;
-                if (this.showHidden) {
-                    this.btnToggleHidden.classList.add('btn--pink-solid');
-                    this.btnToggleHidden.classList.replace('btn--ghost', 'btn--pink-solid');
-                } else {
-                    this.btnToggleHidden.classList.replace('btn--pink-solid', 'btn--ghost');
-                }
-            } else {
-                this.btnToggleHidden.style.display = 'none';
-                this.showHidden = false;
-            }
         }
     }
 
@@ -747,7 +980,7 @@ class FontManager {
 
             this.applyFontToActiveLayer(font);
         });
-        
+
         // 隐藏按钮
         const btnHide = item.querySelector('.btn-hide');
         if (btnHide) {
@@ -866,10 +1099,8 @@ class FontManager {
                 // 成功即记录最近使用
                 this.saveRecentFont(font);
 
-                // 仅当目前处于无搜索系统区时局部重刷挂载最近项
-                if (this.currentMode === 'system' && this.sysFilter === 'all' && (!this.inputSearch || !this.inputSearch.value.trim())) {
-                    this.renderFonts();
-                }
+                // 应用时不强制全局重刷，避免弹窗或 hover 状态被打断，只默默更新后台最近字体。
+                // 如果用户需要看最新的“最近记录”，他们会自己切换或重新搜索的。
             });
         };
 
