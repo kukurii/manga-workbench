@@ -71,13 +71,21 @@ class StyleManager {
     }
 
     // 由 fontTool.js 回调，用来同步系统字体到此处的下拉菜单
-    syncFonts(fontList) {
+    // getDisplayName: 可选回调 (f) => { primary, secondary, source }，由 FontManager 传入
+    syncFonts(fontList, getDisplayName) {
         if (!this.selFont) return;
         this.selFont.innerHTML = '<option value="">(保持图层原字体不改变)</option>';
         fontList.forEach(f => {
             const opt = document.createElement('option');
             opt.value = f.postScriptName;
-            opt.innerText = f.name;
+            if (getDisplayName) {
+                const display = getDisplayName(f);
+                opt.innerText = display.source !== 'fallback'
+                    ? `${display.primary}（${f.name}）`
+                    : f.name;
+            } else {
+                opt.innerText = f.name;
+            }
             this.selFont.appendChild(opt);
         });
     }
@@ -137,12 +145,22 @@ class StyleManager {
             return;
         }
 
-        this.presets.forEach(p => {
+        // 拖拽状态
+        let dragSrcIdx = -1;
+
+        const clearDropIndicators = () => {
+            this.presetsContainer.querySelectorAll('.preset-drag-over-before, .preset-drag-over-after')
+                .forEach(el => el.classList.remove('preset-drag-over-before', 'preset-drag-over-after'));
+        };
+
+        this.presets.forEach((p, idx) => {
             const btn = document.createElement('div');
             btn.className = 'btn btn--secondary';
             btn.style.flex = '1 1 45%';
             btn.style.justifyContent = 'space-between';
             btn.title = `字体: ${p.fontName}\n字号: ${p.size}pt\n行距: ${p.leadingType === 'auto' ? '自动 ' + p.leadingValue + '%' : '固定 ' + p.leadingValue + 'pt'}`;
+            btn.dataset.idx = idx;
+            btn.draggable = true;
 
             const nameSpan = document.createElement('span');
             nameSpan.innerText = p.name;
@@ -160,6 +178,7 @@ class StyleManager {
             btn.appendChild(nameSpan);
             btn.appendChild(delSpan);
 
+            // ── 点击应用 / 删除 ──
             nameSpan.addEventListener('click', (e) => {
                 e.stopPropagation();
                 this.applyStyle(p);
@@ -167,11 +186,65 @@ class StyleManager {
 
             delSpan.addEventListener('click', (e) => {
                 e.stopPropagation();
-                if (confirm('确定要彻底删除段落预设 ' + p.name + ' 吗？')) {
-                    this.presets = this.presets.filter(p2 => p2.id !== p.id);
+                showConfirmModal('确定要彻底删除段落预设 ' + p.name + ' 吗？', () => {
+                    this.presets.splice(idx, 1);
                     this.savePresets();
                     this.renderPresets();
+                });
+            });
+
+            // ── 拖拽事件 ──
+            btn.addEventListener('dragstart', (e) => {
+                dragSrcIdx = idx;
+                btn.classList.add('preset-dragging');
+                e.dataTransfer.effectAllowed = 'move';
+                e.dataTransfer.setData('text/plain', idx);
+            });
+
+            btn.addEventListener('dragend', () => {
+                btn.classList.remove('preset-dragging');
+                clearDropIndicators();
+            });
+
+            btn.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                e.dataTransfer.dropEffect = 'move';
+                if (dragSrcIdx === idx) return;
+                clearDropIndicators();
+                // 根据鼠标在卡片内的上/下半区决定插入线方向
+                const rect = btn.getBoundingClientRect();
+                const midY = rect.top + rect.height / 2;
+                if (e.clientY < midY) {
+                    btn.classList.add('preset-drag-over-before');
+                } else {
+                    btn.classList.add('preset-drag-over-after');
                 }
+            });
+
+            btn.addEventListener('dragleave', (e) => {
+                // 仅当鼠标真正离开该元素（不是移到子元素）时才清除
+                if (!btn.contains(e.relatedTarget)) {
+                    btn.classList.remove('preset-drag-over-before', 'preset-drag-over-after');
+                }
+            });
+
+            btn.addEventListener('drop', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                const targetIdx = parseInt(btn.dataset.idx, 10);
+                if (dragSrcIdx === -1 || dragSrcIdx === targetIdx) return;
+
+                // 判断插入在目标的前面还是后面
+                const rect = btn.getBoundingClientRect();
+                const insertBefore = e.clientY < rect.top + rect.height / 2;
+                let insertAt = insertBefore ? targetIdx : targetIdx + 1;
+
+                const moved = this.presets.splice(dragSrcIdx, 1)[0];
+                if (dragSrcIdx < insertAt) insertAt--;   // 移除后索引偏移修正
+                this.presets.splice(insertAt, 0, moved);
+
+                this.savePresets();
+                this.renderPresets();
             });
 
             this.presetsContainer.appendChild(btn);

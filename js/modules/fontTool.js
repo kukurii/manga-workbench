@@ -10,6 +10,9 @@ class FontManager {
         this.recentFonts = []; // 最近使用
         this.compareFonts = []; // 当前加入对比测试的字库合集
         this.draggedFont = null; // 用于拖拽暂存
+        
+        this.hiddenFonts = []; // 保存要隐藏的字体的 postScriptName
+        this.showHidden = false; // 当前是否处于显示已隐藏字体的状态
 
         this.onlineFonts = []; // Array of { name, author, style, url, previewUrl, source }
         this.onlineSource = 'zeoseven'; // 'zeoseven' or 'google'
@@ -40,6 +43,8 @@ class FontManager {
         this.inputSearch = document.getElementById('input-font-search');
         this.btnRefresh = document.getElementById('btn-refresh-fonts');
         this.filterBtns = document.getElementById('font-category-filters');
+        
+        this.btnToggleHidden = document.getElementById('btn-toggle-hidden-fonts');
 
         this.favFilterContainer = document.getElementById('fav-category-filters');
 
@@ -148,6 +153,14 @@ class FontManager {
                 Array.from(this.filterBtns.children).forEach(btn => btn.classList.remove('active'));
                 e.target.classList.add('active');
                 this.sysFilter = e.target.getAttribute('data-filter');
+                this.renderFonts();
+            });
+        }
+        
+        // 显示已隐藏切换
+        if (this.btnToggleHidden) {
+            this.btnToggleHidden.addEventListener('click', () => {
+                this.showHidden = !this.showHidden;
                 this.renderFonts();
             });
         }
@@ -509,9 +522,13 @@ class FontManager {
                         data = data.slice(1);
                     }
                     this.allFonts = JSON.parse(data);
+                    this.loadHiddenFonts(); // 读完系统字体后再读隐藏字体列表
                     if (this.currentMode === 'system') this.renderFonts();
                     this.syncToTypesetPanel();
-                    if (window.styleManager) window.styleManager.syncFonts(this.allFonts);
+                    if (window.styleManager) window.styleManager.syncFonts(
+                        this.allFonts,
+                        (f) => this.getFontDisplayName(f.postScriptName, f.name)
+                    );
                     return true;
                 }
             } catch (e) {
@@ -540,6 +557,30 @@ class FontManager {
                 this.listContainer.innerHTML = `<div class="placeholder text-red">生成缓存崩溃: ${res}</div>`;
             }
         });
+    }
+
+    loadHiddenFonts() {
+        const path = this.dataDir + "/hidden_fonts.json";
+        const readResult = window.cep.fs.readFile(path);
+        if (readResult.err === window.cep.fs.NO_ERROR && readResult.data) {
+            try { this.hiddenFonts = JSON.parse(readResult.data); } catch(e) { this.hiddenFonts = []; }
+        }
+    }
+    
+    saveHiddenFonts() {
+        const path = this.dataDir + "/hidden_fonts.json";
+        window.cep.fs.writeFile(path, JSON.stringify(this.hiddenFonts));
+    }
+    
+    toggleHideFont(font) {
+        const idx = this.hiddenFonts.indexOf(font.postScriptName);
+        if (idx > -1) {
+            this.hiddenFonts.splice(idx, 1);
+        } else {
+            this.hiddenFonts.push(font.postScriptName);
+        }
+        this.saveHiddenFonts();
+        this.renderFonts();
     }
 
     syncToTypesetPanel() {
@@ -613,6 +654,9 @@ class FontManager {
 
             // 过滤逻辑
             if (this.currentMode === 'system') {
+                const isHidden = this.hiddenFonts.includes(font.postScriptName);
+                if (isHidden && !this.showHidden) continue;
+                
                 if (font.name && font.name.indexOf("Adobe") === 0 && font.name.length > 20) continue;
 
                 // 搜索时匹配：中文(经过解析/别名)、英文族名、PS唯一名
@@ -642,6 +686,23 @@ class FontManager {
         if (count === 0 && this.recentFonts.length === 0) {
             this.listContainer.innerHTML = '<div class="placeholder">没有任何相关联的字体记录</div>';
         }
+        
+        // 更新显示隐藏切换按钮状态
+        if (this.currentMode === 'system' && this.btnToggleHidden) {
+            if (this.hiddenFonts.length > 0) {
+                this.btnToggleHidden.style.display = 'block';
+                this.btnToggleHidden.innerText = this.showHidden ? '✅ 退出隐藏显示模式' : `🚫 已隐藏 ${this.hiddenFonts.length} 款（点击查看与恢复）`;
+                if (this.showHidden) {
+                    this.btnToggleHidden.classList.add('btn--pink-solid');
+                    this.btnToggleHidden.classList.replace('btn--ghost', 'btn--pink-solid');
+                } else {
+                    this.btnToggleHidden.classList.replace('btn--pink-solid', 'btn--ghost');
+                }
+            } else {
+                this.btnToggleHidden.style.display = 'none';
+                this.showHidden = false;
+            }
+        }
     }
 
     createFontItemNode(font) {
@@ -650,9 +711,15 @@ class FontManager {
 
         const isFav = this.favFonts.findIndex(f => f.postScriptName === font.postScriptName) > -1;
         const isCmp = this.compareFonts.findIndex(f => f.postScriptName === font.postScriptName) > -1;
+        const isHidden = this.hiddenFonts.includes(font.postScriptName);
 
         const item = document.createElement('div');
         item.className = 'font-item';
+        // 如果处于显示隐藏模式且该字体被隐藏，则增加透明度
+        if (this.showHidden && isHidden && this.currentMode === 'system') {
+            item.style.opacity = '0.5';
+            item.style.borderLeft = '3px solid var(--red)';
+        }
         item.dataset.postScript = font.postScriptName;
 
         item.innerHTML = `
@@ -664,6 +731,7 @@ class FontManager {
                 ${previewText}
             </div>
             <div class="font-item__actions">
+                ${this.currentMode === 'system' ? `<button class="btn-icon btn-hide" title="${isHidden ? '取消隐藏' : '隐藏此字体'}" style="${isHidden ? 'color:var(--red);' : 'color:var(--text-faint);'}">👁</button>` : ''}
                 ${isFav ? `<button class="btn-icon btn-fav text-accent" title="编辑收藏">⭐</button>` : `<button class="btn-icon btn-fav" title="添加收藏 / 设别名">☆</button>`}
                 ${isCmp ? `<button class="btn-icon btn-cmp text-accent" title="移除对比" style="background:var(--accent-dim); border-color:var(--accent);">已加入</button>` : `<button class="btn-icon btn-cmp" title="加入对比">⚔️</button>`}
             </div>
@@ -679,6 +747,15 @@ class FontManager {
 
             this.applyFontToActiveLayer(font);
         });
+        
+        // 隐藏按钮
+        const btnHide = item.querySelector('.btn-hide');
+        if (btnHide) {
+            btnHide.addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.toggleHideFont(font);
+            });
+        }
 
         // 收藏按钮
         const btnFav = item.querySelector('.btn-fav');
@@ -761,44 +838,49 @@ class FontManager {
     applyFontToActiveLayer(font) {
         const scope = this.selApplyScope ? this.selApplyScope.value : 'active';
 
+        const executeApply = () => {
+            let fnName = 'applyFontToLayer';
+            if (scope === 'selected') fnName = 'applyFontToSelectedTextLayers';
+            if (scope === 'all') fnName = 'applyFontToAllTextLayers';
+
+            const safePsName = String(font.postScriptName || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+
+            this.cs.evalScript(`${fnName}('${safePsName}')`, (res) => {
+                if (res && res.indexOf("错误") > -1) {
+                    showToast(res);
+                    return;
+                }
+
+                // 解析批量结果（若有）
+                if (res && res.indexOf('SUCCESS|||') === 0) {
+                    try {
+                        const jsonStr = res.replace('SUCCESS|||', '');
+                        const info = JSON.parse(jsonStr);
+                        // 仅批量操作弹出摘要提示；单图层不打扰
+                        if (scope !== 'active') {
+                            showToast(`✅ 字体批量应用完成\n总目标 ${info.total}\n已应用 ${info.applied}\n已跳过 ${info.skipped}`);
+                        }
+                    } catch (e) { }
+                }
+
+                // 成功即记录最近使用
+                this.saveRecentFont(font);
+
+                // 仅当目前处于无搜索系统区时局部重刷挂载最近项
+                if (this.currentMode === 'system' && this.sysFilter === 'all' && (!this.inputSearch || !this.inputSearch.value.trim())) {
+                    this.renderFonts();
+                }
+            });
+        };
+
         // 大范围操作给一个确认，避免误触
         if (scope === 'all') {
-            const ok = confirm("将对《当前文档全部文本图层》批量套用该字体。确定继续吗？");
-            if (!ok) return;
+            showConfirmModal("将对《当前文档全部文本图层》批量套用该字体。确定继续吗？", () => {
+                executeApply();
+            });
+        } else {
+            executeApply();
         }
-
-        let fnName = 'applyFontToLayer';
-        if (scope === 'selected') fnName = 'applyFontToSelectedTextLayers';
-        if (scope === 'all') fnName = 'applyFontToAllTextLayers';
-
-        const safePsName = String(font.postScriptName || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
-
-        this.cs.evalScript(`${fnName}('${safePsName}')`, (res) => {
-            if (res && res.indexOf("错误") > -1) {
-                showToast(res);
-                return;
-            }
-
-            // 解析批量结果（若有）
-            if (res && res.indexOf('SUCCESS|||') === 0) {
-                try {
-                    const jsonStr = res.replace('SUCCESS|||', '');
-                    const info = JSON.parse(jsonStr);
-                    // 仅批量操作弹出摘要提示；单图层不打扰
-                    if (scope !== 'active') {
-                        showToast(`✅ 字体批量应用完成\n总目标 ${info.total}\n已应用 ${info.applied}\n已跳过 ${info.skipped}`);
-                    }
-                } catch (e) { }
-            }
-
-            // 成功即记录最近使用
-            this.saveRecentFont(font);
-
-            // 仅当目前处于无搜索系统区时局部重刷挂载最近项
-            if (this.currentMode === 'system' && this.sysFilter === 'all' && (!this.inputSearch || !this.inputSearch.value.trim())) {
-                this.renderFonts();
-            }
-        });
     }
 
     toggleCompare(font) {
@@ -1039,7 +1121,10 @@ class FontManager {
                         temperature: 0.7
                     })
                 });
-                if (!res.ok) throw new Error(await res.text());
+                if (!res.ok) {
+                    const errorText = await res.text();
+                    throw new Error(`HTTP ${res.status} - ${errorText.substring(0, 150)}`);
+                }
                 const data = await res.json();
                 responseText = data.choices[0].message.content;
             } else {
@@ -1052,7 +1137,10 @@ class FontManager {
                         generationConfig: { temperature: 0.7, responseMimeType: 'application/json' }
                     })
                 });
-                if (!res.ok) throw new Error(await res.text());
+                if (!res.ok) {
+                    const errorText = await res.text();
+                    throw new Error(`HTTP ${res.status} - ${errorText.substring(0, 150)}`);
+                }
                 const data = await res.json();
                 responseText = data.candidates[0].content.parts[0].text.trim();
             }
@@ -1068,7 +1156,7 @@ class FontManager {
             this._renderAiResultCards(result, resultCards);
 
         } catch (e) {
-            if (resultCards) resultCards.innerHTML = `<div style="color:var(--text-red,#f66);font-size:12px;padding:8px;">❌ AI 连接失败：${e.message.substring(0, 120)}<br><small>请在设置页检查 API Key 和网络连接</small></div>`;
+            if (resultCards) resultCards.innerHTML = `<div style="color:var(--text-red,#f66);font-size:12px;padding:8px;">❌ AI 连接失败：${e.message.substring(0, 200)}<br><small>请在设置页检查 API Key 和网络连接</small></div>`;
         } finally {
             if (this.btnAiRecommend) { this.btnAiRecommend.textContent = '🤖 AI 分析推荐'; this.btnAiRecommend.disabled = false; }
         }

@@ -205,6 +205,49 @@ window.showAlertModal = function (msg, title, onOk) {
 
 
 // ═══════════════════════════════════════
+// 全局工具：自定义 Confirm Modal
+// ═══════════════════════════════════════
+
+/**
+ * 替代 confirm()，使用自定义弹窗
+ * @param {string} msg 消息
+ * @param {Function} onOk 确认回调
+ * @param {Function} [onCancel] 取消回调
+ * @param {string} [title] 标题，默认"确认操作"
+ */
+window.showConfirmModal = function (msg, onOk, onCancel, title) {
+    const overlay = document.getElementById('modal-confirm');
+    if (!overlay) {
+        if (confirm(msg)) {
+            if (onOk) onOk();
+        } else {
+            if (onCancel) onCancel();
+        }
+        return;
+    }
+
+    document.getElementById('modal-confirm-title').textContent = title || '确认操作';
+    document.getElementById('modal-confirm-msg').textContent = msg;
+    overlay.classList.add('show');
+
+    const btnOk = document.getElementById('btn-confirm-ok');
+    const btnCancel = document.getElementById('btn-confirm-cancel');
+
+    function cleanup() {
+        overlay.classList.remove('show');
+        btnOk.removeEventListener('click', handleOk);
+        btnCancel.removeEventListener('click', handleCancel);
+    }
+    
+    function handleOk() { cleanup(); if (onOk) onOk(); }
+    function handleCancel() { cleanup(); if (onCancel) onCancel(); }
+
+    btnOk.addEventListener('click', handleOk);
+    btnCancel.addEventListener('click', handleCancel);
+};
+
+
+// ═══════════════════════════════════════
 // 全局工具：自定义 Prompt Modal
 // ═══════════════════════════════════════
 
