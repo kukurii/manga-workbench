@@ -145,19 +145,46 @@ class PageManager {
                 this.btnImport.disabled = true;
 
                 setTimeout(() => {
-                    const result = window.cep.fs.showOpenDialog(
-                        true, false,
-                        "请选择要导入的漫画页面 (支持JPG/PNG/PSD等)",
-                        "",
-                        ["jpg", "jpeg", "png", "tiff", "psd"]
-                    );
+                    const isWin = navigator.platform.toLowerCase().indexOf('win') > -1;
+                    // Windows 下指定带有单独 PSD 类型的现代过滤器；Mac 下使用过滤函数
+                    const filterStr = isWin
+                        ? "所有文件 (*.*):*.*,图像文件 (*.jpg;*.jpeg;*.png;*.tiff;*.webp;*.bmp):*.jpg;*.jpeg;*.png;*.tiff;*.webp;*.bmp,Photoshop 文档 (*.psd):*.psd"
+                        : "function(f) { return (f instanceof Folder) || f.name.match(/\.(jpg|jpeg|png|tiff|webp|bmp|psd)$/i); }";
 
-                    this.btnImport.innerText = oldText;
-                    this.btnImport.disabled = false;
+                    const script = `
+                        (function(){
+                            try {
+                                var filter = ${isWin ? '"' + filterStr + '"' : filterStr};
+                                var result = File.openDialog("请选择要导入的漫画页面", filter, true);
+                                if (result) {
+                                    var paths = [];
+                                    for (var i = 0; i < result.length; i++) {
+                                        paths.push(result[i].fsName);
+                                    }
+                                    return JSON.stringify(paths);
+                                }
+                                return "[]";
+                            } catch(e) {
+                                return "ERROR:" + e.toString();
+                            }
+                        })()
+                    `;
 
-                    if (result.err === window.cep.fs.NO_ERROR && result.data.length > 0) {
-                        this.handleImportedFiles(result.data);
-                    }
+                    this.cs.evalScript(script, (res) => {
+                        this.btnImport.innerText = oldText;
+                        this.btnImport.disabled = false;
+
+                        if (res && res.indexOf("ERROR:") !== 0 && res !== "[]") {
+                            try {
+                                const filePaths = JSON.parse(res);
+                                if (filePaths && filePaths.length > 0) {
+                                    this.handleImportedFiles(filePaths);
+                                }
+                            } catch (e) {
+                                console.error("解析导入路径失败", e);
+                            }
+                        }
+                    });
                 }, 100);
             });
         }
