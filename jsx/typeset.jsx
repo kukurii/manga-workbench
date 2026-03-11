@@ -211,13 +211,25 @@ function fixBangQuestion() {
         // 1. 获取原文本
         var txt = layer.textItem.contents;
 
-        // 2. 将全角 ！？ 转成半角英文 !? 
-        var replacedTxt = txt.replace(/[！!][？?]/g, '!?')
-            .replace(/[？?][！!]/g, '?!')
-            .replace(/[！!]{2}/g, '!!')
-            .replace(/[？?]{2}/g, '??');
+        // 2. 将全角 ！？ 转成半角 !?
+        // 注意：ExtendScript ES3 引擎对字符类 [...] 内的全角字符编码支持不稳定，
+        // 改用逐步 replace 字符串字面量的方式确保全角字符能被正确匹配。
 
-        layer.textItem.contents = replacedTxt;
+        // 第一步：先把全角单字符各自替换为半角（出现在连发前，确保后续处理正确）
+        // 为了保留先处理连发组合（如 ！？ -> !?），按最长到最短的顺序替换
+        var r = txt;
+
+        // 处理连发全角组合（顺序：两字符组合优先）
+        r = r.split('\uff01\uff1f').join('!?');  // ！？
+        r = r.split('\uff1f\uff01').join('?!');  // ？！
+        r = r.split('\uff01\uff01').join('!!');  // ！！
+        r = r.split('\uff1f\uff1f').join('??');  // ？？
+
+        // 处理剩余的单个全角字符
+        r = r.split('\uff01').join('!');          // ！
+        r = r.split('\uff1f').join('?');          // ？
+
+        layer.textItem.contents = r;
 
         // 3. 针对整个图层挂载直排内横排属性(Tate-Chu-Yoko)
         // 这个指令在 PS 底层能够告诉文本引擎：把那些短的连续西文字符扶正。

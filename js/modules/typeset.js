@@ -58,15 +58,25 @@ class TypesetManager {
         this.subTabBtns = document.querySelectorAll('#typeset-sub-tabs .tab-bar__item');
         this.tabBatch   = document.getElementById('typeset-tab-batch');
         this.tabAdjust  = document.getElementById('typeset-tab-adjust');
+        this.tabFix     = document.getElementById('typeset-tab-fix'); // 第三个 Tab：排版修正
     }
 
-    /** 切换子 Tab：'batch' 或 'adjust' */
+    /** 切换子 Tab：'batch' / 'adjust' / 'fix' */
     switchTab(name) {
-        const showBatch = name === 'batch';
-        if (this.tabBatch)  this.tabBatch.style.display  = showBatch ? 'block' : 'none';
-        if (this.tabAdjust) this.tabAdjust.style.display = showBatch ? 'none'  : 'block';
+        // 每个 Tab 的 id 映射
+        const tabMap = {
+            batch:  'typeset-tab-batch',
+            adjust: 'typeset-tab-adjust',
+            fix:    'typeset-tab-fix'
+        };
+        // 显示/隐藏各 Tab 内容区
+        if (this.tabBatch)  this.tabBatch.style.display  = name === 'batch'  ? 'block' : 'none';
+        if (this.tabAdjust) this.tabAdjust.style.display = name === 'adjust' ? 'block' : 'none';
+        if (this.tabFix)    this.tabFix.style.display    = name === 'fix'    ? 'block' : 'none';
+        // 更新按钮高亮
+        const activeId = tabMap[name] || 'typeset-tab-batch';
         this.subTabBtns.forEach(btn => {
-            btn.classList.toggle('active', btn.dataset.tab === (showBatch ? 'typeset-tab-batch' : 'typeset-tab-adjust'));
+            btn.classList.toggle('active', btn.dataset.tab === activeId);
         });
     }
 
@@ -112,7 +122,13 @@ class TypesetManager {
         // ── 子功能 Tab 切换 ──
         this.subTabBtns.forEach(btn => {
             btn.addEventListener('click', () => {
-                this.switchTab(btn.dataset.tab === 'typeset-tab-batch' ? 'batch' : 'adjust');
+                // 根据 data-tab 属性映射到 tab 名
+                const tabNameMap = {
+                    'typeset-tab-batch':  'batch',
+                    'typeset-tab-adjust': 'adjust',
+                    'typeset-tab-fix':    'fix'
+                };
+                this.switchTab(tabNameMap[btn.dataset.tab] || 'batch');
             });
         });
 

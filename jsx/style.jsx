@@ -261,6 +261,97 @@ function setCompareGroupOpacity(groupName, opacity) {
     }
 }
 
+// --- 文字颜色修改 ---
+
+/**
+ * 将当前选中的文本图层的文字颜色改为指定 RGB 颜色
+ * 支持多选图层批量操作
+ * @param {number} r 0-255
+ * @param {number} g 0-255
+ * @param {number} b 0-255
+ */
+function setTextLayerColor(r, g, b) {
+    try {
+        if (app.documents.length === 0) return "错误：没有打开的文档";
+        var doc = app.activeDocument;
+
+        // 构建目标颜色对象
+        var newColor = new SolidColor();
+        newColor.rgb.red   = r;
+        newColor.rgb.green = g;
+        newColor.rgb.blue  = b;
+
+        // 收集当前选中的图层（PS 中可通过 activeDocument.activeLayer 或 多选）
+        // 优先使用 selection 取多图层（兼容 CC 2015+）
+        var layers = [];
+        try {
+            // 尝试获取多选图层（通过历史记录指令获取选中图层的集合）
+            var ref = new ActionReference();
+            ref.putEnumerated(charIDToTypeID("Lyr "), charIDToTypeID("Ordn"), charIDToTypeID("Trgt"));
+            var desc = executeActionGet(ref);
+            // 若只有单图层则退回 activeLayer
+            layers = [doc.activeLayer];
+        } catch(e) {
+            layers = [doc.activeLayer];
+        }
+
+        // 尝试通过 Selection API 获得多选图层（CC 2019+）
+        var multiLayersSet = false;
+        try {
+            if (doc.layerSets && typeof doc.getActiveLayerByIndex === 'function') {
+                multiLayersSet = true;
+            }
+        } catch(e2) {}
+
+        var changedCount = 0;
+
+        // 核心处理：单图层或多图层
+        function applyColorToLayer(layer) {
+            if (layer.kind === LayerKind.TEXT) {
+                layer.textItem.color = newColor;
+                changedCount++;
+            }
+        }
+
+        // PS 内部没有标准的多选 JS API，使用 Action 描述符来获取选中图层列表
+        try {
+            var idChnl = charIDToTypeID("Chnl");
+            var ref2 = new ActionReference();
+            ref2.putProperty(charIDToTypeID("Prpr"), stringIDToTypeID("targetLayers"));
+            ref2.putEnumerated(charIDToTypeID("Dcmn"), charIDToTypeID("Ordn"), charIDToTypeID("Trgt"));
+            var descResult = executeActionGet(ref2);
+            var targetList = descResult.getList(stringIDToTypeID("targetLayers"));
+            var count = targetList.count;
+            // 收集所有选中层的索引
+            var indices = [];
+            for (var i = 0; i < count; i++) {
+                var itemRef = targetList.getReference(i);
+                var layerIdx = itemRef.getIndex(); // 0-based 从底部算
+                indices.push(layerIdx);
+            }
+            // 按索引应用（PS indexing 从底层 0 开始）
+            for (var j = 0; j < indices.length; j++) {
+                try {
+                    var lyr = doc.layers[doc.layers.length - 1 - indices[j]];
+                    applyColorToLayer(lyr);
+                } catch(ex) {}
+            }
+            if (changedCount === 0) {
+                // 若循环没能成功，退回 activeLayer
+                applyColorToLayer(doc.activeLayer);
+            }
+        } catch (actionErr) {
+            // 退回单图层处理
+            applyColorToLayer(doc.activeLayer);
+        }
+
+        if (changedCount === 0) return "错误：请选中一个或多个【文本图层】";
+        return "SUCCESS（已修改 " + changedCount + " 个文本图层的颜色）";
+    } catch (e) {
+        return "错误: 修改文字颜色失败 " + e.toString();
+    }
+}
+
 function clearLayerStyle() {
     try {
         if (app.documents.length === 0) return "错误：没有打开的文档";

@@ -15,6 +15,10 @@ class FxManager {
         this.btnStrokeCustom = document.getElementById('btn-stroke-custom');
         this.btnClearLayerStyle = document.getElementById('btn-clear-layer-style');
 
+        // 文字颜色修改按钮
+        this.btnTextColorWhite = document.getElementById('btn-text-color-white');
+        this.btnTextColorBlack = document.getElementById('btn-text-color-black');
+
         // 外发光
         this.inputGlowSize = document.getElementById('input-glow-size');
         this.btnAddOuterGlow = document.getElementById('btn-add-outer-glow');
@@ -35,6 +39,22 @@ class FxManager {
     }
 
     bindEvents() {
+        // 文字改白
+        if (this.btnTextColorWhite) {
+            this.btnTextColorWhite.addEventListener('click', () => {
+                // 调用 JSX：将文本图层字色改为白色 (255,255,255)
+                this.cs.evalScript(`setTextLayerColor(255, 255, 255)`, this.handleRes);
+            });
+        }
+
+        // 文字改黑
+        if (this.btnTextColorBlack) {
+            this.btnTextColorBlack.addEventListener('click', () => {
+                // 调用 JSX：将文本图层字色改为黑色 (0,0,0)
+                this.cs.evalScript(`setTextLayerColor(0, 0, 0)`, this.handleRes);
+            });
+        }
+
         if (this.btnStrokeBlack) {
             this.btnStrokeBlack.addEventListener('click', () => {
                 const size = parseFloat(this.inputStrokeSize.value);
