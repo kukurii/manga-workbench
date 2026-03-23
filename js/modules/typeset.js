@@ -7,8 +7,10 @@ class TypesetManager {
         this.dataDir = dataDir; // 持久化数据目录
         this.parsedData = []; // [{ pageName: '001.jpg', pageNum: 1, dialogs: [{id: 1, text: 'xxx'}, ...] }]
         this.currentPageIndex = 0;
+        this.dialogKeyword = '';
 
         this.initDOM();
+        this.injectEnhancements();
         this.bindEvents();
     }
 
@@ -62,6 +64,31 @@ class TypesetManager {
     }
 
     /** 切换子 Tab：'batch' / 'adjust' / 'fix' */
+    injectEnhancements() {
+        if (this.dialogList && !document.getElementById('typeset-dialog-toolbar')) {
+            const toolbar = document.createElement('div');
+            toolbar.id = 'typeset-dialog-toolbar';
+            toolbar.className = 'inline-bar mb-2';
+            toolbar.innerHTML = [
+                '<input type="text" id="input-dialog-search" class="input--flex" placeholder="筛选当前页对白...">',
+                '<span id="typeset-dialog-summary" class="form-hint" style="margin-left:0;">未解析</span>'
+            ].join('');
+            this.dialogList.insertAdjacentElement('beforebegin', toolbar);
+        }
+
+        if (this.txtSource && !document.getElementById('typeset-parse-status')) {
+            const status = document.createElement('div');
+            status.id = 'typeset-parse-status';
+            status.className = 'code-output mb-2';
+            status.textContent = '等待导入或粘贴文本...';
+            this.txtSource.insertAdjacentElement('afterend', status);
+        }
+
+        this.inputDialogSearch = document.getElementById('input-dialog-search');
+        this.dialogSummary = document.getElementById('typeset-dialog-summary');
+        this.parseStatus = document.getElementById('typeset-parse-status');
+    }
+
     switchTab(name) {
         // 每个 Tab 的 id 映射
         const tabMap = {
@@ -161,6 +188,22 @@ class TypesetManager {
                     return;
                 }
                 this.parseText(this.txtSource.value);
+            });
+        }
+
+        if (this.txtSource) {
+            this.txtSource.addEventListener('keydown', (e) => {
+                if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+                    e.preventDefault();
+                    if (this.btnParseTxt) this.btnParseTxt.click();
+                }
+            });
+        }
+
+        if (this.inputDialogSearch) {
+            this.inputDialogSearch.addEventListener('input', () => {
+                this.dialogKeyword = (this.inputDialogSearch.value || '').trim().toLowerCase();
+                this.renderDialogList();
             });
         }
 
@@ -482,6 +525,7 @@ class TypesetManager {
         });
 
         if (ObjectPages.length === 0) {
+            if (this.parseStatus) this.parseStatus.textContent = '解析失败：未识别到有效页码/对白格式。';
             showToast("未能根据格式解析出正确的页面及对白，请检查格式！", 'error');
             return;
         }
@@ -509,6 +553,10 @@ class TypesetManager {
 
         this.parsedData = ObjectPages;
         this.currentPageIndex = 0;
+        if (this.parseStatus) {
+            const dialogCount = ObjectPages.reduce((sum, page) => sum + page.dialogs.length, 0);
+            this.parseStatus.textContent = `解析完成：${ObjectPages.length} 页，${dialogCount} 条对白。可用 Ctrl+Enter 快速重新解析。`;
+        }
 
         if (this.sharedList) this.sharedList.style.display = "block";
         this.renderPageSelector();
@@ -533,10 +581,25 @@ class TypesetManager {
 
         if (!page || page.dialogs.length === 0) {
             this.dialogList.innerHTML = '<div class="placeholder">本页无对白数据</div>';
+            if (this.dialogSummary) this.dialogSummary.textContent = '0 / 0 条';
             return;
         }
 
-        page.dialogs.forEach(diag => {
+        const keyword = (this.dialogKeyword || '').trim().toLowerCase();
+        const visibleDialogs = keyword
+            ? page.dialogs.filter(diag => String(diag.text || '').replace(/\r/g, '\n').toLowerCase().indexOf(keyword) > -1 || String(diag.id).indexOf(keyword) > -1)
+            : page.dialogs;
+
+        if (this.dialogSummary) {
+            this.dialogSummary.textContent = `${visibleDialogs.length} / ${page.dialogs.length} 条`;
+        }
+
+        if (visibleDialogs.length === 0) {
+            this.dialogList.innerHTML = '<div class="placeholder">没有匹配的对白</div>';
+            return;
+        }
+
+        visibleDialogs.forEach(diag => {
             const row = document.createElement('div');
             // 如果比对出了变更，则注入高亮 class
             row.className = diag.isChanged ? 'dialog-row changed' : 'dialog-row';

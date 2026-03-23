@@ -12,6 +12,7 @@ class PageManager {
         this._saveTimer = null;
 
         this.initDOM();
+        this.injectEnhancements();
         this.bindEvents();
 
         // 恢复上次项目（若存在）
@@ -55,6 +56,27 @@ class PageManager {
 
         // 当前激活的页面索引（与 pages 数组对应）
         this.activePageIndex = -1;
+    }
+
+    injectEnhancements() {
+        if (!this.thumbnailContainer) return;
+
+        const hostSection = this.thumbnailContainer.parentElement;
+        if (hostSection && !document.getElementById('page-quick-bar')) {
+            const quickBar = document.createElement('div');
+            quickBar.id = 'page-quick-bar';
+            quickBar.className = 'inline-bar mb-2';
+            quickBar.innerHTML = [
+                '<span id="page-summary" class="form-hint" style="margin-left:0;">共 0 页</span>',
+                '<button id="btn-select-visible-pages" class="btn btn--ghost btn--xs">全选可见</button>',
+                '<button id="btn-clear-page-selection" class="btn btn--ghost btn--xs">清空选择</button>'
+            ].join('');
+            this.thumbnailContainer.insertAdjacentElement('beforebegin', quickBar);
+        }
+
+        this.pageSummary = document.getElementById('page-summary');
+        this.btnSelectVisiblePages = document.getElementById('btn-select-visible-pages');
+        this.btnClearPageSelection = document.getElementById('btn-clear-page-selection');
     }
 
     // -------------------- 项目持久化 --------------------
@@ -233,7 +255,20 @@ class PageManager {
         if (this.selStateFilter) {
             this.selStateFilter.addEventListener('change', () => {
                 this.renderThumbnails();
+                this.syncSelectionSummary();
                 this.scheduleSaveProjectState();
+            });
+        }
+
+        if (this.btnSelectVisiblePages) {
+            this.btnSelectVisiblePages.addEventListener('click', () => {
+                this.toggleVisibleSelection(true);
+            });
+        }
+
+        if (this.btnClearPageSelection) {
+            this.btnClearPageSelection.addEventListener('click', () => {
+                this.toggleVisibleSelection(false);
             });
         }
 
@@ -522,6 +557,7 @@ class PageManager {
         });
 
         this.renderThumbnails();
+        this.syncSelectionSummary();
         this.scheduleSaveProjectState();
 
         // 通知 PS 后台
@@ -536,11 +572,13 @@ class PageManager {
         }
 
         const filterVal = this.selStateFilter ? this.selStateFilter.value : 'all';
+        let renderedCount = 0;
 
         this.pages.forEach((pageData, index) => {
             if (filterVal !== 'all' && pageData.status !== filterVal) {
                 return;
             }
+            renderedCount += 1;
 
             const path = pageData.path;
             const fileName = pageData.name;
@@ -571,6 +609,7 @@ class PageManager {
             checkbox.title = '选取该页';
             checkbox.addEventListener('click', (e) => {
                 e.stopPropagation();
+                this.syncSelectionSummary();
             });
 
             const imageWrapper = document.createElement('div');
@@ -682,5 +721,47 @@ class PageManager {
 
             this.thumbnailContainer.appendChild(item);
         });
+
+        if (this.pages.length === 0) {
+            this.updatePageSummary(0, 0, 0);
+        } else {
+            if (renderedCount === 0) {
+                this.thumbnailContainer.innerHTML = '<div class="placeholder">当前筛选下没有页面</div>';
+            }
+            this.updatePageSummary(this.pages.length, renderedCount, this.getSelectedVisibleCount());
+        }
+    }
+
+    updatePageSummary(totalCount, visibleCount, selectedCount) {
+        if (!this.pageSummary) return;
+        const visiblePart = visibleCount === totalCount ? '' : ` · 可见 ${visibleCount}`;
+        const selectedPart = selectedCount > 0 ? ` · 已选 ${selectedCount}` : '';
+        this.pageSummary.textContent = `共 ${totalCount} 页${visiblePart}${selectedPart}`;
+    }
+
+    getSelectedVisibleCount() {
+        if (!this.thumbnailContainer) return 0;
+        return this.thumbnailContainer.querySelectorAll('.page-checkbox:checked').length;
+    }
+
+    syncSelectionSummary() {
+        const visibleCount = this.thumbnailContainer
+            ? this.thumbnailContainer.querySelectorAll('.page-item').length
+            : 0;
+        this.updatePageSummary(this.pages.length, visibleCount, this.getSelectedVisibleCount());
+    }
+
+    toggleVisibleSelection(checked) {
+        if (!this.thumbnailContainer) return;
+        const boxes = this.thumbnailContainer.querySelectorAll('.page-checkbox');
+        if (boxes.length === 0) {
+            showToast('当前没有可操作的页面', 'error');
+            this.updatePageSummary(0, 0, 0);
+            return;
+        }
+        boxes.forEach(box => {
+            box.checked = checked;
+        });
+        this.syncSelectionSummary();
     }
 }

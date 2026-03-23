@@ -25,6 +25,7 @@ class FontManager {
         this._userAliases = null;
 
         this.initDOM();
+        this.injectEnhancements();
         this.bindEvents();
 
         this.initFontDisplayNames(false); // 优先读缓存
@@ -96,6 +97,39 @@ class FontManager {
         this.cmpList = document.getElementById('cmp-list-container');
     }
 
+    injectEnhancements() {
+        if (this.listContainer && !document.getElementById('font-quick-toolbar')) {
+            const toolbar = document.createElement('div');
+            toolbar.id = 'font-quick-toolbar';
+            toolbar.className = 'inline-bar mb-2 font-toolbar';
+            toolbar.innerHTML = [
+                '<span id="font-quick-summary" class="form-hint" style="margin-left:0;">等待字体加载...</span>',
+                '<button id="btn-font-clear-search" class="btn btn--ghost btn--xs">清空搜索</button>',
+                '<button id="btn-font-toggle-hidden" class="btn btn--ghost btn--xs">显示已隐藏</button>'
+            ].join('');
+            this.listContainer.insertAdjacentElement('beforebegin', toolbar);
+        }
+
+        if (this.fmListContainer && !document.getElementById('fm-quick-toolbar')) {
+            const toolbar = document.createElement('div');
+            toolbar.id = 'fm-quick-toolbar';
+            toolbar.className = 'inline-bar mb-2 font-toolbar';
+            toolbar.innerHTML = [
+                '<span id="fm-quick-summary" class="form-hint" style="margin-left:0;">等待筛选...</span>',
+                '<button id="btn-fm-clear-search" class="btn btn--ghost btn--xs">清空搜索</button>',
+                '<button id="btn-fm-clear-selection" class="btn btn--ghost btn--xs">清空选择</button>'
+            ].join('');
+            this.fmListContainer.insertAdjacentElement('beforebegin', toolbar);
+        }
+
+        this.fontQuickSummary = document.getElementById('font-quick-summary');
+        this.btnFontClearSearch = document.getElementById('btn-font-clear-search');
+        this.btnFontToggleHidden = document.getElementById('btn-font-toggle-hidden');
+        this.fmQuickSummary = document.getElementById('fm-quick-summary');
+        this.btnFmClearSearch = document.getElementById('btn-fm-clear-search');
+        this.btnFmClearSelection = document.getElementById('btn-fm-clear-selection');
+    }
+
     bindEvents() {
         // 模式切换
         if (this.modeBtns) {
@@ -154,6 +188,21 @@ class FontManager {
             });
         }
 
+        if (this.btnFontClearSearch) {
+            this.btnFontClearSearch.addEventListener('click', () => {
+                if (this.inputSearch) this.inputSearch.value = '';
+                this.renderFonts();
+                if (this.inputSearch) this.inputSearch.focus();
+            });
+        }
+
+        if (this.btnFontToggleHidden) {
+            this.btnFontToggleHidden.addEventListener('click', () => {
+                this.showHidden = !this.showHidden;
+                this.renderFonts();
+            });
+        }
+
         // 系统列表分类及收藏夹分类过滤
         if (this.filterBtns) {
             this.filterBtns.addEventListener('click', (e) => {
@@ -171,6 +220,7 @@ class FontManager {
                 this.modalFontManager.style.display = 'flex';
                 this.inputFmSearch.value = '';
                 this.selFmFilter.value = 'all';
+                if (this.chkFmSelectAll) this.chkFmSelectAll.checked = false;
                 this.renderFontManager();
             });
         }
@@ -187,10 +237,28 @@ class FontManager {
                 this.renderFontManager();
             });
         }
+        if (this.btnFmClearSearch) {
+            this.btnFmClearSearch.addEventListener('click', () => {
+                if (this.inputFmSearch) this.inputFmSearch.value = '';
+                if (this.selFmFilter) this.selFmFilter.value = 'all';
+                if (this.chkFmSelectAll) this.chkFmSelectAll.checked = false;
+                this.renderFontManager();
+                if (this.inputFmSearch) this.inputFmSearch.focus();
+            });
+        }
         if (this.selFmFilter) {
             this.selFmFilter.addEventListener('change', () => {
                 if (this.chkFmSelectAll) this.chkFmSelectAll.checked = false;
                 this.renderFontManager();
+            });
+        }
+
+        if (this.btnFmClearSelection) {
+            this.btnFmClearSelection.addEventListener('click', () => {
+                const checkboxes = this.fmListContainer ? this.fmListContainer.querySelectorAll('.fm-chk-item') : [];
+                checkboxes.forEach(chk => chk.checked = false);
+                if (this.chkFmSelectAll) this.chkFmSelectAll.checked = false;
+                this.updateFontManagerSummary();
             });
         }
 
@@ -199,8 +267,24 @@ class FontManager {
             this.chkFmSelectAll.addEventListener('change', (e) => {
                 const checkboxes = this.fmListContainer.querySelectorAll('.fm-chk-item');
                 checkboxes.forEach(chk => chk.checked = e.target.checked);
+                this.updateFontManagerSummary();
             });
         }
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key !== '/' || e.ctrlKey || e.metaKey || e.altKey) return;
+            const tag = document.activeElement ? document.activeElement.tagName : '';
+            if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+            if (this.modalFontManager && this.modalFontManager.style.display === 'flex' && this.inputFmSearch) {
+                e.preventDefault();
+                this.inputFmSearch.focus();
+                return;
+            }
+            if (this.currentMode !== 'online' && this.inputSearch) {
+                e.preventDefault();
+                this.inputSearch.focus();
+            }
+        });
 
         // 获取当前选中项的辅助函数
         const getSelectedFontNames = () => {
@@ -772,8 +856,12 @@ class FontManager {
             `;
 
             const btnToggle = item.querySelector('.btn-toggle');
+            const rowCheckbox = item.querySelector('.fm-chk-item');
             const nameEl = item.querySelector('.fm-font-name');
             const previewEl = item.querySelector('div[style*="font-family"]');
+            if (rowCheckbox) {
+                rowCheckbox.addEventListener('change', () => this.updateFontManagerSummary(count));
+            }
             btnToggle.addEventListener('click', () => {
                 // 告诉主层跳过全量重绘
                 this.toggleHideFont(font, true);
@@ -799,15 +887,18 @@ class FontManager {
                     btnToggle.className = `btn-toggle btn btn--sm ${currentlyHidden ? 'btn--primary' : 'btn--ghost'}`;
                     btnToggle.innerText = currentlyHidden ? '✅ 恢复' : '🚫 隐藏';
                 }
+                this.updateFontManagerSummary();
             });
 
             this.fmListContainer.appendChild(item);
         }
 
         if (this.fmCountLab) this.fmCountLab.innerText = `筛选出 ${count} 款`;
+        this.updateFontManagerSummary(count);
 
         if (count === 0) {
             this.fmListContainer.innerHTML = '<div class="placeholder">没有查找到符合条件的字体</div>';
+            this.updateFontManagerSummary(0);
         }
     }
 
@@ -932,10 +1023,44 @@ class FontManager {
         }
 
         if (this.labCount) this.labCount.innerText = `共 ${count} 款`;
+        this.updateFontToolbarSummary(count, q);
 
         if (count === 0 && this.recentFonts.length === 0) {
             this.listContainer.innerHTML = '<div class="placeholder">没有任何相关联的字体记录</div>';
         }
+    }
+
+    updateFontToolbarSummary(count, query) {
+        if (this.fontQuickSummary) {
+            const hiddenCount = this.hiddenFonts.length;
+            const recentCount = this.recentFonts ? this.recentFonts.length : 0;
+            const modeLabel = this.currentMode === 'favorite'
+                ? '收藏'
+                : this.currentMode === 'online'
+                    ? '在线'
+                    : '系统';
+            const queryPart = query ? ' · 搜索中' : '';
+            const hiddenPart = this.currentMode === 'system' ? ` · 已隐藏 ${hiddenCount}` : '';
+            const recentPart = this.currentMode === 'system' && !query ? ` · 最近 ${recentCount}` : '';
+            this.fontQuickSummary.textContent = `${modeLabel}字体 ${count} 款${queryPart}${hiddenPart}${recentPart}`;
+        }
+
+        if (this.btnFontToggleHidden) {
+            this.btnFontToggleHidden.textContent = this.showHidden ? '隐藏已隐藏' : '显示已隐藏';
+            this.btnFontToggleHidden.classList.toggle('is-active', this.showHidden);
+        }
+    }
+
+    updateFontManagerSummary(forcedCount) {
+        if (!this.fmQuickSummary) return;
+        const visibleCount = typeof forcedCount === 'number'
+            ? forcedCount
+            : (this.fmListContainer ? this.fmListContainer.querySelectorAll('.fm-chk-item').length : 0);
+        const selectedCount = this.fmListContainer
+            ? this.fmListContainer.querySelectorAll('.fm-chk-item:checked').length
+            : 0;
+        const hiddenCount = this.hiddenFonts.length;
+        this.fmQuickSummary.textContent = `当前 ${visibleCount} 款 · 已选 ${selectedCount} · 隐藏库 ${hiddenCount}`;
     }
 
     createFontItemNode(font) {

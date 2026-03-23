@@ -1,13 +1,15 @@
-// styleTool.js - 排版段落预设库
+// styleTool.js - paragraph style preset library
 
 class StyleManager {
     constructor(csInterface, extPath, dataDir) {
         this.cs = csInterface;
         this.extPath = extPath;
         this.dataDir = dataDir;
-        this.presets = []; // [{ id, name, fontPostScriptName, fontName, size, leadingType, leadingValue, fauxBold }]
+        this.presets = [];
+        this.storageKey = 'manga-workbench.style-form';
         this.initDOM();
         this.bindEvents();
+        this.restoreFormState();
         this.loadPresets();
     }
 
@@ -18,7 +20,7 @@ class StyleManager {
         this.selLeadingType = document.getElementById('sel-style-leading-type');
         this.inputLeadingVal = document.getElementById('input-style-leading-val');
         this.labLeadingUnit = document.getElementById('lab-style-leading-unit');
-        this.chkFauxBold = document.getElementById('chk-style-faux-bold'); // 仿粗体复选框
+        this.chkFauxBold = document.getElementById('chk-style-faux-bold');
 
         this.btnApplyNow = document.getElementById('btn-apply-style-now');
         this.btnSavePreset = document.getElementById('btn-save-style-preset');
@@ -32,11 +34,18 @@ class StyleManager {
                     if (this.inputLeadingVal.value == '14' || this.inputLeadingVal.value == '') this.inputLeadingVal.value = 125;
                 } else {
                     this.labLeadingUnit.innerText = 'pt';
-                    // 如果原先填的很大的比率（比如125）则重置为正常固定间距
                     if (this.inputLeadingVal.value == '125' || this.inputLeadingVal.value == '') this.inputLeadingVal.value = 14;
                 }
+                this.persistFormState();
             });
         }
+
+        [this.selFont, this.inputSize, this.inputLeadingVal, this.chkFauxBold].forEach((el) => {
+            if (!el) return;
+            el.addEventListener('change', () => {
+                this.persistFormState();
+            });
+        });
 
         if (this.btnApplyNow) {
             this.btnApplyNow.addEventListener('click', () => {
@@ -46,13 +55,13 @@ class StyleManager {
 
         if (this.btnSavePreset) {
             this.btnSavePreset.addEventListener('click', () => {
-                showPromptModal("请为该段落预设起一个好记的名字 (如 对话-方正宋体-36pt):", "对话样式A", (name) => {
+                showPromptModal("请为该段落预设起一个好记的名字 (如: 对话-方正宋体-36pt):", "对话样式A", (name) => {
                     if (!name) return;
 
                     const size = parseFloat(this.inputSize.value);
                     const leadingValue = parseFloat(this.inputLeadingVal.value);
-                    if (isNaN(size) || size <= 0) return showToast('璇疯緭鍏ユ湁鏁堢殑瀛楀彿');
-                    if (isNaN(leadingValue) || leadingValue <= 0) return showToast('璇疯緭鍏ユ湁鏁堢殑琛岃窛');
+                    if (isNaN(size) || size <= 0) return showToast('请输入有效的字号');
+                    if (isNaN(leadingValue) || leadingValue <= 0) return showToast('请输入有效的行距');
 
                     const fontPostName = this.selFont.value;
                     const fontSelectObj = this.selFont.options[this.selFont.selectedIndex];
@@ -66,21 +75,21 @@ class StyleManager {
                         size: size,
                         leadingType: this.selLeadingType.value,
                         leadingValue: leadingValue,
-                        fauxBold: this.chkFauxBold ? this.chkFauxBold.checked : false // 仿粗体
+                        fauxBold: this.chkFauxBold ? this.chkFauxBold.checked : false
                     };
 
                     this.presets.push(preset);
                     this.savePresets();
                     this.renderPresets();
+                    this.persistFormState();
                 });
             });
         }
     }
 
-    // 由 fontTool.js 回调，用来同步系统字体到此处的下拉菜单
-    // getDisplayName: 可选回调 (f) => { primary, secondary, source }，由 FontManager 传入
     syncFonts(fontList, getDisplayName) {
         if (!this.selFont) return;
+        const previousValue = this.selFont.value;
         this.selFont.innerHTML = '<option value="">(保持图层原字体不改变)</option>';
         fontList.forEach(f => {
             const opt = document.createElement('option');
@@ -88,13 +97,15 @@ class StyleManager {
             if (getDisplayName) {
                 const display = getDisplayName(f);
                 opt.innerText = display.source !== 'fallback'
-                    ? `${display.primary}（${f.name}）`
+                    ? `${display.primary} (${f.name})`
                     : f.name;
             } else {
                 opt.innerText = f.name;
             }
             this.selFont.appendChild(opt);
         });
+        const nextValue = previousValue || this._pendingFontValue || '';
+        if (nextValue) this.selFont.value = nextValue;
     }
 
     applyStyle(presetObj = null) {
@@ -105,7 +116,6 @@ class StyleManager {
             leadingType = presetObj.leadingType;
             leadingValue = presetObj.leadingValue;
             fauxBold = presetObj.fauxBold === true;
-            // 同步更新 UI 复选框状态（让用户看到当前预设里的仿粗体值）
             if (this.chkFauxBold) this.chkFauxBold.checked = fauxBold;
         } else {
             fontPostName = this.selFont.value || "";
@@ -118,16 +128,16 @@ class StyleManager {
         if (isNaN(size) || size <= 0) return showToast('请输入有效的字号');
         if (isNaN(leadingValue) || leadingValue <= 0) return showToast('请输入有效的行距');
 
-        // 发送到 ExtendScript，第5个参数为仿粗体开关（true/false）
         const safeFont = fontPostName ? fontPostName : '';
         this.cs.evalScript(`applyParagraphStyle('${safeFont}', ${size}, '${leadingType}', ${leadingValue}, ${fauxBold})`, (res) => {
             if (res && res.indexOf("错误") > -1) {
                 showToast(res);
+            } else {
+                this.persistFormState();
             }
         });
     }
 
-    // JSON 预设文件化存储
     loadPresets() {
         const path = this.dataDir + "/style_presets.json";
         const readResult = window.cep.fs.readFile(path);
@@ -155,7 +165,6 @@ class StyleManager {
             return;
         }
 
-        // 拖拽状态
         let dragSrcIdx = -1;
 
         const clearDropIndicators = () => {
@@ -188,7 +197,6 @@ class StyleManager {
             btn.appendChild(nameSpan);
             btn.appendChild(delSpan);
 
-            // ── 点击应用 / 删除 ──
             nameSpan.addEventListener('click', (e) => {
                 e.stopPropagation();
                 this.applyStyle(p);
@@ -203,7 +211,6 @@ class StyleManager {
                 });
             });
 
-            // ── 拖拽事件 ──
             btn.addEventListener('dragstart', (e) => {
                 dragSrcIdx = idx;
                 btn.classList.add('preset-dragging');
@@ -221,7 +228,6 @@ class StyleManager {
                 e.dataTransfer.dropEffect = 'move';
                 if (dragSrcIdx === idx) return;
                 clearDropIndicators();
-                // 根据鼠标在卡片内的上/下半区决定插入线方向
                 const rect = btn.getBoundingClientRect();
                 const midY = rect.top + rect.height / 2;
                 if (e.clientY < midY) {
@@ -232,7 +238,6 @@ class StyleManager {
             });
 
             btn.addEventListener('dragleave', (e) => {
-                // 仅当鼠标真正离开该元素（不是移到子元素）时才清除
                 if (!btn.contains(e.relatedTarget)) {
                     btn.classList.remove('preset-drag-over-before', 'preset-drag-over-after');
                 }
@@ -244,13 +249,12 @@ class StyleManager {
                 const targetIdx = parseInt(btn.dataset.idx, 10);
                 if (dragSrcIdx === -1 || dragSrcIdx === targetIdx) return;
 
-                // 判断插入在目标的前面还是后面
                 const rect = btn.getBoundingClientRect();
                 const insertBefore = e.clientY < rect.top + rect.height / 2;
                 let insertAt = insertBefore ? targetIdx : targetIdx + 1;
 
                 const moved = this.presets.splice(dragSrcIdx, 1)[0];
-                if (dragSrcIdx < insertAt) insertAt--;   // 移除后索引偏移修正
+                if (dragSrcIdx < insertAt) insertAt--;
                 this.presets.splice(insertAt, 0, moved);
 
                 this.savePresets();
@@ -259,5 +263,43 @@ class StyleManager {
 
             this.presetsContainer.appendChild(btn);
         });
+    }
+
+    restoreFormState() {
+        try {
+            const raw = localStorage.getItem(this.storageKey);
+            if (!raw) {
+                this.updateLeadingUnit();
+                return;
+            }
+
+            const data = JSON.parse(raw);
+            if (this.inputSize && data.size) this.inputSize.value = data.size;
+            if (this.selLeadingType && data.leadingType) this.selLeadingType.value = data.leadingType;
+            if (this.inputLeadingVal && data.leadingValue) this.inputLeadingVal.value = data.leadingValue;
+            if (this.chkFauxBold && typeof data.fauxBold === 'boolean') this.chkFauxBold.checked = data.fauxBold;
+
+            this._pendingFontValue = data.fontPostScriptName || '';
+            this.updateLeadingUnit();
+        } catch (err) {
+            this.updateLeadingUnit();
+        }
+    }
+
+    persistFormState() {
+        try {
+            localStorage.setItem(this.storageKey, JSON.stringify({
+                fontPostScriptName: this.selFont ? this.selFont.value : '',
+                size: this.inputSize ? this.inputSize.value : '',
+                leadingType: this.selLeadingType ? this.selLeadingType.value : 'fixed',
+                leadingValue: this.inputLeadingVal ? this.inputLeadingVal.value : '',
+                fauxBold: this.chkFauxBold ? !!this.chkFauxBold.checked : false
+            }));
+        } catch (err) { }
+    }
+
+    updateLeadingUnit() {
+        if (!this.selLeadingType || !this.labLeadingUnit) return;
+        this.labLeadingUnit.innerText = this.selLeadingType.value === 'auto' ? '%' : 'pt';
     }
 }

@@ -231,6 +231,13 @@ body {
   transform: scale(0.98);
 }
 
+.btn:disabled,
+.btn.is-disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  transform: none;
+}
+
 .btn svg {
   width: 14px;
   height: 14px;
@@ -804,6 +811,27 @@ select {
   color: var(--text-dim);
 }
 
+.retouch-status {
+  margin-top: 8px;
+  min-height: 44px;
+}
+
+.retouch-preset-row {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.retouch-preset-row .btn {
+  min-width: 38px;
+}
+
+.retouch-preset-row .btn.is-active {
+  background: var(--accent-dim);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
 /* ── 设置区块 ── */
 .settings-group {
   background: var(--surface);
@@ -1234,6 +1262,17 @@ select {
 .cp-hex-input:focus {
   outline: none;
   border-color: var(--accent);
+}
+
+.font-toolbar {
+  justify-content: space-between;
+  flex-wrap: wrap;
+}
+
+.font-toolbar .btn.is-active {
+  background: var(--accent-dim);
+  border-color: var(--accent);
+  color: var(--accent);
 }
 
 /* ── Toast 通知 ── */

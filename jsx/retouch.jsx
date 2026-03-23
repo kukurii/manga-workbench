@@ -278,15 +278,18 @@ function fillColorSelection(r, g, b, expandPx) {
  * 修复魔棒选区（闭合内部文字破洞）- 仅修复，不填充
  * 用于两步流程：先预览选区，确认后再填充
  */
-function healSelectionHolesOnly() {
+function healSelectionHolesOnly(expandPx) {
     try {
         if (app.documents.length === 0) return "错误：没有打开的文档";
         var doc = app.activeDocument;
 
         if (!hasSelection(doc)) return "失败：请先用魔棒或快速选择工具建立带破洞的气泡选区。";
 
-        doc.selection.expand(new UnitValue(15, "px"));
-        doc.selection.contract(new UnitValue(15, "px"));
+        var healPx = _parseIntDefault(expandPx, 15);
+        if (healPx < 1) healPx = 1;
+
+        doc.selection.expand(new UnitValue(healPx, "px"));
+        doc.selection.contract(new UnitValue(healPx, "px"));
 
         return "READY";
     } catch (e) {
@@ -348,14 +351,17 @@ function createWhiteLayer() {
  * 原理：形态学闭运算。通过大幅外扩选区吞并文字造成的破洞，再以等量数值边缘收缩还原本来的外边界。
  * 【带 suspendHistory 包裹】
  */
-function healSelectionHoles() {
+function healSelectionHoles(expandPx) {
     try {
         if (app.documents.length === 0) return "错误：没有打开的文档";
         var doc = app.activeDocument;
 
         if (!hasSelection(doc)) return "失败：请先用魔棒或快速选择工具建立带破洞的气泡选区。";
 
-        var actionStr = "app.activeDocument.selection.expand(new UnitValue(15, 'px')); app.activeDocument.selection.contract(new UnitValue(15, 'px'));";
+        var healPx = _parseIntDefault(expandPx, 15);
+        if (healPx < 1) healPx = 1;
+
+        var actionStr = "app.activeDocument.selection.expand(new UnitValue(" + healPx + ", 'px')); app.activeDocument.selection.contract(new UnitValue(" + healPx + ", 'px'));";
         doc.suspendHistory("修复选区破洞", actionStr);
 
         return "";
