@@ -38,6 +38,12 @@ class FxManager {
         };
     }
 
+    getPositiveNumber(input, fallback) {
+        const raw = input ? input.value : '';
+        const value = parseFloat(raw);
+        return !isNaN(value) && value > 0 ? value : fallback;
+    }
+
     bindEvents() {
         // 文字改白
         if (this.btnTextColorWhite) {
@@ -83,14 +89,21 @@ class FxManager {
 
         if (this.btnClearLayerStyle) {
             this.btnClearLayerStyle.addEventListener('click', () => {
-                this.cs.evalScript(`clearLayerStyle()`, this.handleRes);
+                this.cs.evalScript('hideLayerEffects()', (res) => {
+                    if (!res) return;
+                    if (res.indexOf('错误') > -1 || res.indexOf('閿欒') > -1) {
+                        showToast(res, 'error');
+                    } else {
+                        showToast(res, 'success');
+                    }
+                });
             });
         }
 
         // 外发光
         if (this.btnAddOuterGlow) {
             this.btnAddOuterGlow.addEventListener('click', () => {
-                const size = parseFloat(this.inputGlowSize ? this.inputGlowSize.value : 5);
+                const size = this.getPositiveNumber(this.inputGlowSize, 5);
                 const hex = window.getPickerColor ? window.getPickerColor('glow-color') : '#ffffff';
                 const { r, g, b } = this.hexToRgb(hex);
                 this.cs.evalScript(`addOuterGlow(${r}, ${g}, ${b}, ${size})`, this.handleRes);
@@ -100,7 +113,7 @@ class FxManager {
         // 投影
         if (this.btnAddDropShadow) {
             this.btnAddDropShadow.addEventListener('click', () => {
-                const dist = parseFloat(this.inputShadowDist ? this.inputShadowDist.value : 3);
+                const dist = this.getPositiveNumber(this.inputShadowDist, 3);
                 const size = dist; // 模糊大小与距离保持一致，简洁操作
                 const hex = window.getPickerColor ? window.getPickerColor('shadow-color') : '#000000';
                 const { r, g, b } = this.hexToRgb(hex);
@@ -110,7 +123,7 @@ class FxManager {
     }
 
     handleRes(res) {
-        if (res && res.indexOf('错误') > -1) {
+        if (res && (res.indexOf('错误') > -1 || res.indexOf('ERROR:') === 0)) {
             showToast(res, 'error');
         }
     }

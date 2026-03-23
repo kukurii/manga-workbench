@@ -517,6 +517,7 @@
                     <div class="btn-col mb-2">
                         <button id="btn-fix-punctuation" class="btn btn--secondary btn--block btn--sm">「」标点规范化 → 应用到图层</button>
                         <button id="btn-fix-bang-question" class="btn btn--secondary btn--block btn--sm">!? 全半角降级 → 应用到图层</button>
+                        <button id="btn-apply-tate-chu-yoko" class="btn btn--secondary btn--block btn--sm">!? 英文符号 → 直排内横排</button>
                         <button id="btn-fix-dash" class="btn btn--tint btn--block btn--sm">—— 连补破折号 → 应用到图层</button>
                     </div>
                 </div>
@@ -570,6 +571,14 @@
                         </select>
                         <input type="number" id="input-style-leading-val" value="125" class="input--flex">
                         <span class="form-unit" id="lab-style-leading-unit">%</span>
+                    </div>
+
+                    <div class="form-row mb-3" style="align-items:center;">
+                        <span class="form-label">仿粗体</span>
+                        <label style="display:flex; align-items:center; gap:6px; cursor:pointer;">
+                            <input type="checkbox" id="chk-style-faux-bold">
+                            <span class="form-hint" style="margin:0;">模拟粗体（适合无粗体字型的字体）</span>
+                        </label>
                     </div>
 
                     <div class="btn-row">
@@ -627,7 +636,7 @@
                         <button id="btn-stroke-custom" class="btn btn--tint" title="使用左侧颜色选择器中选定的颜色">自定颜色</button>
                     </div>
 
-                    <button id="btn-clear-layer-style" class="btn btn--danger-text btn--block">清除该图层所有特效</button>
+                    <button id="btn-clear-layer-style" class="btn btn--danger-text btn--block">隐藏该图层所有特效</button>
                 </div>
             </div>
 

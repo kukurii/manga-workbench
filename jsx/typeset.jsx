@@ -124,7 +124,10 @@ function generateTextLayersBulk(dialogsJson, styleJson) {
 
             // 全部排版参数配置完毕后，最后填入正式内容。
             // 预处理换行和简单的标点替换：自动将半角问号叹号转成全角
-            var content = diag.text.replace(/\\n/g, '\r').replace(/\?/g, '？').replace(/\!/g, '！');
+            var content = diag.text.replace(/\\n/g, '\r');
+            if (styleParams.direction !== 'HORIZONTAL') {
+                content = content.replace(/\?/g, '？').replace(/\!/g, '！');
+            }
             textItem.contents = content;
         }
 
@@ -260,6 +263,89 @@ function fixBangQuestion() {
         return "转换失败: " + e.toString();
     }
 }
+
+/**
+ * 对当前竖排文本图层中的 !? 符号应用"直排内横排 (Tate-Chu-Yoko)"
+ * 使用 ActionManager 逐段选中文字范围后设置 tatechuyoko 属性
+ * 这是 PS 脚本录制器标准生成的方式，兼容性最好
+ */
+function applyTateChuYoko() {
+    try {
+        if (app.documents.length === 0) return "错误：没有打开的文档";
+        var layer = app.activeDocument.activeLayer;
+
+        if (layer.kind !== LayerKind.TEXT) {
+            return "错误：请选中一个【文本图层】应用直排内横排！";
+        }
+
+        var contents = layer.textItem.contents;
+        var n = contents.length;
+        if (n === 0) return "错误：文本图层内容为空。";
+
+        function isTCY(ch) {
+            return ch === '!' || ch === '?' || ch === '\uff01' || ch === '\uff1f';
+        }
+
+        var tcyRanges = [];
+        var i = 0;
+        while (i < n) {
+            if (isTCY(contents.charAt(i))) {
+                var start = i;
+                while (i < n && isTCY(contents.charAt(i))) {
+                    i++;
+                }
+                tcyRanges.push({ from: start, to: i });
+            } else {
+                i++;
+            }
+        }
+
+        if (tcyRanges.length === 0) {
+            return "该图层没有找到 !? 符号，无需处理。";
+        }
+
+        var appliedCount = 0;
+        for (var r = 0; r < tcyRanges.length; r++) {
+            var range = tcyRanges[r];
+            var applied = false;
+
+            var setDesc = new ActionDescriptor();
+            var setRef = new ActionReference();
+            setRef.putProperty(charIDToTypeID("Prpr"), charIDToTypeID("TxtS"));
+            setRef.putEnumerated(charIDToTypeID("TxLr"), charIDToTypeID("Ordn"), charIDToTypeID("Trgt"));
+            setDesc.putReference(charIDToTypeID("null"), setRef);
+
+            var styleDesc = new ActionDescriptor();
+            styleDesc.putBoolean(stringIDToTypeID("tatechuyoko"), true);
+            styleDesc.putUnitDouble(stringIDToTypeID("tatechuyokoScale"), charIDToTypeID("#Prc"), 100.0);
+            styleDesc.putInteger(stringIDToTypeID("from"), range.from);
+            styleDesc.putInteger(stringIDToTypeID("to"), range.to);
+            setDesc.putObject(charIDToTypeID("T   "), charIDToTypeID("TxtS"), styleDesc);
+
+            try {
+                executeAction(charIDToTypeID("setd"), setDesc, DialogModes.NO);
+                applied = true;
+            } catch (e2) { }
+
+            if (applied) {
+                appliedCount++;
+            }
+        }
+
+        if (appliedCount === 0) {
+            return "ERROR: 未能成功应用直排内横排。当前 Photoshop 版本或该文本图层可能不支持此操作。";
+        }
+
+        if (appliedCount < tcyRanges.length) {
+            return "PARTIAL_SUCCESS: 已为 " + appliedCount + "/" + tcyRanges.length + " 处 !? 符号应用直排内横排，其余区段应用失败。";
+        }
+
+        return "SUCCESS: 已为 " + appliedCount + " 处 !? 符号应用直排内横排。";
+    } catch (e) {
+        return "ERROR: 直排内横排应用失败（" + e.toString() + "）";
+    }
+}
+
 
 /**
  * 为当前被选中的文本图层修改特定字体

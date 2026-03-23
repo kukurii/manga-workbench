@@ -4,7 +4,7 @@
 
 // --- 段落文本调节 ---
 
-function applyParagraphStyle(fontPostName, sizePts, leadingType, leadingValue) {
+function applyParagraphStyle(fontPostName, sizePts, leadingType, leadingValue, fauxBold) {
     try {
         if (app.documents.length === 0) return "错误：没有打开的文档";
         if (app.activeDocument.activeLayer.kind !== LayerKind.TEXT) return "错误：请选中一个【文本图层】";
@@ -38,6 +38,41 @@ function applyParagraphStyle(fontPostName, sizePts, leadingType, leadingValue) {
             txtItem.useAutoLeading = false;
             if (leadingValue > 0) {
                 txtItem.leading = new UnitValue(leadingValue, "pt");
+            }
+        }
+
+        // 4. 设置仿粗体
+        // 优先走 DOM 属性，避免用不完整的 TxtS 描述符覆盖掉现有字符样式
+        if (fauxBold !== undefined && fauxBold !== null && fauxBold !== "") {
+            var isFauxBold = (fauxBold === true || fauxBold === "true");
+            var fauxBoldApplied = false;
+            try {
+                txtItem.fauxBold = isFauxBold;
+                fauxBoldApplied = true;
+            } catch (fbe) { }
+
+            if (!fauxBoldApplied) {
+                try {
+                    var idsetd = charIDToTypeID("setd");
+                    var desc = new ActionDescriptor();
+                    var ref = new ActionReference();
+                    ref.putProperty(charIDToTypeID("Prpr"), charIDToTypeID("TxtS"));
+                    ref.putEnumerated(charIDToTypeID("TxLr"), charIDToTypeID("Ordn"), charIDToTypeID("Trgt"));
+                    desc.putReference(charIDToTypeID("null"), ref);
+
+                    var styleDesc = new ActionDescriptor();
+                    styleDesc.putBoolean(stringIDToTypeID("syntheticBold"), isFauxBold);
+                    styleDesc.putInteger(stringIDToTypeID("from"), 0);
+                    styleDesc.putInteger(stringIDToTypeID("to"), txtItem.contents ? txtItem.contents.length : 0);
+
+                    desc.putObject(charIDToTypeID("T   "), charIDToTypeID("TxtS"), styleDesc);
+                    executeAction(idsetd, desc, DialogModes.NO);
+                    fauxBoldApplied = true;
+                } catch (fbe2) { }
+            }
+
+            if (!fauxBoldApplied) {
+                return "错误：当前 Photoshop 版本不支持仿粗体设置";
             }
         }
 
@@ -281,68 +316,57 @@ function setTextLayerColor(r, g, b) {
         newColor.rgb.green = g;
         newColor.rgb.blue  = b;
 
-        // 收集当前选中的图层（PS 中可通过 activeDocument.activeLayer 或 多选）
-        // 优先使用 selection 取多图层（兼容 CC 2015+）
-        var layers = [];
-        try {
-            // 尝试获取多选图层（通过历史记录指令获取选中图层的集合）
-            var ref = new ActionReference();
-            ref.putEnumerated(charIDToTypeID("Lyr "), charIDToTypeID("Ordn"), charIDToTypeID("Trgt"));
-            var desc = executeActionGet(ref);
-            // 若只有单图层则退回 activeLayer
-            layers = [doc.activeLayer];
-        } catch(e) {
-            layers = [doc.activeLayer];
-        }
-
-        // 尝试通过 Selection API 获得多选图层（CC 2019+）
-        var multiLayersSet = false;
-        try {
-            if (doc.layerSets && typeof doc.getActiveLayerByIndex === 'function') {
-                multiLayersSet = true;
-            }
-        } catch(e2) {}
-
         var changedCount = 0;
 
-        // 核心处理：单图层或多图层
         function applyColorToLayer(layer) {
-            if (layer.kind === LayerKind.TEXT) {
+            if (layer && layer.kind === LayerKind.TEXT) {
                 layer.textItem.color = newColor;
                 changedCount++;
             }
         }
 
-        // PS 内部没有标准的多选 JS API，使用 Action 描述符来获取选中图层列表
-        try {
-            var idChnl = charIDToTypeID("Chnl");
-            var ref2 = new ActionReference();
-            ref2.putProperty(charIDToTypeID("Prpr"), stringIDToTypeID("targetLayers"));
-            ref2.putEnumerated(charIDToTypeID("Dcmn"), charIDToTypeID("Ordn"), charIDToTypeID("Trgt"));
-            var descResult = executeActionGet(ref2);
-            var targetList = descResult.getList(stringIDToTypeID("targetLayers"));
-            var count = targetList.count;
-            // 收集所有选中层的索引
+        function getSelectedLayerIndices() {
             var indices = [];
-            for (var i = 0; i < count; i++) {
-                var itemRef = targetList.getReference(i);
-                var layerIdx = itemRef.getIndex(); // 0-based 从底部算
-                indices.push(layerIdx);
-            }
-            // 按索引应用（PS indexing 从底层 0 开始）
-            for (var j = 0; j < indices.length; j++) {
+            try {
+                var ref = new ActionReference();
+                ref.putProperty(charIDToTypeID("Prpr"), stringIDToTypeID("targetLayers"));
+                ref.putEnumerated(charIDToTypeID("Dcmn"), charIDToTypeID("Ordn"), charIDToTypeID("Trgt"));
+                var desc = executeActionGet(ref);
+                if (!desc.hasKey(stringIDToTypeID("targetLayers"))) return indices;
+
+                var list = desc.getList(stringIDToTypeID("targetLayers"));
+                for (var i = 0; i < list.count; i++) {
+                    var ref2 = list.getReference(i);
+                    indices.push(ref2.getIndex());
+                }
+            } catch (e) { }
+            return indices;
+        }
+
+        function selectLayerByIndex(idx) {
+            var idslct = charIDToTypeID("slct");
+            var desc = new ActionDescriptor();
+            var idnull = charIDToTypeID("null");
+            var ref = new ActionReference();
+            ref.putIndex(charIDToTypeID("Lyr "), idx);
+            desc.putReference(idnull, ref);
+            desc.putBoolean(charIDToTypeID("MkVs"), false);
+            executeAction(idslct, desc, DialogModes.NO);
+        }
+
+        var selected = getSelectedLayerIndices();
+        if (!selected || selected.length === 0) {
+            applyColorToLayer(doc.activeLayer);
+        } else {
+            for (var j = 0; j < selected.length; j++) {
                 try {
-                    var lyr = doc.layers[doc.layers.length - 1 - indices[j]];
-                    applyColorToLayer(lyr);
-                } catch(ex) {}
+                    selectLayerByIndex(selected[j]);
+                    applyColorToLayer(doc.activeLayer);
+                } catch (e1) { }
             }
             if (changedCount === 0) {
-                // 若循环没能成功，退回 activeLayer
                 applyColorToLayer(doc.activeLayer);
             }
-        } catch (actionErr) {
-            // 退回单图层处理
-            applyColorToLayer(doc.activeLayer);
         }
 
         if (changedCount === 0) return "错误：请选中一个或多个【文本图层】";
@@ -352,21 +376,22 @@ function setTextLayerColor(r, g, b) {
     }
 }
 
-function clearLayerStyle() {
+function hideLayerEffects() {
     try {
         if (app.documents.length === 0) return "错误：没有打开的文档";
-        var idclearLayerStyle = stringIDToTypeID("clearLayerStyle");
-        var desc = new ActionDescriptor();
-        var idnull = charIDToTypeID("null");
-        var ref = new ActionReference();
-        var idLyr = charIDToTypeID("Lyr ");
-        var idOrdn = charIDToTypeID("Ordn");
-        var idTrgt = charIDToTypeID("Trgt");
-        ref.putEnumerated(idLyr, idOrdn, idTrgt);
-        desc.putReference(idnull, ref);
-        executeAction(idclearLayerStyle, desc, DialogModes.NO);
-        return "SUCCESS";
+
+        try {
+            var desc = new ActionDescriptor();
+            var ref = new ActionReference();
+            ref.putEnumerated(charIDToTypeID("Lyr "), charIDToTypeID("Ordn"), charIDToTypeID("Trgt"));
+            desc.putReference(charIDToTypeID("null"), ref);
+            executeAction(stringIDToTypeID("disableLayerStyle"), desc, DialogModes.NO);
+            return "已隐藏图层所有特效。";
+        } catch (e1) { }
+
+        return "错误: 无法安全隐藏图层特效。该图层可能没有特效，或当前 Photoshop 版本不支持此操作。";
     } catch (e) {
-        return "错误: 抹除图层特效失败 " + e.toString();
+        return "错误: 隐藏图层特效失败 " + e.toString();
     }
 }
+

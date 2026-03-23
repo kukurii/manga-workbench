@@ -5,7 +5,7 @@ class StyleManager {
         this.cs = csInterface;
         this.extPath = extPath;
         this.dataDir = dataDir;
-        this.presets = []; // [{ id, name, fontPostScriptName, fontName, size, leadingType, leadingValue }]
+        this.presets = []; // [{ id, name, fontPostScriptName, fontName, size, leadingType, leadingValue, fauxBold }]
         this.initDOM();
         this.bindEvents();
         this.loadPresets();
@@ -18,6 +18,7 @@ class StyleManager {
         this.selLeadingType = document.getElementById('sel-style-leading-type');
         this.inputLeadingVal = document.getElementById('input-style-leading-val');
         this.labLeadingUnit = document.getElementById('lab-style-leading-unit');
+        this.chkFauxBold = document.getElementById('chk-style-faux-bold'); // 仿粗体复选框
 
         this.btnApplyNow = document.getElementById('btn-apply-style-now');
         this.btnSavePreset = document.getElementById('btn-save-style-preset');
@@ -48,6 +49,11 @@ class StyleManager {
                 showPromptModal("请为该段落预设起一个好记的名字 (如 对话-方正宋体-36pt):", "对话样式A", (name) => {
                     if (!name) return;
 
+                    const size = parseFloat(this.inputSize.value);
+                    const leadingValue = parseFloat(this.inputLeadingVal.value);
+                    if (isNaN(size) || size <= 0) return showToast('璇疯緭鍏ユ湁鏁堢殑瀛楀彿');
+                    if (isNaN(leadingValue) || leadingValue <= 0) return showToast('璇疯緭鍏ユ湁鏁堢殑琛岃窛');
+
                     const fontPostName = this.selFont.value;
                     const fontSelectObj = this.selFont.options[this.selFont.selectedIndex];
                     const fontName = fontSelectObj ? fontSelectObj.text : '';
@@ -57,9 +63,10 @@ class StyleManager {
                         name: name,
                         fontPostScriptName: fontPostName,
                         fontName: fontName,
-                        size: parseFloat(this.inputSize.value),
+                        size: size,
                         leadingType: this.selLeadingType.value,
-                        leadingValue: parseFloat(this.inputLeadingVal.value)
+                        leadingValue: leadingValue,
+                        fauxBold: this.chkFauxBold ? this.chkFauxBold.checked : false // 仿粗体
                     };
 
                     this.presets.push(preset);
@@ -91,26 +98,29 @@ class StyleManager {
     }
 
     applyStyle(presetObj = null) {
-        let fontPostName, size, leadingType, leadingValue;
+        let fontPostName, size, leadingType, leadingValue, fauxBold;
         if (presetObj) {
             fontPostName = presetObj.fontPostScriptName || "";
             size = presetObj.size;
             leadingType = presetObj.leadingType;
             leadingValue = presetObj.leadingValue;
+            fauxBold = presetObj.fauxBold === true;
+            // 同步更新 UI 复选框状态（让用户看到当前预设里的仿粗体值）
+            if (this.chkFauxBold) this.chkFauxBold.checked = fauxBold;
         } else {
             fontPostName = this.selFont.value || "";
             size = parseFloat(this.inputSize.value);
             leadingType = this.selLeadingType.value;
             leadingValue = parseFloat(this.inputLeadingVal.value);
+            fauxBold = this.chkFauxBold ? this.chkFauxBold.checked : false;
         }
 
         if (isNaN(size) || size <= 0) return showToast('请输入有效的字号');
         if (isNaN(leadingValue) || leadingValue <= 0) return showToast('请输入有效的行距');
 
-        // 发送到 ExtendScript 统一处理段落三参数
-        // 为避免空的 fontPostName 变成字面值 'undefined' 传进 JSX 导致报错，必须拦截
+        // 发送到 ExtendScript，第5个参数为仿粗体开关（true/false）
         const safeFont = fontPostName ? fontPostName : '';
-        this.cs.evalScript(`applyParagraphStyle('${safeFont}', ${size}, '${leadingType}', ${leadingValue})`, (res) => {
+        this.cs.evalScript(`applyParagraphStyle('${safeFont}', ${size}, '${leadingType}', ${leadingValue}, ${fauxBold})`, (res) => {
             if (res && res.indexOf("错误") > -1) {
                 showToast(res);
             }
@@ -158,7 +168,7 @@ class StyleManager {
             btn.className = 'btn btn--secondary';
             btn.style.flex = '1 1 45%';
             btn.style.justifyContent = 'space-between';
-            btn.title = `字体: ${p.fontName}\n字号: ${p.size}pt\n行距: ${p.leadingType === 'auto' ? '自动 ' + p.leadingValue + '%' : '固定 ' + p.leadingValue + 'pt'}`;
+            btn.title = `字体: ${p.fontName}\n字号: ${p.size}pt\n行距: ${p.leadingType === 'auto' ? '自动 ' + p.leadingValue + '%' : '固定 ' + p.leadingValue + 'pt'}\n仿粗体: ${p.fauxBold ? '开' : '关'}`;
             btn.dataset.idx = idx;
             btn.draggable = true;
 

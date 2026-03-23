@@ -382,7 +382,7 @@ class PageManager {
 
                 const safeJson = JSON.stringify(this.pages);
 
-                this.cs.evalScript(`batchExportAllPages(${JSON.stringify(safeJson)}, '${outDir.replace(/\\/g, '\\\\')}', '${format}')`, (res) => {
+                this.cs.evalScript(`batchExportAllPages(${safeJson}, '${outDir.replace(/\\/g, '\\\\')}', '${format}')`, (res) => {
                     showAlertModal(res, '批量导出结果', () => {
                         this.btnBatchExport.innerText = "一键根据排序输出全部页面";
                         this.btnBatchExport.disabled = false;
@@ -507,8 +507,8 @@ class PageManager {
     handleImportedFiles(filePaths) {
         // 对文件路径按照字母/数字顺序进行自然排序，确保页码顺序正确
         const pCollator = new Intl.Collator(undefined, { numeric: true, sensitivity: 'base' });
-        const sortedPaths = filePaths.sort(pCollator.compare);
-
+        const getFileName = (path) => String(path).split('\\').pop().split('/').pop();
+        const sortedPaths = [...filePaths].sort((a, b) => pCollator.compare(getFileName(a), getFileName(b)));
         // 记录状态对象 (简单去重合并)
         sortedPaths.forEach(path => {
             if (!this.pages.find(p => p.path === path)) {
@@ -539,12 +539,19 @@ class PageManager {
 
         this.pages.forEach((pageData, index) => {
             if (filterVal !== 'all' && pageData.status !== filterVal) {
-                return; // 跳过不符合过滤条件的
+                return;
             }
 
             const path = pageData.path;
             const fileName = pageData.name;
             const status = pageData.status;
+            const statusClass = `status-${status}`;
+            const statusMap = {
+                untouched: '未处理',
+                retouched: '已去字',
+                typeset: '已嵌字',
+                done: '终审完结'
+            };
 
             const item = document.createElement('div');
             item.className = 'page-item';
@@ -553,34 +560,38 @@ class PageManager {
 
             if (this.activePageIndex === index) item.classList.add('active');
 
-            // 根据状态渲染对应的圆点颜色类
-            const statusClass = `status-${status}`;
+            const statusDot = document.createElement('div');
+            statusDot.className = `page-status-dot ${statusClass}`;
+            statusDot.title = `当前状态：${statusMap[status]}。右键可修改状态`;
 
-            // 四个原生状态对于的文字映射，给气泡提示用
-            const statusMap = {
-                untouched: '未处理',
-                retouched: '已去字',
-                typeset: '已嵌字',
-                done: '终审完结'
-            };
-
-            // 添加复选框、状态指示圆点以及无变形封存的图片内容
-            item.innerHTML = `
-                <div class="page-status-dot ${statusClass}" title="当前状态：${statusMap[status]}。右键可修改状态"></div>
-                <input type="checkbox" class="page-checkbox" value="${path}" title="选取该页" />
-                <div class="page-img-wrapper" title="${fileName}">
-                    <img src="file:///${path.replace(/\\/g, '/')}" alt="${fileName}" loading="lazy"/>
-                </div>
-                <div class="page-name">${fileName}</div>
-            `;
-
-            // 阻止复选框冒泡
-            const checkbox = item.querySelector('.page-checkbox');
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.className = 'page-checkbox';
+            checkbox.value = path;
+            checkbox.title = '选取该页';
             checkbox.addEventListener('click', (e) => {
                 e.stopPropagation();
             });
 
-            // 左键单击：PS激活文档，并自动检测文档状态
+            const imageWrapper = document.createElement('div');
+            imageWrapper.className = 'page-img-wrapper';
+            imageWrapper.title = fileName;
+
+            const image = document.createElement('img');
+            image.src = `file:///${path.replace(/\\/g, '/')}`;
+            image.alt = fileName;
+            image.loading = 'lazy';
+            imageWrapper.appendChild(image);
+
+            const nameNode = document.createElement('div');
+            nameNode.className = 'page-name';
+            nameNode.textContent = fileName;
+
+            item.appendChild(statusDot);
+            item.appendChild(checkbox);
+            item.appendChild(imageWrapper);
+            item.appendChild(nameNode);
+
             item.addEventListener('click', () => {
                 document.querySelectorAll('.page-item').forEach(el => el.classList.remove('active'));
                 item.classList.add('active');
@@ -588,10 +599,8 @@ class PageManager {
                 this.scheduleSaveProjectState();
 
                 this.cs.evalScript(`openOrSwitchDocument("${path.replace(/\\/g, '\\\\')}")`, () => {
-                    // 打开文档后自动检测状态
                     this.cs.evalScript(`detectDocumentStatus()`, (statusRes) => {
                         if (statusRes && statusRes !== 'none' && statusRes !== 'untouched') {
-                            // 仅在检测到更高阶状态时才自动升级（不降级）
                             const order = ['untouched', 'retouched', 'typeset', 'done'];
                             const curIdx = order.indexOf(this.pages[index].status);
                             const newIdx = order.indexOf(statusRes);
@@ -599,7 +608,6 @@ class PageManager {
                                 this.pages[index].status = statusRes;
                                 this.renderThumbnails();
                                 this.scheduleSaveProjectState();
-                                // 保持高亮
                                 const allItems = this.thumbnailContainer.querySelectorAll('.page-item');
                                 allItems.forEach(el => {
                                     if (parseInt(el.dataset.index) === index) el.classList.add('active');
@@ -610,7 +618,6 @@ class PageManager {
                 });
             });
 
-            // 右键菜单：状态流转 (简便轮换)
             item.addEventListener('contextmenu', (e) => {
                 e.preventDefault();
                 const states = ['untouched', 'retouched', 'typeset', 'done'];
@@ -621,7 +628,6 @@ class PageManager {
                 this.scheduleSaveProjectState();
             });
 
-            // --- HTML5 原生拖拽 API ---
             item.addEventListener('dragstart', (e) => {
                 this.draggedItemIndex = index;
                 e.dataTransfer.effectAllowed = 'move';
@@ -637,7 +643,6 @@ class PageManager {
             item.addEventListener('dragover', (e) => {
                 e.preventDefault();
                 e.dataTransfer.dropEffect = 'move';
-                // 拖到另一张图片上方时给出虚线框高亮
                 if (this.draggedItemIndex !== null && this.draggedItemIndex !== index) {
                     item.classList.add('drag-over');
                 }
@@ -652,11 +657,9 @@ class PageManager {
                 item.classList.remove('drag-over');
                 if (this.draggedItemIndex === null || this.draggedItemIndex === index) return;
 
-                // 在数组里进行位置交换
                 const draggedData = this.pages.splice(this.draggedItemIndex, 1)[0];
                 this.pages.splice(index, 0, draggedData);
 
-                // 调整 active 索引：如果拖拽涉及 active 项，修正指向
                 if (this.activePageIndex === this.draggedItemIndex) {
                     this.activePageIndex = index;
                 } else if (
@@ -664,14 +667,12 @@ class PageManager {
                     this.draggedItemIndex < this.activePageIndex &&
                     index >= this.activePageIndex
                 ) {
-                    // dragged 从 active 前面移到后面，active 左移一位
                     this.activePageIndex -= 1;
                 } else if (
                     this.activePageIndex > -1 &&
                     this.draggedItemIndex > this.activePageIndex &&
                     index <= this.activePageIndex
                 ) {
-                    // dragged 从 active 后面移到前面，active 右移一位
                     this.activePageIndex += 1;
                 }
 

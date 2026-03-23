@@ -165,7 +165,10 @@ window.showToast = function (msg, type, duration) {
 
     duration = duration || 3000;
     const toast = document.createElement('div');
-    toast.className = 'toast' + (type === 'error' ? ' toast--error' : type === 'success' ? ' toast--success' : '');
+    toast.className = 'toast';
+    if (type === 'error') toast.className += ' toast--error';
+    else if (type === 'success') toast.className += ' toast--success';
+    else if (type === 'warning') toast.className += ' toast--warning';
     toast.textContent = msg;
     container.appendChild(toast);
 

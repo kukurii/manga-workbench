@@ -1279,6 +1279,12 @@ select {
   color: var(--green);
 }
 
+.toast--warning {
+  border-color: var(--orange);
+  background: var(--orange-dim);
+  color: #f0c7b7;
+}
+
 @keyframes toastIn {
   from {
     opacity: 0;
