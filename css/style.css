@@ -1061,84 +1061,325 @@ select {
   padding: 10px;
 }
 
-/* ── 字体列表项：双行 + 预览 ── */
+/* ── 字体列表项：紧凑单行布局 ── */
 .font-item {
   display: flex;
-  flex-direction: column;
-  gap: 2px;
-  padding: 8px 10px;
-  border-bottom: 1px solid var(--border);
+  align-items: flex-start;
+  gap: 6px;
+  padding: 5px 8px;
+  min-height: 48px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.03);
   cursor: pointer;
-  transition: background 0.12s;
+  transition: background 0.1s;
   position: relative;
 }
 
 .font-item:hover {
-  background: var(--bg-hover, rgba(255, 255, 255, 0.06));
+  background: rgba(255, 255, 255, 0.06);
 }
 
-.font-item__main {
+.font-item:active {
+  background: var(--accent-dim);
+}
+
+/* 批量模式下的 checkbox */
+.font-item__check {
+  width: 14px;
+  height: 14px;
+  accent-color: var(--accent);
+  cursor: pointer;
+  flex-shrink: 0;
+  display: none;
+}
+
+.font-list--batch .font-item__check {
+  display: block;
+}
+
+.font-item__body {
+  flex: 1;
+  min-width: 0;
   display: flex;
-  align-items: baseline;
-  gap: 8px;
+  flex-direction: column;
+  gap: 2px;
 }
 
-.font-item__cn {
-  font-size: 13px;
-  font-weight: 600;
+.font-item__header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+/* 左侧名称区 */
+.font-item__name {
+  font-size: 11px;
+  font-weight: 500;
   color: var(--text);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 60%;
+  min-width: 56px;
+  max-width: 120px;
+  flex-shrink: 1;
 }
 
-.font-item__en {
-  font-size: 10px;
-  color: var(--text-dim);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
+/* 第二行预览文字（用该字体渲染） */
 .font-item__preview {
-  font-size: 14px;
-  color: var(--text);
-  opacity: 0.7;
-  line-height: 1.4;
+  min-width: 0;
+  font-size: 13px;
+  color: var(--text-dim);
+  line-height: 1.3;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
+/* 右侧操作按钮组 —— 默认隐藏，hover 显示 */
 .font-item__actions {
-  position: absolute;
-  right: 8px;
-  top: 50%;
-  transform: translateY(-50%);
   display: flex;
-  gap: 4px;
+  gap: 2px;
   opacity: 0;
-  transition: opacity 0.15s;
+  transition: opacity 0.12s;
+  flex-shrink: 0;
+  margin-left: auto;
 }
 
 .font-item:hover .font-item__actions {
   opacity: 1;
 }
 
+/* 操作小按钮 */
 .btn-icon {
   background: none;
-  border: 1px solid var(--border);
-  border-radius: 4px;
-  padding: 2px 5px;
+  border: 1px solid transparent;
+  border-radius: 3px;
+  padding: 1px 4px;
   cursor: pointer;
-  font-size: 12px;
+  font-size: 11px;
   color: var(--text-dim);
-  transition: all 0.12s;
+  transition: all 0.1s;
+  line-height: 1;
 }
 
 .btn-icon:hover {
-  background: var(--bg-lighter);
+  background: var(--surface-3);
+  border-color: var(--border);
+  color: var(--text);
+}
+
+/* 隐藏态字体 (showHidden模式下) */
+.font-item--hidden {
+  opacity: 0.45;
+  border-left: 2px solid var(--red);
+}
+
+/* ── 字体列表批量操作底部栏 ── */
+.font-batch-bar {
+  display: none;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 8px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 0 0 var(--r) var(--r);
+  margin-top: -1px;
+}
+
+.font-batch-bar.is-visible {
+  display: flex;
+}
+
+.font-batch-bar__info {
+  font-size: 10px;
+  color: var(--text-dim);
+  flex: 1;
+  min-width: 0;
+}
+
+/* ── 高级字体管理弹窗 - 紧凑项 ── */
+.fm-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 6px 10px;
+  min-height: 52px;
+  border-radius: 3px;
+  transition: background 0.1s;
+}
+
+.fm-item:hover {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.fm-item--hidden {
+  opacity: 0.45;
+}
+
+.fm-item__check {
+  width: 14px;
+  height: 14px;
+  accent-color: var(--accent);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.fm-item__body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.fm-item__header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.fm-item__name {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 68px;
+  max-width: 132px;
+  flex-shrink: 1;
+}
+
+.fm-item__preview {
+  min-width: 0;
+  font-size: 14px;
+  line-height: 1.25;
+  color: var(--text-dim);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.fm-item__toggle {
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  padding: 2px 8px;
+  cursor: pointer;
+  font-size: 10px;
+  color: var(--text-dim);
+  transition: all 0.1s;
+  flex-shrink: 0;
+  white-space: nowrap;
+  margin-left: auto;
+}
+
+.fm-item__toggle:hover {
+  border-color: var(--border-light);
+  color: var(--text);
+}
+
+.fm-item__toggle--restore {
+  color: var(--green);
+  border-color: var(--green);
+}
+
+.fm-item__toggle--restore:hover {
+  background: var(--green-dim);
+}
+
+.fm-toolbar-row {
+  display: flex !important;
+  align-items: flex-start !important;
+  justify-content: space-between !important;
+  gap: 12px;
+  margin-top: 10px;
+}
+
+.fm-toolbar-row__count {
+  display: block;
+  min-width: 84px;
+  line-height: 1.35;
+  padding-top: 3px;
+}
+
+.fm-toolbar-row__controls {
+  display: flex !important;
+  flex: 1 1 auto;
+  min-width: 0;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+}
+
+.fm-toolbar-row__select {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  white-space: nowrap;
+  font-size: 11px;
+  line-height: 1.2;
+  padding-right: 2px;
+}
+
+.fm-toolbar-row__select input {
+  flex: 0 0 auto;
+}
+
+.fm-toolbar-row__divider {
+  display: none !important;
+}
+
+.fm-toolbar-row__actions {
+  display: inline-flex;
+  flex-wrap: nowrap;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 6px;
+  width: auto;
+  max-width: 100%;
+}
+
+.fm-toolbar-row__action {
+  min-width: 0;
+  padding: 2px 8px;
+  font-size: 10px;
+  line-height: 1.2;
+  border-radius: 999px;
+  border-color: var(--border);
+  background: rgba(255, 255, 255, 0.02);
+  color: var(--text-dim);
+}
+
+.fm-toolbar-row__action:hover {
+  background: rgba(77, 159, 255, 0.08);
+  border-color: rgba(77, 159, 255, 0.22);
+  color: var(--accent);
+}
+
+#fm-quick-toolbar {
+  justify-content: flex-start;
+  align-items: center;
+  gap: 8px;
+}
+
+#fm-quick-summary {
+  flex: 1 1 100%;
+  width: 100%;
+  margin-bottom: 2px;
+  line-height: 1.35;
+}
+
+#fm-quick-toolbar .btn {
+  white-space: nowrap;
+  flex: 0 0 auto;
+  min-width: 84px;
+  padding: 4px 10px;
+  color: var(--text-dim);
+}
+
+#fm-quick-toolbar .btn:hover {
   color: var(--text);
 }
 

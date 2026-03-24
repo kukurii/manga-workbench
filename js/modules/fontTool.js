@@ -1,4 +1,4 @@
-// fontTool.js - 字体库管理与快捷应用
+﻿// fontTool.js - 字体库管理与快捷应用
 
 class FontManager {
     constructor(csInterface, extPath, dataDir) {
@@ -10,6 +10,7 @@ class FontManager {
         this.recentFonts = []; // 最近使用
         this.compareFonts = []; // 当前加入对比测试的字库合集
         this.draggedFont = null; // 用于拖拽暂存
+        this.batchMode = false; // 批量管理模式
 
         this.hiddenFonts = []; // 保存要隐藏的字体的 postScriptName
         this.showHidden = false; // 当前是否处于显示已隐藏字体的状态
@@ -66,9 +67,22 @@ class FontManager {
         this.listContainer = document.getElementById('font-list-container');
         this.labCount = document.getElementById('font-count-lab');
 
+        // 批量管理模式 DOM
+        this.btnBatchMode = document.getElementById('btn-font-batch-mode');
+        this.batchBar = document.getElementById('font-batch-bar');
+        this.batchInfo = document.getElementById('font-batch-info');
+        this.btnBatchSelectAll = document.getElementById('btn-batch-select-all');
+        this.btnBatchHideSel = document.getElementById('btn-batch-hide-sel');
+        this.btnBatchShowSel = document.getElementById('btn-batch-show-sel');
+        this.btnBatchExit = document.getElementById('btn-batch-exit');
+
         // 外部跳转按钮
         this.btnJumpZfont = document.getElementById('btn-jump-zfont');
+        this.btnJumpFontsNet = document.getElementById('btn-jump-fontsnet');
+        this.btnJumpIziHun = document.getElementById('btn-jump-izihun');
+        this.btnJump100Font = document.getElementById('btn-jump-100font');
         this.btnJumpZeoSeven = document.getElementById('btn-jump-zeoseven');
+        this.btnJumpMoonvy = document.getElementById('btn-jump-moonvy');
         this.fontInstallTip = document.getElementById('font-install-tip');
 
         // Modal
@@ -98,16 +112,81 @@ class FontManager {
     }
 
     injectEnhancements() {
-        if (this.listContainer && !document.getElementById('font-quick-toolbar')) {
-            const toolbar = document.createElement('div');
-            toolbar.id = 'font-quick-toolbar';
-            toolbar.className = 'inline-bar mb-2 font-toolbar';
-            toolbar.innerHTML = [
-                '<span id="font-quick-summary" class="form-hint" style="margin-left:0;">等待字体加载...</span>',
-                '<button id="btn-font-clear-search" class="btn btn--ghost btn--xs">清空搜索</button>',
-                '<button id="btn-font-toggle-hidden" class="btn btn--ghost btn--xs">显示已隐藏</button>'
-            ].join('');
-            this.listContainer.insertAdjacentElement('beforebegin', toolbar);
+        if (this.btnJumpZfont && this.btnJumpZeoSeven) {
+            const jumpRow = this.btnJumpZfont.parentElement;
+            if (jumpRow && !document.getElementById('btn-jump-fontsnet')) {
+                const container = document.createElement('div');
+                container.className = 'btn-col mb-1';
+
+                const row1 = document.createElement('div');
+                row1.className = 'btn-row';
+                const row2 = document.createElement('div');
+                row2.className = 'btn-row';
+
+                this.btnJumpZfont.textContent = '前往 zfont.cn';
+                this.btnJumpZfont.className = 'btn btn--ghost btn--sm';
+
+                this.btnJumpZeoSeven.textContent = 'ZeoSeven';
+                this.btnJumpZeoSeven.className = 'btn btn--ghost btn--sm';
+
+                const makeJumpButton = (id, text) => {
+                    const btn = document.createElement('button');
+                    btn.id = id;
+                    btn.className = 'btn btn--ghost btn--sm';
+                    btn.textContent = text;
+                    return btn;
+                };
+
+                this.btnJumpFontsNet = makeJumpButton('btn-jump-fontsnet', '字体天下');
+                this.btnJumpIziHun = makeJumpButton('btn-jump-izihun', '字魂网');
+                this.btnJump100Font = makeJumpButton('btn-jump-100font', '100font');
+                this.btnJumpMoonvy = makeJumpButton('btn-jump-moonvy', '预览工具');
+
+                row1.appendChild(this.btnJumpZfont);
+                row1.appendChild(this.btnJumpFontsNet);
+                row1.appendChild(this.btnJumpIziHun);
+                row2.appendChild(this.btnJump100Font);
+                row2.appendChild(this.btnJumpZeoSeven);
+                row2.appendChild(this.btnJumpMoonvy);
+
+                container.appendChild(row1);
+                container.appendChild(row2);
+                jumpRow.replaceWith(container);
+            }
+        }
+
+        if (this.fmCountLab && this.fmCountLab.parentElement) {
+            const toolbarRow = this.fmCountLab.parentElement;
+            toolbarRow.classList.add('fm-toolbar-row');
+
+            const controls = this.fmCountLab.nextElementSibling;
+            if (controls) {
+                controls.classList.add('fm-toolbar-row__controls');
+
+                const selectLabel = this.chkFmSelectAll ? this.chkFmSelectAll.parentElement : null;
+                if (selectLabel) {
+                    selectLabel.classList.add('fm-toolbar-row__select');
+                }
+
+                const maybeDivider = selectLabel ? selectLabel.nextElementSibling : null;
+                if (maybeDivider && maybeDivider.tagName === 'DIV') {
+                    maybeDivider.classList.add('fm-toolbar-row__divider');
+                }
+
+                let actions = controls.querySelector('.fm-toolbar-row__actions');
+                if (!actions) {
+                    actions = document.createElement('div');
+                    actions.className = 'fm-toolbar-row__actions';
+                    controls.appendChild(actions);
+                }
+
+                [this.btnFmHideSel, this.btnFmShowSel].forEach((btn) => {
+                    if (!btn) return;
+                    btn.classList.remove('btn--tint');
+                    btn.classList.add('btn--ghost', 'fm-toolbar-row__action');
+                    actions.appendChild(btn);
+                });
+            }
         }
 
         if (this.fmListContainer && !document.getElementById('fm-quick-toolbar')) {
@@ -122,9 +201,6 @@ class FontManager {
             this.fmListContainer.insertAdjacentElement('beforebegin', toolbar);
         }
 
-        this.fontQuickSummary = document.getElementById('font-quick-summary');
-        this.btnFontClearSearch = document.getElementById('btn-font-clear-search');
-        this.btnFontToggleHidden = document.getElementById('btn-font-toggle-hidden');
         this.fmQuickSummary = document.getElementById('fm-quick-summary');
         this.btnFmClearSearch = document.getElementById('btn-fm-clear-search');
         this.btnFmClearSelection = document.getElementById('btn-fm-clear-selection');
@@ -188,18 +264,69 @@ class FontManager {
             });
         }
 
-        if (this.btnFontClearSearch) {
-            this.btnFontClearSearch.addEventListener('click', () => {
-                if (this.inputSearch) this.inputSearch.value = '';
-                this.renderFonts();
-                if (this.inputSearch) this.inputSearch.focus();
+        // ── 批量管理模式事件 ──
+        if (this.btnBatchMode) {
+            this.btnBatchMode.addEventListener('click', () => {
+                this.batchMode = !this.batchMode;
+                this.btnBatchMode.textContent = this.batchMode ? '退出批量' : '批量管理';
+                if (this.batchMode) {
+                    this.btnBatchMode.classList.add('active');
+                    this.btnBatchMode.style.background = 'var(--accent-dim)';
+                    this.btnBatchMode.style.color = 'var(--accent)';
+                    this.btnBatchMode.style.borderColor = 'var(--accent)';
+                } else {
+                    this.btnBatchMode.classList.remove('active');
+                    this.btnBatchMode.style.background = '';
+                    this.btnBatchMode.style.color = '';
+                    this.btnBatchMode.style.borderColor = '';
+                }
+                if (this.listContainer) {
+                    this.listContainer.classList.toggle('font-list--batch', this.batchMode);
+                }
+                if (this.batchBar) {
+                    this.batchBar.classList.toggle('is-visible', this.batchMode);
+                }
+                this._updateBatchInfo();
             });
         }
-
-        if (this.btnFontToggleHidden) {
-            this.btnFontToggleHidden.addEventListener('click', () => {
-                this.showHidden = !this.showHidden;
-                this.renderFonts();
+        if (this.btnBatchExit) {
+            this.btnBatchExit.addEventListener('click', () => {
+                if (this.btnBatchMode) this.btnBatchMode.click();
+            });
+        }
+        if (this.btnBatchSelectAll) {
+            this.btnBatchSelectAll.addEventListener('click', () => {
+                const checks = this.listContainer ? this.listContainer.querySelectorAll('.font-item__check') : [];
+                const allChecked = Array.from(checks).every(c => c.checked);
+                checks.forEach(c => c.checked = !allChecked);
+                this._updateBatchInfo();
+            });
+        }
+        if (this.btnBatchHideSel) {
+            this.btnBatchHideSel.addEventListener('click', () => {
+                const selected = this._getSelectedBatchFonts();
+                if (selected.length === 0) { showToast('请先勾选需要隐藏的字体'); return; }
+                showConfirmModal(`确定要隐藏这 ${selected.length} 款字体吗？`, () => {
+                    selected.forEach(ps => {
+                        if (!this.hiddenFonts.includes(ps)) this.hiddenFonts.push(ps);
+                    });
+                    this.saveHiddenFonts();
+                    this.renderFonts();
+                });
+            });
+        }
+        if (this.btnBatchShowSel) {
+            this.btnBatchShowSel.addEventListener('click', () => {
+                const selected = this._getSelectedBatchFonts();
+                if (selected.length === 0) { showToast('请先勾选需要恢复的字体'); return; }
+                showConfirmModal(`确定要恢复这 ${selected.length} 款字体的显示吗？`, () => {
+                    selected.forEach(ps => {
+                        const idx = this.hiddenFonts.indexOf(ps);
+                        if (idx > -1) this.hiddenFonts.splice(idx, 1);
+                    });
+                    this.saveHiddenFonts();
+                    this.renderFonts();
+                });
             });
         }
 
@@ -384,10 +511,30 @@ class FontManager {
                 window.cep.util.openURLInDefaultBrowser(q ? `https://zfont.cn/search?q=${q}` : 'https://zfont.cn/');
             });
         }
+        if (this.btnJumpFontsNet) {
+            this.btnJumpFontsNet.addEventListener('click', () => {
+                window.cep.util.openURLInDefaultBrowser('https://www.fonts.net.cn/');
+            });
+        }
+        if (this.btnJumpIziHun) {
+            this.btnJumpIziHun.addEventListener('click', () => {
+                window.cep.util.openURLInDefaultBrowser('https://izihun.com/');
+            });
+        }
+        if (this.btnJump100Font) {
+            this.btnJump100Font.addEventListener('click', () => {
+                window.cep.util.openURLInDefaultBrowser('https://www.100font.com/');
+            });
+        }
         if (this.btnJumpZeoSeven) {
             this.btnJumpZeoSeven.addEventListener('click', () => {
                 const q = this.inputOnlineSearch && this.inputOnlineSearch.value ? encodeURIComponent(this.inputOnlineSearch.value) : '';
                 window.cep.util.openURLInDefaultBrowser(q ? `https://fonts.zeoseven.com/browse/?keyword=${q}` : 'https://fonts.zeoseven.com/');
+            });
+        }
+        if (this.btnJumpMoonvy) {
+            this.btnJumpMoonvy.addEventListener('click', () => {
+                window.cep.util.openURLInDefaultBrowser('https://moonvy.com/apps/font-preview/');
             });
         }
         if (this.btnAiRecommend) {
@@ -767,7 +914,7 @@ class FontManager {
         window.cep.fs.writeFile(path, JSON.stringify(this.hiddenFonts));
     }
 
-    toggleHideFont(font) {
+    toggleHideFont(font, skipManagerRefresh = false) {
         const idx = this.hiddenFonts.indexOf(font.postScriptName);
         if (idx > -1) {
             this.hiddenFonts.splice(idx, 1);
@@ -777,7 +924,7 @@ class FontManager {
         this.saveHiddenFonts();
         this.renderFonts();
         // 如果管理器正在打开，也同步更新
-        if (this.modalFontManager && this.modalFontManager.style.display !== 'none') {
+        if (!skipManagerRefresh && this.modalFontManager && this.modalFontManager.style.display !== 'none') {
             this.renderFontManager();
         }
     }
@@ -827,41 +974,34 @@ class FontManager {
             const isHidden = this.hiddenFonts.includes(font.postScriptName);
 
             const item = document.createElement('div');
-            item.className = 'card';
-            item.style.padding = '8px 12px';
-            item.style.display = 'flex';
-            item.style.justifyContent = 'space-between';
-            item.style.alignItems = 'center';
-            item.style.background = isHidden ? 'var(--bg-lighter)' : 'var(--surface)';
-            if (isHidden) item.style.opacity = '0.6';
+            item.className = 'fm-item';
+            if (isHidden) item.classList.add('fm-item--hidden');
+            item.dataset.postScript = font.postScriptName;
 
             item.innerHTML = `
-                <div style="margin-right:8px; display:flex; align-items:flex-start; padding-top:2px;">
-                    <input type="checkbox" class="fm-chk-item" value="${font.postScriptName}">
-                </div>
-                <div style="flex:1; overflow:hidden;">
-                    <div class="fm-font-name" style="font-size:14px; font-weight:600; color: ${isHidden ? 'var(--text-dim)' : 'var(--text-bright)'}; white-space:nowrap; text-overflow:ellipsis;" title="${display.primary}">
-                        ${display.primary}
+                <input type="checkbox" class="fm-chk-item fm-item__check" value="${font.postScriptName}">
+                <div class="fm-item__body">
+                    <div class="fm-item__header">
+                        <div class="fm-item__name" title="${display.secondary}">${display.primary}</div>
+                        <button class="fm-item__toggle ${isHidden ? 'fm-item__toggle--restore' : ''}">
+                            ${isHidden ? '恢复' : '隐藏'}
+                        </button>
                     </div>
-                    <div style="font-size:10px; color:var(--text-faint); margin-top:2px;">
-                        ${display.secondary}
-                    </div>
-                    <div style="font-family: '${font.postScriptName}', sans-serif; font-size:16px; margin-top:6px; margin-bottom: 2px; color: ${isHidden ? 'var(--text-faint)' : 'var(--text)'};">永远の梦を追いかけて 汉化组</div>
-                </div>
-                <div style="margin-left:8px; display:flex; align-items:center;">
-                    <button class="btn-toggle btn btn--sm ${isHidden ? 'btn--primary' : 'btn--ghost'}" style="padding: 4px 10px; font-size:12px; font-weight: 600;">
-                        ${isHidden ? '✅ 恢复' : '🚫 隐藏'}
-                    </button>
+                    <div class="fm-item__preview" style="font-family: '${font.postScriptName}', sans-serif;">永远の梦を追いかけて 汉化组</div>
                 </div>
             `;
 
-            const btnToggle = item.querySelector('.btn-toggle');
+            const btnToggle = item.querySelector('.fm-item__toggle');
             const rowCheckbox = item.querySelector('.fm-chk-item');
-            const nameEl = item.querySelector('.fm-font-name');
-            const previewEl = item.querySelector('div[style*="font-family"]');
             if (rowCheckbox) {
                 rowCheckbox.addEventListener('change', () => this.updateFontManagerSummary(count));
             }
+            item.addEventListener('click', (e) => {
+                if (e.target.closest('button') || e.target.closest('input')) return;
+                if (!rowCheckbox) return;
+                rowCheckbox.checked = !rowCheckbox.checked;
+                this.updateFontManagerSummary(count);
+            });
             btnToggle.addEventListener('click', () => {
                 // 告诉主层跳过全量重绘
                 this.toggleHideFont(font, true);
@@ -880,12 +1020,9 @@ class FontManager {
                     }
                 } else {
                     // 全显模式下，仅仅变暗/提亮
-                    item.style.background = currentlyHidden ? 'var(--bg-lighter)' : 'var(--surface)';
-                    item.style.opacity = currentlyHidden ? '0.6' : '1';
-                    nameEl.style.color = currentlyHidden ? 'var(--text-dim)' : 'var(--text-bright)';
-                    if (previewEl) previewEl.style.color = currentlyHidden ? 'var(--text-faint)' : 'var(--text)';
-                    btnToggle.className = `btn-toggle btn btn--sm ${currentlyHidden ? 'btn--primary' : 'btn--ghost'}`;
-                    btnToggle.innerText = currentlyHidden ? '✅ 恢复' : '🚫 隐藏';
+                    item.classList.toggle('fm-item--hidden', currentlyHidden);
+                    btnToggle.className = `fm-item__toggle ${currentlyHidden ? 'fm-item__toggle--restore' : ''}`;
+                    btnToggle.innerText = currentlyHidden ? '恢复' : '隐藏';
                 }
                 this.updateFontManagerSummary();
             });
@@ -894,6 +1031,7 @@ class FontManager {
         }
 
         if (this.fmCountLab) this.fmCountLab.innerText = `筛选出 ${count} 款`;
+        if (this.chkFmSelectAll) this.chkFmSelectAll.checked = false;
         this.updateFontManagerSummary(count);
 
         if (count === 0) {
@@ -948,6 +1086,7 @@ class FontManager {
     renderFonts() {
         if (!this.listContainer) return;
         this.listContainer.innerHTML = '';
+        this.listContainer.classList.toggle('font-list--batch', !!this.batchMode);
 
         const q = this.inputSearch ? this.inputSearch.value.toLowerCase().trim() : "";
         let count = 0;
@@ -973,7 +1112,7 @@ class FontManager {
             this.listContainer.appendChild(recentTitle);
 
             for (let i = 0; i < visibleRecentFonts.length; i++) {
-                this.listContainer.appendChild(this.createFontItemNode(visibleRecentFonts[i]));
+                this.listContainer.appendChild(this.createFontItemNodeLegacy(visibleRecentFonts[i]));
             }
 
             const divLine = document.createElement('div');
@@ -1019,11 +1158,12 @@ class FontManager {
             }
 
             count++;
-            this.listContainer.appendChild(this.createFontItemNode(font));
+            this.listContainer.appendChild(this.createFontItemNodeLegacy(font));
         }
 
         if (this.labCount) this.labCount.innerText = `共 ${count} 款`;
         this.updateFontToolbarSummary(count, q);
+        this._updateBatchInfo();
 
         if (count === 0 && this.recentFonts.length === 0) {
             this.listContainer.innerHTML = '<div class="placeholder">没有任何相关联的字体记录</div>';
@@ -1063,9 +1203,22 @@ class FontManager {
         this.fmQuickSummary.textContent = `当前 ${visibleCount} 款 · 已选 ${selectedCount} · 隐藏库 ${hiddenCount}`;
     }
 
+    // ── 批量辅助方法 ──
+    _updateBatchInfo() {
+        if (!this.batchInfo) return;
+        const selectedCount = this.listContainer ? this.listContainer.querySelectorAll('.font-item__check:checked').length : 0;
+        this.batchInfo.textContent = `已选 ${selectedCount} 款`;
+    }
+
+    _getSelectedBatchFonts() {
+        if (!this.listContainer) return [];
+        const checks = this.listContainer.querySelectorAll('.font-item__check:checked');
+        return Array.from(checks).map(c => c.value);
+    }
+
     createFontItemNode(font) {
         const display = this.getFontDisplayName(font.postScriptName, font.name || font.family);
-        const previewText = '永远の夢を追いかけて 汉化组';
+        const previewText = '永远の梦を追いかけて 汉化组';
 
         const isFav = this.favFonts.findIndex(f => f.postScriptName === font.postScriptName) > -1;
         const isCmp = this.compareFonts.findIndex(f => f.postScriptName === font.postScriptName) > -1;
@@ -1135,6 +1288,100 @@ class FontManager {
         }
 
         // 如果是收藏夹模式，开启拖拽支持
+        if (this.currentMode === 'favorite') {
+            item.setAttribute('draggable', 'true');
+            item.addEventListener('dragstart', (e) => this.handleDragStart(e, font, item));
+            item.addEventListener('dragover', (e) => this.handleDragOver(e, item));
+            item.addEventListener('dragenter', (e) => this.handleDragEnter(e, item));
+            item.addEventListener('dragleave', (e) => this.handleDragLeave(e, item));
+            item.addEventListener('drop', (e) => this.handleDrop(e, font, item));
+            item.addEventListener('dragend', (e) => this.handleDragEnd(e, item));
+        }
+
+        return item;
+    }
+
+    createFontItemNodeLegacy(font) {
+        const display = this.getFontDisplayName(font.postScriptName, font.name || font.family);
+        const previewText = '永远の梦を追いかけて 汉化组';
+        const isFav = this.favFonts.findIndex(f => f.postScriptName === font.postScriptName) > -1;
+        const isCmp = this.compareFonts.findIndex(f => f.postScriptName === font.postScriptName) > -1;
+        const isHidden = this.hiddenFonts.includes(font.postScriptName);
+
+        const item = document.createElement('div');
+        item.className = 'font-item';
+        item.dataset.postScript = font.postScriptName;
+
+        if (isHidden) item.classList.add('font-item--hidden');
+        if (this.showHidden && isHidden && this.currentMode === 'system') {
+            item.style.opacity = '0.5';
+            item.style.borderLeft = '3px solid var(--red)';
+        }
+
+        item.innerHTML = `
+            <input type="checkbox" class="font-item__check" value="${font.postScriptName}">
+            <div class="font-item__body">
+                <div class="font-item__header">
+                    <div class="font-item__name" title="${display.secondary}">${display.primary}</div>
+                    <div class="font-item__actions">
+                        ${this.currentMode === 'system' ? `<button class="btn-icon btn-hide" title="${isHidden ? '取消隐藏' : '隐藏字体'}" style="${isHidden ? 'color:var(--red);' : 'color:var(--text-faint);'}">隐</button>` : ''}
+                        ${isFav ? `<button class="btn-icon btn-fav text-accent" title="编辑收藏">藏</button>` : `<button class="btn-icon btn-fav" title="添加收藏">藏</button>`}
+                        ${isCmp ? `<button class="btn-icon btn-cmp text-accent" title="移除对比" style="background:var(--accent-dim); border-color:var(--accent);">已加</button>` : `<button class="btn-icon btn-cmp" title="加入对比">对</button>`}
+                    </div>
+                </div>
+                <div class="font-item__preview" style="font-family:'${font.postScriptName}', '${font.name || font.family}';">
+                    ${previewText}
+                </div>
+            </div>
+        `;
+
+        const rowCheckbox = item.querySelector('.font-item__check');
+        if (rowCheckbox) {
+            rowCheckbox.addEventListener('click', (e) => e.stopPropagation());
+            rowCheckbox.addEventListener('change', () => this._updateBatchInfo());
+        }
+
+        item.addEventListener('click', (e) => {
+            if (e.target.closest('.font-item__check')) return;
+            if (e.target.closest('.btn-icon')) return;
+
+            if (this.batchMode && rowCheckbox) {
+                rowCheckbox.checked = !rowCheckbox.checked;
+                this._updateBatchInfo();
+                return;
+            }
+
+            const oldBg = item.style.background;
+            item.style.background = 'var(--accent-dim)';
+            setTimeout(() => item.style.background = oldBg, 200);
+
+            this.applyFontToActiveLayer(font);
+        });
+
+        const btnHide = item.querySelector('.btn-hide');
+        if (btnHide) {
+            btnHide.addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.toggleHideFont(font);
+            });
+        }
+
+        const btnFav = item.querySelector('.btn-fav');
+        if (btnFav) {
+            btnFav.addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.openFavModal({ postScriptName: font.postScriptName, name: display.primary });
+            });
+        }
+
+        const btnCmp = item.querySelector('.btn-cmp');
+        if (btnCmp) {
+            btnCmp.addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.toggleCompare(font);
+            });
+        }
+
         if (this.currentMode === 'favorite') {
             item.setAttribute('draggable', 'true');
             item.addEventListener('dragstart', (e) => this.handleDragStart(e, font, item));

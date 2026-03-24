@@ -787,30 +787,31 @@
             </div>
 
             <!-- 字体列表 -->
-            <div class="list-header" style="display:flex; justify-content:space-between; align-items:flex-end;">
-                <div style="display:flex; align-items:center; gap:8px;">
-                    <span class="list-header__title" id="font-list-title">系统已装载字体</span>
-                    <button id="btn-open-font-manager" class="btn btn--ghost"
-                        style="padding:4px; margin-bottom: 2px; height: 20px; min-width: 20px;"
-                        title="高级字体管理 (全部/显示/隐藏)">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                            stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
-                            style="color:var(--text-dim);">
-                            <circle cx="12" cy="12" r="3"></circle>
-                            <path
-                                d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z">
-                            </path>
-                        </svg>
-                    </button>
+            <div class="list-header" style="display:flex; justify-content:space-between; align-items:center;">
+                <div style="display:flex; align-items:center; gap:6px;">
+                    <span class="list-header__title" id="font-list-title">系统字库</span>
+                    <span class="list-header__hint" id="font-count-lab">0 款</span>
                 </div>
-                <span class="list-header__hint" id="font-count-lab">共 0 款</span>
+                <div style="display:flex; align-items:center; gap:4px;">
+                    <button id="btn-font-batch-mode" class="btn btn--ghost btn--xs" title="进入批量管理模式，可勾选多个字体批量隐藏">批量管理</button>
+                    <button id="btn-open-font-manager" class="btn btn--ghost btn--xs" title="高级字体管理 (全部/显示/隐藏)">⚙</button>
+                </div>
             </div>
 
-            <div id="font-list-container" class="dialog-list" style="max-height:240px;">
+            <div id="font-list-container" class="dialog-list" style="max-height:50vh;">
                 <div class="placeholder">正在读取系统字体库…</div>
             </div>
 
-            <p class="hint" id="font-install-tip">点击列表项直接应用。<span class="text-accent">可收藏并自定义中文别名。</span></p>
+            <!-- 批量操作栏（批量管理模式时显示） -->
+            <div id="font-batch-bar" class="font-batch-bar">
+                <span class="font-batch-bar__info" id="font-batch-info">已选 0 款</span>
+                <button id="btn-batch-select-all" class="btn btn--ghost btn--xs">全选</button>
+                <button id="btn-batch-hide-sel" class="btn btn--ghost btn--xs">隐藏选中</button>
+                <button id="btn-batch-show-sel" class="btn btn--ghost btn--xs">恢复选中</button>
+                <button id="btn-batch-exit" class="btn btn--xs" style="color:var(--text-faint);">退出</button>
+            </div>
+
+            <p class="hint" id="font-install-tip">点击直接应用 · <span class="text-accent">悬浮显示操作按钮</span></p>
         </div>
 
 
@@ -990,7 +991,7 @@
      ══════════════════════════════════════ -->
     <div id="modal-font-manager" class="modal-overlay" style="display:none;">
         <div class="modal"
-            style="width:90%; max-width:440px; padding:0; display:flex; flex-direction:column; max-height:85vh; background:var(--bg)">
+            style="width:92%; max-width:520px; padding:0; display:flex; flex-direction:column; max-height:85vh; background:var(--bg)">
             <div style="padding:16px 16px 8px 16px; border-bottom: 1px solid var(--border-color);">
                 <div class="modal__title" style="display:flex; justify-content:space-between; align-items:center;">
                     <span>⚙️ 高级字体管理</span>
