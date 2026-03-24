@@ -162,7 +162,7 @@ class RetouchManager {
                 const healExpandPx = this.getHealExpandPixel();
                 this.setBusy(this.btnHealSelection, true);
                 this.updateStatus(`正在修复选区，闭合强度 ${healExpandPx}px...`);
-                this.cs.evalScript(`healSelectionHolesOnly(${healExpandPx})`, (res) => {
+                window.callHostScript(this.cs, 'healSelectionHolesOnly', [healExpandPx], (res) => {
                     this.setBusy(this.btnHealSelection, false);
                     if (this.isErrorResult(res)) {
                         this.updateStatus(res || '修复选区失败');
@@ -204,7 +204,7 @@ class RetouchManager {
             btn.addEventListener('click', (e) => {
                 const toolId = e.currentTarget.getAttribute('data-tool');
                 if (!toolId) return;
-                this.cs.evalScript(`switchTool("${toolId}")`, (res) => {
+                window.callHostScript(this.cs, 'switchTool', [toolId], (res) => {
                     if (res === 'false') {
                         this.updateStatus('工具切换失败，请确认 Photoshop 当前可响应。');
                         showToast('工具切换失败', 'error');
@@ -247,7 +247,7 @@ class RetouchManager {
 
     updateStatus(message) {
         if (this.statusBox) {
-            this.statusBox.textContent = message;
+            this.statusBox.textContent = window.normalizeUIString ? window.normalizeUIString(message) : message;
         }
     }
 

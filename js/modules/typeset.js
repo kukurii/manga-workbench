@@ -327,7 +327,7 @@ class TypesetManager {
                 const styleJson = JSON.stringify(styleParams);
 
                 // 调用 JSX 进行图层批量生成，并传入样式配置
-                this.cs.evalScript(`generateTextLayersBulk(${JSON.stringify(safeJson)}, ${JSON.stringify(styleJson)})`, (res) => {
+                window.callHostScript(this.cs, 'generateTextLayersBulk', [safeJson, styleJson], (res) => {
                     showToast(res);
                     this.btnAutoTypeset.innerText = "批量生成文本图层";
                     this.btnAutoTypeset.style.opacity = "1";
@@ -396,7 +396,7 @@ class TypesetManager {
         // --- 属性双向联动引擎 ---
         if (this.btnSyncRead) {
             this.btnSyncRead.addEventListener('click', () => {
-                this.cs.evalScript(`readActiveLayerProperties()`, (res) => {
+                window.callHostScript(this.cs, 'readActiveLayerProperties', [], (res) => {
                     this.populateSyncUI(res, true);
                 });
             });
@@ -404,7 +404,7 @@ class TypesetManager {
 
         if (this.btnSyncReadAll) {
             this.btnSyncReadAll.addEventListener('click', () => {
-                this.cs.evalScript(`exportAllTextLayersToTXT()`, (res) => {
+                window.callHostScript(this.cs, 'exportAllTextLayersToTXT', [], (res) => {
                     if (res && res.indexOf("错误") > -1) {
                         showToast(res);
                     } else if (res && res.startsWith("EXPORT_TXT_SUCCESS|||")) {
@@ -434,8 +434,7 @@ class TypesetManager {
                 if (syncColor) params.color = syncColor;
 
                 const safeJson = JSON.stringify(params);
-                const escapedForJSX = safeJson.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
-                this.cs.evalScript(`applyActiveLayerProperties('${escapedForJSX}')`, (res) => {
+                window.callHostScript(this.cs, 'applyActiveLayerProperties', [safeJson], (res) => {
                     if (res && res.indexOf("错误") > -1) showToast(res);
                 });
             });
@@ -466,8 +465,7 @@ class TypesetManager {
                 // 顺手写入画布（使用 applyActiveLayerProperties，与"应用属性"按钮保持一致）
                 const params = { text: this.inputSyncText.value.replace(/\n/g, '\r') };
                 const safeJson = JSON.stringify(params);
-                const escapedForJSX = safeJson.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
-                this.cs.evalScript(`applyActiveLayerProperties('${escapedForJSX}')`, (res) => {
+                window.callHostScript(this.cs, 'applyActiveLayerProperties', [safeJson], (res) => {
                     if (res && res.indexOf("错误") > -1) console.warn(res);
                 });
             });
@@ -485,12 +483,14 @@ class TypesetManager {
         const pageRegex = /^===\s*第\s*(\d+)\s*页:\s*(.*?)\s*===$/;
         // 匹配对话编号，例如 [1] 为什么，赛亚人
         const dialogRegex = /^\[(\d+)\]\s*(.*)$/;
+        const robustPageRegex = /^===\s*[^\d]*(\d+)\s*[^\w\r\n=]*(.*?)\s*===$/;
+        const fallbackPageRegex = /^===\s*(?:第\s*)?(\d+)\s*(?:页)?\s*(.*?)\s*===$/;
 
         lines.forEach(line => {
             let trimmed = line.trim();
             if (!trimmed) return;
 
-            let pageMatch = trimmed.match(pageRegex);
+            let pageMatch = trimmed.match(pageRegex) || trimmed.match(robustPageRegex) || trimmed.match(fallbackPageRegex);
             if (pageMatch) {
                 currentPage = {
                     pageNum: pageMatch[1],
@@ -605,15 +605,20 @@ class TypesetManager {
             row.className = diag.isChanged ? 'dialog-row changed' : 'dialog-row';
 
             // 将内部的 \r 转回 <br> 用于前端显示
-            const displayStr = diag.text.replace(/\r/g, '<br>');
+            const displayStr = diag.text.replace(/\r/g, '\n');
 
             row.innerHTML = `
                 <div class="dialog-id">[${diag.id}]</div>
-                <div class="dialog-text">${displayStr}</div>
+                <div class="dialog-text"></div>
                 ${diag.isChanged ? '<div class="dialog-badge">已修改</div>' : ''}
             `;
 
             // 为每句对白绑定点击事件：点击后通知 PS 选中对应的文本图层
+            const textNode = row.querySelector('.dialog-text');
+            if (textNode) textNode.textContent = displayStr;
+            const badgeNode = row.querySelector('.dialog-badge');
+            if (badgeNode) badgeNode.textContent = '已修改';
+
             row.addEventListener('click', () => {
                 // UI 高亮排他
                 const allRows = this.dialogList.querySelectorAll('.dialog-row');
@@ -621,14 +626,14 @@ class TypesetManager {
                 row.classList.add('active-row');
 
                 // 调用 JSX 接口，按对白ID 精准定位图层 
-                this.cs.evalScript(`locateTextLayer("${diag.id}")`, (res) => {
+                window.callHostScript(this.cs, 'locateTextLayer', [String(diag.id)], (res) => {
                     if (res && res.indexOf("错误") > -1) {
                         // 找不到图层静默处理或不弹扰人窗，仅在控制台警告
                         console.warn(res);
                     } else {
                         // 定位成功后：切换到精调 Tab 并读取图层属性
                         this.switchTab('adjust');
-                        this.cs.evalScript(`readActiveLayerProperties()`, (propRes) => {
+                        window.callHostScript(this.cs, 'readActiveLayerProperties', [], (propRes) => {
                             this.populateSyncUI(propRes, false);
                         });
                     }
@@ -682,7 +687,7 @@ class TypesetManager {
                     this.inputSyncLeading.value = data.leading || "";
                 }
 
-                if (this.inputSyncColor && data.color) {
+                if (data.color) {
                     // 回填颜色到自定义颜色选择器
                     if (window.setPickerColor) window.setPickerColor('sync-color', data.color);
                 }

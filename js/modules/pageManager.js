@@ -1,21 +1,22 @@
-// pageManager.js - 页面管理面板逻辑前端
+// pageManager.js - 页面管理面板前端逻辑
+
 class PageManager {
     constructor(csInterface, extPath, dataDir) {
         this.cs = csInterface;
         this.extPath = extPath;
         this.dataDir = dataDir || null;
 
-        this.pages = []; // 存储导入的文件对象: {path,name,status}
+        this.pages = [];
+        this.activePageIndex = -1;
+        this.draggedItemIndex = null;
 
-        // ==== 项目持久化 ====
-        this.projectStatePath = this.dataDir ? (this.dataDir + "/project_state.json") : null;
+        this.projectStatePath = this.dataDir ? (this.dataDir + '/project_state.json') : null;
         this._saveTimer = null;
 
         this.initDOM();
         this.injectEnhancements();
         this.bindEvents();
-
-        // 恢复上次项目（若存在）
+        this.updateCompareUi();
         this.loadProjectState();
     }
 
@@ -25,7 +26,6 @@ class PageManager {
         this.btnClear = document.getElementById('btn-clear-pages');
         this.thumbnailContainer = document.getElementById('page-thumbnails');
 
-        // ==== 状态与跑批设置 ====
         this.selStateFilter = document.getElementById('sel-page-state-filter');
         this.btnBatchRename = document.getElementById('btn-batch-rename');
         this.inputExportDir = document.getElementById('input-export-dir');
@@ -34,35 +34,26 @@ class PageManager {
         this.btnBatchExport = document.getElementById('btn-batch-export');
         this.btnBatchSavePsd = document.getElementById('btn-batch-save-psd');
 
-        // ==== 全局文档操作 ====
         this.btnSavePsd = document.getElementById('btn-save-psd');
         this.btnSavePsdCompare = document.getElementById('btn-save-psd-compare');
 
-        // ==== 原图对比 ====
         this.btnToggleCompare = document.getElementById('btn-toggle-compare');
         this.compareOpacityRow = document.getElementById('compare-opacity-row');
         this.inputCompareOpacity = document.getElementById('input-compare-opacity');
         this.compareOpacityVal = document.getElementById('compare-opacity-val');
-        this.compareGroupVisible = false;
 
-        // ==== 工作流：下一页 ====
         this.btnNextPage = document.getElementById('btn-next-page');
         this.btnAutoDetectStatus = document.getElementById('btn-auto-detect-status');
 
-        // ==== 弹窗元素 ====
         this.modalClearConfirm = document.getElementById('modal-clear-confirm');
         this.btnConfirmClear = document.getElementById('btn-confirm-clear');
         this.btnCancelClear = document.getElementById('btn-cancel-clear');
-
-        // 当前激活的页面索引（与 pages 数组对应）
-        this.activePageIndex = -1;
     }
 
     injectEnhancements() {
         if (!this.thumbnailContainer) return;
 
-        const hostSection = this.thumbnailContainer.parentElement;
-        if (hostSection && !document.getElementById('page-quick-bar')) {
+        if (!document.getElementById('page-quick-bar')) {
             const quickBar = document.createElement('div');
             quickBar.id = 'page-quick-bar';
             quickBar.className = 'inline-bar mb-2';
@@ -79,7 +70,15 @@ class PageManager {
         this.btnClearPageSelection = document.getElementById('btn-clear-page-selection');
     }
 
-    // -------------------- 项目持久化 --------------------
+    callHost(fnName, args, callback) {
+        if (window.callHostScript) {
+            window.callHostScript(this.cs, fnName, args || [], callback);
+            return;
+        }
+
+        const serializedArgs = (args || []).map(arg => JSON.stringify(arg)).join(', ');
+        this.cs.evalScript(`${fnName}(${serializedArgs})`, callback);
+    }
 
     scheduleSaveProjectState() {
         if (!this.projectStatePath) return;
@@ -89,20 +88,20 @@ class PageManager {
 
     saveProjectState() {
         if (!this.projectStatePath) return;
+
         try {
             const state = {
                 version: 1,
                 savedAt: Date.now(),
-                pages: this.pages || [],
+                pages: this.pages,
                 activePageIndex: this.activePageIndex,
                 stateFilter: this.selStateFilter ? this.selStateFilter.value : 'all',
                 exportDir: this.inputExportDir ? this.inputExportDir.value : '',
                 exportFormat: this.selExportFormat ? this.selExportFormat.value : 'jpg'
             };
-
             window.cep.fs.writeFile(this.projectStatePath, JSON.stringify(state, null, 2));
-        } catch (e) {
-            console.warn('[project state] save failed:', e);
+        } catch (err) {
+            console.warn('[project state] save failed:', err);
         }
     }
 
@@ -114,135 +113,47 @@ class PageManager {
             if (readResult.err !== window.cep.fs.NO_ERROR || !readResult.data) return;
 
             const parsed = JSON.parse(readResult.data);
+            if (!parsed || !Array.isArray(parsed.pages)) return;
 
-            if (parsed && Array.isArray(parsed.pages)) {
-                // 仅保留最核心字段，防止未来结构变更导致异常
-                this.pages = parsed.pages
-                    .filter(p => p && p.path)
-                    .map(p => ({
-                        path: p.path,
-                        name: p.name || (String(p.path).split('\\').pop().split('/').pop()),
-                        status: p.status || 'untouched'
-                    }));
+            this.pages = parsed.pages
+                .filter(item => item && item.path)
+                .map(item => ({
+                    path: item.path,
+                    name: item.name || this.getFileName(item.path),
+                    status: item.status || 'untouched'
+                }));
 
-                // 恢复 UI 状态
-                if (this.selStateFilter && parsed.stateFilter) this.selStateFilter.value = parsed.stateFilter;
-                if (this.inputExportDir && parsed.exportDir) this.inputExportDir.value = parsed.exportDir;
-                if (this.selExportFormat && parsed.exportFormat) this.selExportFormat.value = parsed.exportFormat;
+            if (this.selStateFilter && parsed.stateFilter) this.selStateFilter.value = parsed.stateFilter;
+            if (this.inputExportDir && parsed.exportDir) this.inputExportDir.value = parsed.exportDir;
+            if (this.selExportFormat && parsed.exportFormat) this.selExportFormat.value = parsed.exportFormat;
 
-                this.activePageIndex = typeof parsed.activePageIndex === 'number' ? parsed.activePageIndex : -1;
+            this.activePageIndex = typeof parsed.activePageIndex === 'number' ? parsed.activePageIndex : -1;
 
-                this.renderThumbnails();
-
-                // 重新激活高亮（如果该项在过滤后仍可见）
-                if (this.activePageIndex >= 0) {
-                    setTimeout(() => {
-                        const items = this.thumbnailContainer ? this.thumbnailContainer.querySelectorAll('.page-item') : [];
-                        items.forEach(el => {
-                            if (parseInt(el.dataset.index) === this.activePageIndex) el.classList.add('active');
-                        });
-                    }, 50);
-                }
-
-                // 同步给 JSX 后端（可选）
-                if (this.cs && typeof this.cs.evalScript === 'function') {
-                    try {
-                        this.cs.evalScript(`receiveImportedPages(${JSON.stringify(this.pages)})`);
-                    } catch (e) { }
-                }
-            }
-        } catch (e) {
-            console.warn('[project state] load failed:', e);
+            this.renderThumbnails();
+            this.syncSelectionSummary();
+            this.syncPagesToHost();
+        } catch (err) {
+            console.warn('[project state] load failed:', err);
         }
     }
 
-    // -------------------- 事件绑定 --------------------
-
     bindEvents() {
         if (this.btnImport) {
-            this.btnImport.addEventListener('click', () => {
-                // 显示轻提示增强交互感
-                const oldText = this.btnImport.innerText;
-                this.btnImport.innerText = "正在唤起文件选择器...";
-                this.btnImport.disabled = true;
-
-                setTimeout(() => {
-                    const isWin = navigator.platform.toLowerCase().indexOf('win') > -1;
-                    // Windows 下指定带有单独 PSD 类型的现代过滤器；Mac 下使用过滤函数
-                    const filterStr = isWin
-                        ? "所有文件 (*.*):*.*,图像文件 (*.jpg;*.jpeg;*.png;*.tiff;*.webp;*.bmp):*.jpg;*.jpeg;*.png;*.tiff;*.webp;*.bmp,Photoshop 文档 (*.psd):*.psd"
-                        : "function(f) { return (f instanceof Folder) || f.name.match(/\.(jpg|jpeg|png|tiff|webp|bmp|psd)$/i); }";
-
-                    const script = `
-                        (function(){
-                            try {
-                                var filter = ${isWin ? '"' + filterStr + '"' : filterStr};
-                                var result = File.openDialog("请选择要导入的漫画页面", filter, true);
-                                if (result) {
-                                    var paths = [];
-                                    for (var i = 0; i < result.length; i++) {
-                                        paths.push(result[i].fsName);
-                                    }
-                                    return JSON.stringify(paths);
-                                }
-                                return "[]";
-                            } catch(e) {
-                                return "ERROR:" + e.toString();
-                            }
-                        })()
-                    `;
-
-                    this.cs.evalScript(script, (res) => {
-                        this.btnImport.innerText = oldText;
-                        this.btnImport.disabled = false;
-
-                        if (res && res.indexOf("ERROR:") !== 0 && res !== "[]") {
-                            try {
-                                const filePaths = JSON.parse(res);
-                                if (filePaths && filePaths.length > 0) {
-                                    this.handleImportedFiles(filePaths);
-                                }
-                            } catch (e) {
-                                console.error("解析导入路径失败", e);
-                            }
-                        }
-                    });
-                }, 100);
-            });
+            this.btnImport.addEventListener('click', () => this.handleImportClick());
         }
 
         if (this.btnRemoveSel) {
-            this.btnRemoveSel.addEventListener('click', () => {
-                const checkboxes = document.querySelectorAll('.page-checkbox:checked');
-                if (checkboxes.length === 0) {
-                    showToast('请先勾选要移除的页面（点击右上角复选框）', 'error');
-                    return;
-                }
-                const pathsToRemove = Array.from(checkboxes).map(cb => cb.value);
-                this.pages = this.pages.filter(p => !pathsToRemove.includes(p.path));
-                // 防止 active 指向非法
-                if (this.activePageIndex >= this.pages.length) this.activePageIndex = this.pages.length - 1;
-                this.renderThumbnails();
-                this.scheduleSaveProjectState();
-            });
+            this.btnRemoveSel.addEventListener('click', () => this.removeSelectedPages());
         }
 
         if (this.btnClear) {
             this.btnClear.addEventListener('click', () => {
-                if (this.modalClearConfirm) {
-                    this.modalClearConfirm.classList.add('show');
-                }
+                if (this.modalClearConfirm) this.modalClearConfirm.classList.add('show');
             });
         }
 
         if (this.btnConfirmClear) {
-            this.btnConfirmClear.addEventListener('click', () => {
-                this.pages = [];
-                this.activePageIndex = -1;
-                this.renderThumbnails();
-                this.scheduleSaveProjectState();
-                if (this.modalClearConfirm) this.modalClearConfirm.classList.remove('show');
-            });
+            this.btnConfirmClear.addEventListener('click', () => this.clearAllPages());
         }
 
         if (this.btnCancelClear) {
@@ -251,7 +162,6 @@ class PageManager {
             });
         }
 
-        // ==== 页面流转与批处理 ====
         if (this.selStateFilter) {
             this.selStateFilter.addEventListener('change', () => {
                 this.renderThumbnails();
@@ -261,475 +171,538 @@ class PageManager {
         }
 
         if (this.btnSelectVisiblePages) {
-            this.btnSelectVisiblePages.addEventListener('click', () => {
-                this.toggleVisibleSelection(true);
-            });
+            this.btnSelectVisiblePages.addEventListener('click', () => this.toggleVisibleSelection(true));
         }
 
         if (this.btnClearPageSelection) {
-            this.btnClearPageSelection.addEventListener('click', () => {
-                this.toggleVisibleSelection(false);
-            });
+            this.btnClearPageSelection.addEventListener('click', () => this.toggleVisibleSelection(false));
         }
 
         if (this.btnBatchRename) {
-            this.btnBatchRename.addEventListener('click', () => {
-                if (this.pages.length === 0) return showToast('队列为空', 'error');
-
-                const desc =
-                    "命名模板说明：\n" +
-                    "  {n}    = 页码序号（1, 2, 3…）\n" +
-                    "  {nn}   = 两位页码（01, 02…）\n" +
-                    "  {name} = 原始文件名\n\n" +
-                    "示例：第06话_{nn}  →  第06话_01.jpg\n\n" +
-                    "请输入命名模板：";
-
-                showPromptModal(desc, '第00话_{nn}', (template) => {
-                    if (!template) return;
-                    this.pages.forEach((p, idx) => {
-                        const dotIdx = p.name.lastIndexOf('.');
-                        const origBase = dotIdx > 0 ? p.name.substring(0, dotIdx) : p.name;
-                        const origExt = dotIdx > 0 ? p.name.substring(dotIdx) : '';
-                        const pageNum = idx + 1;
-                        const nn = String(pageNum).padStart(2, '0');
-                        const newBase = template
-                            .replace(/\{prefix\}/g, '')
-                            .replace(/\{nn\}/g, nn)
-                            .replace(/\{n\}/g, String(pageNum))
-                            .replace(/\{name\}/g, origBase);
-                        p.name = newBase + origExt;
-                    });
-                    this.renderThumbnails();
-                    this.scheduleSaveProjectState();
-                }, '批量改名');
-            });
+            this.btnBatchRename.addEventListener('click', () => this.batchRenamePages());
         }
 
-        // 自动检测当前文档状态并同步到页面列表
         if (this.btnAutoDetectStatus) {
-            this.btnAutoDetectStatus.addEventListener('click', () => {
-                if (this.activePageIndex < 0) return showToast('请先点击页面列表中的一个页面以激活它', 'error');
-                this.cs.evalScript(`detectDocumentStatus()`, (res) => {
-                    if (res && res !== 'none') {
-                        this.pages[this.activePageIndex].status = res;
-                        this.renderThumbnails();
-                        this.scheduleSaveProjectState();
-                        // 重新激活高亮
-                        const items = this.thumbnailContainer.querySelectorAll('.page-item');
-                        items.forEach(el => {
-                            if (parseInt(el.dataset.index) === this.activePageIndex) {
-                                el.classList.add('active');
-                            }
-                        });
-                    }
-                });
-            });
+            this.btnAutoDetectStatus.addEventListener('click', () => this.detectActivePageStatus());
         }
 
-        // 下一页工作流：将当前页状态推进一级，并打开下一页
         if (this.btnNextPage) {
-            this.btnNextPage.addEventListener('click', () => {
-                if (this.pages.length === 0) return showToast('页面列表为空', 'error');
-
-                // 先将当前页状态推进到 typeset（若已是 done 则保持）
-                if (this.activePageIndex >= 0) {
-                    const cur = this.pages[this.activePageIndex];
-                    if (cur.status === 'untouched') cur.status = 'retouched';
-                    else if (cur.status === 'retouched') cur.status = 'typeset';
-                    else if (cur.status === 'typeset') cur.status = 'done';
-                    // done 保持不变
-                }
-
-                // 找到下一个未完成的页面
-                let nextIdx = -1;
-                for (let i = this.activePageIndex + 1; i < this.pages.length; i++) {
-                    if (this.pages[i].status !== 'done') {
-                        nextIdx = i;
-                        break;
-                    }
-                }
-                // 如果后面没有未完成页，从头找
-                if (nextIdx < 0) {
-                    for (let i = 0; i < this.pages.length; i++) {
-                        if (this.pages[i].status !== 'done') {
-                            nextIdx = i;
-                            break;
-                        }
-                    }
-                }
-
-                this.renderThumbnails();
-                this.scheduleSaveProjectState();
-
-                if (nextIdx < 0) {
-                    showToast('全部页面均已完成！', 'success');
-                    return;
-                }
-
-                // 打开下一页
-                const nextPage = this.pages[nextIdx];
-                this.activePageIndex = nextIdx;
-                this.cs.evalScript(`openOrSwitchDocument("${nextPage.path.replace(/\\/g, '\\\\')}")`);
-
-                // 高亮下一页
-                setTimeout(() => {
-                    const items = this.thumbnailContainer.querySelectorAll('.page-item');
-                    items.forEach(el => {
-                        el.classList.remove('active');
-                        if (parseInt(el.dataset.index) === nextIdx) {
-                            el.classList.add('active');
-                            el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-                        }
-                    });
-                }, 100);
-
-                this.scheduleSaveProjectState();
-            });
+            this.btnNextPage.addEventListener('click', () => this.advanceToNextPage());
         }
 
         if (this.btnSelExportDir) {
-            this.btnSelExportDir.addEventListener('click', () => {
-                const result = window.cep.fs.showOpenDialog(false, true, "选择批量导出保存的文件夹", "", []);
-                if (result.err === window.cep.fs.NO_ERROR && result.data.length > 0) {
-                    this.inputExportDir.value = result.data[0];
-                    this.scheduleSaveProjectState();
-                }
-            });
+            this.btnSelExportDir.addEventListener('click', () => this.selectExportDirectory());
         }
 
         if (this.selExportFormat) {
-            this.selExportFormat.addEventListener('change', () => {
-                this.scheduleSaveProjectState();
-            });
+            this.selExportFormat.addEventListener('change', () => this.scheduleSaveProjectState());
         }
 
         if (this.btnBatchExport) {
-            this.btnBatchExport.addEventListener('click', () => {
-                if (this.pages.length === 0) return showToast('当前列表为空，无图可导', 'error');
-
-                const outDir = this.inputExportDir ? this.inputExportDir.value : '';
-                if (!outDir) return showToast('请先选择导出文件夹', 'error');
-
-                const format = this.selExportFormat ? this.selExportFormat.value : 'jpg';
-
-                this.btnBatchExport.innerText = "⏳ 跑批处理中，请勿操作...";
-                this.btnBatchExport.disabled = true;
-
-                const safeJson = JSON.stringify(this.pages);
-
-                this.cs.evalScript(`batchExportAllPages(${safeJson}, '${outDir.replace(/\\/g, '\\\\')}', '${format}')`, (res) => {
-                    showAlertModal(res, '批量导出结果', () => {
-                        this.btnBatchExport.innerText = "一键根据排序输出全部页面";
-                        this.btnBatchExport.disabled = false;
-                    });
-                });
-            });
+            this.btnBatchExport.addEventListener('click', () => this.batchExportPages());
         }
 
         if (this.btnBatchSavePsd) {
-            this.btnBatchSavePsd.addEventListener('click', () => {
-                if (this.pages.length === 0) return showToast('当前列表为空', 'error');
-
-                this.btnBatchSavePsd.innerText = "批量保存中...";
-                this.btnBatchSavePsd.disabled = true;
-
-                const safeJson = JSON.stringify(this.pages);
-                this.cs.evalScript(`batchSaveAllDocs(${JSON.stringify(safeJson)})`, (res) => {
-                    showAlertModal(res, '批量保存结果', () => {
-                        this.btnBatchSavePsd.innerText = "批量静默保存列表的所有 PSD";
-                        this.btnBatchSavePsd.disabled = false;
-                    });
-                });
-            });
+            this.btnBatchSavePsd.addEventListener('click', () => this.batchSaveOpenDocs());
         }
 
-        // --- 全局文档保存操作 ---
         if (this.btnSavePsd) {
             this.btnSavePsd.addEventListener('click', () => {
-                this.cs.evalScript(`saveCurrentDocumentAsPsd(false)`, (res) => {
-                    if (res && res.indexOf("错误") > -1) showToast(res);
+                this.callHost('saveCurrentDocumentAsPsd', [false], (res) => {
+                    if (res && res.indexOf('错误') > -1) showToast(res, 'error');
                 });
             });
         }
 
         if (this.btnSavePsdCompare) {
             this.btnSavePsdCompare.addEventListener('click', () => {
-                this.cs.evalScript(`saveCurrentDocumentAsPsd(true)`, (res) => {
-                    if (res && res.indexOf("错误") > -1) showToast(res);
+                this.callHost('saveCurrentDocumentAsPsd', [true], (res) => {
+                    if (res && res.indexOf('错误') > -1) showToast(res, 'error');
                 });
             });
         }
 
-        // ==== 原图对比：开关 ====
         if (this.btnToggleCompare) {
             this.btnToggleCompare.addEventListener('click', () => {
-                this.compareGroupVisible = !this.compareGroupVisible;
-
-                if (this.compareGroupVisible) {
-                    // 尝试显示原图参考组；若不存在，先调用 backupOriginalLayer 创建
-                    this.cs.evalScript(
-                        `(function(){
-                            try {
-                                if (app.documents.length === 0) return "错误：没有打开的文档";
-                                var doc = app.activeDocument;
-                                var found = false;
-                                for (var i = 0; i < doc.layers.length; i++) {
-                                    if (doc.layers[i].name === "【原图参考】") {
-                                        doc.layers[i].visible = true;
-                                        found = true;
-                                        break;
-                                    }
-                                }
-                                if (!found && typeof backupOriginalLayer === "function") {
-                                    backupOriginalLayer();
-                                }
-                                return "SUCCESS";
-                            } catch(e) { return e.toString(); }
-                        })()`,
-                        (res) => {
-                            if (res && res.indexOf('错误') > -1) {
-                                showToast(res);
-                                this.compareGroupVisible = false;
-                                return;
-                            }
-                            if (this.btnToggleCompare) {
-                                this.btnToggleCompare.innerText = '关闭原图对比';
-                                this.btnToggleCompare.classList.add('active');
-                            }
-                            if (this.compareOpacityRow) this.compareOpacityRow.style.display = 'flex';
-                        }
-                    );
-                } else {
-                    // 隐藏原图参考组
-                    this.cs.evalScript(
-                        `(function(){
-                            try {
-                                if (app.documents.length === 0) return "SUCCESS";
-                                var doc = app.activeDocument;
-                                for (var i = 0; i < doc.layers.length; i++) {
-                                    if (doc.layers[i].name === "【原图参考】") {
-                                        doc.layers[i].visible = false;
-                                        break;
-                                    }
-                                }
-                                return "SUCCESS";
-                            } catch(e) { return e.toString(); }
-                        })()`,
-                        () => {
-                            if (this.btnToggleCompare) {
-                                this.btnToggleCompare.innerText = '开启原图对比';
-                                this.btnToggleCompare.classList.remove('active');
-                            }
-                            if (this.compareOpacityRow) this.compareOpacityRow.style.display = 'none';
-                        }
-                    );
-                }
-            });
-        }
-
-        // ==== 原图对比：透明度滑块 ====
-        if (this.inputCompareOpacity) {
-            this.inputCompareOpacity.addEventListener('input', () => {
-                const val = parseInt(this.inputCompareOpacity.value, 10);
-                if (this.compareOpacityVal) this.compareOpacityVal.innerText = val + '%';
-                this.cs.evalScript(`setCompareGroupOpacity("【原图参考】", ${val})`, (res) => {
-                    if (res && res.indexOf('错误') > -1) console.warn('[compare opacity]', res);
+                this.generateCompareAssetForCurrentDocument((res) => {
+                    this.updateCompareUi();
+                    if (res === 'NO_DOC') {
+                        showToast('当前没有打开的文档', 'error');
+                        return;
+                    }
+                    if (res === 'NO_HANDLER' || res === 'NO_LAYER' || (res && res.indexOf('ERROR:') === 0)) {
+                        showToast(res || '生成原图对比失败', 'error');
+                        return;
+                    }
+                    showToast('已生成原图对比层，默认保持隐藏', 'success');
                 });
             });
         }
     }
 
-    handleImportedFiles(filePaths) {
-        // 对文件路径按照字母/数字顺序进行自然排序，确保页码顺序正确
-        const pCollator = new Intl.Collator(undefined, { numeric: true, sensitivity: 'base' });
-        const getFileName = (path) => String(path).split('\\').pop().split('/').pop();
-        const sortedPaths = [...filePaths].sort((a, b) => pCollator.compare(getFileName(a), getFileName(b)));
-        // 记录状态对象 (简单去重合并)
-        sortedPaths.forEach(path => {
-            if (!this.pages.find(p => p.path === path)) {
-                const fileName = path.split('\\').pop().split('/').pop();
-                this.pages.push({
-                    path: path,
-                    name: fileName,
-                    status: 'untouched' // untouched, retouched, typeset, done
-                });
+    updateCompareUi() {
+        if (this.btnToggleCompare) {
+            this.btnToggleCompare.innerText = '生成原图对比（隐藏）';
+            this.btnToggleCompare.classList.remove('active');
+        }
+
+        if (this.compareOpacityRow) {
+            this.compareOpacityRow.style.display = 'none';
+        }
+
+        if (this.compareOpacityVal) {
+            this.compareOpacityVal.innerText = '100%';
+        }
+    }
+
+    syncCompareAfterDocumentSwitch() {
+        this.updateCompareUi();
+    }
+
+    generateCompareAssetForCurrentDocument(callback) {
+        const script = `
+            (function () {
+                try {
+                    if (app.documents.length === 0) return "NO_DOC";
+                    var result = (typeof backupOriginalLayer === "function")
+                        ? backupOriginalLayer()
+                        : "NO_HANDLER";
+                    var doc = app.activeDocument;
+                    var layerName = "【原图参考】";
+                    for (var i = 0; i < doc.layers.length; i++) {
+                        if (doc.layers[i].name === layerName) {
+                            doc.layers[i].visible = false;
+                            return result || "SUCCESS";
+                        }
+                    }
+                    return result || "NO_LAYER";
+                } catch (e) {
+                    return "ERROR:" + e.toString();
+                }
+            })()
+        `;
+
+        this.cs.evalScript(script, (res) => {
+            if (typeof callback === 'function') callback(res);
+        });
+    }
+
+    handleImportClick() {
+        if (!this.btnImport) return;
+
+        const oldText = this.btnImport.innerText;
+        this.btnImport.innerText = '正在打开文件选择器...';
+        this.btnImport.disabled = true;
+
+        setTimeout(() => {
+            const isWin = navigator.platform.toLowerCase().indexOf('win') > -1;
+            const filterStr = isWin
+                ? '所有文件 (*.*):*.*,图像文件 (*.jpg;*.jpeg;*.png;*.tiff;*.webp;*.bmp):*.jpg;*.jpeg;*.png;*.tiff;*.webp;*.bmp,Photoshop 文档 (*.psd):*.psd'
+                : 'function(f) { return (f instanceof Folder) || f.name.match(/\\.(jpg|jpeg|png|tiff|webp|bmp|psd)$/i); }';
+
+            const script = `
+                (function () {
+                    try {
+                        var filter = ${isWin ? '"' + filterStr + '"' : filterStr};
+                        var result = File.openDialog("请选择要导入的漫画页面", filter, true);
+                        if (result) {
+                            var paths = [];
+                            for (var i = 0; i < result.length; i++) {
+                                paths.push(result[i].fsName);
+                            }
+                            return JSON.stringify(paths);
+                        }
+                        return "[]";
+                    } catch (e) {
+                        return "ERROR:" + e.toString();
+                    }
+                })()
+            `;
+
+            this.cs.evalScript(script, (res) => {
+                this.btnImport.innerText = oldText;
+                this.btnImport.disabled = false;
+
+                if (!res || res.indexOf('ERROR:') === 0 || res === '[]') return;
+
+                try {
+                    const filePaths = JSON.parse(res);
+                    if (Array.isArray(filePaths) && filePaths.length > 0) {
+                        this.handleImportedFiles(filePaths);
+                    }
+                } catch (err) {
+                    console.error('解析导入路径失败', err);
+                    showToast('解析导入结果失败', 'error');
+                }
+            });
+        }, 100);
+    }
+
+    removeSelectedPages() {
+        const checkboxes = Array.from(document.querySelectorAll('.page-checkbox:checked'));
+        if (checkboxes.length === 0) {
+            showToast('请先勾选要移除的页面（点击右上角复选框）', 'error');
+            return;
+        }
+
+        const pathsToRemove = new Set(checkboxes.map(cb => cb.value));
+        this.pages = this.pages.filter(page => !pathsToRemove.has(page.path));
+
+        if (this.activePageIndex >= this.pages.length) {
+            this.activePageIndex = this.pages.length - 1;
+        }
+
+        this.renderThumbnails();
+        this.syncSelectionSummary();
+        this.scheduleSaveProjectState();
+        this.syncPagesToHost();
+    }
+
+    clearAllPages() {
+        this.pages = [];
+        this.activePageIndex = -1;
+        this.renderThumbnails();
+        this.syncSelectionSummary();
+        this.scheduleSaveProjectState();
+        this.syncPagesToHost();
+        if (this.modalClearConfirm) this.modalClearConfirm.classList.remove('show');
+    }
+
+    batchRenamePages() {
+        if (this.pages.length === 0) {
+            showToast('页面队列为空', 'error');
+            return;
+        }
+
+        const desc = [
+            '命名模板说明：',
+            '  {n}    = 页码序号，例如 1, 2, 3',
+            '  {nn}   = 两位页码，例如 01, 02',
+            '  {name} = 原文件名（不含扩展名）',
+            '',
+            '示例：第06话_{nn} -> 第06话_01.jpg',
+            '',
+            '请输入命名模板：'
+        ].join('\n');
+
+        showPromptModal(desc, '第00话_{nn}', (template) => {
+            if (!template) return;
+
+            this.pages.forEach((page, idx) => {
+                const dotIdx = page.name.lastIndexOf('.');
+                const baseName = dotIdx > 0 ? page.name.substring(0, dotIdx) : page.name;
+                const ext = dotIdx > 0 ? page.name.substring(dotIdx) : '';
+                const pageNum = idx + 1;
+                const nn = String(pageNum).padStart(2, '0');
+                page.name = template
+                    .replace(/\{nn\}/g, nn)
+                    .replace(/\{n\}/g, String(pageNum))
+                    .replace(/\{name\}/g, baseName)
+                    + ext;
+            });
+
+            this.renderThumbnails();
+            this.scheduleSaveProjectState();
+        }, '批量改名');
+    }
+
+    detectActivePageStatus() {
+        if (this.activePageIndex < 0) {
+            showToast('请先点击页面列表中的一个页面以激活它', 'error');
+            return;
+        }
+
+        this.callHost('detectDocumentStatus', [], (res) => {
+            if (!res || res === 'none') return;
+            this.pages[this.activePageIndex].status = res;
+            this.renderThumbnails();
+            this.scheduleSaveProjectState();
+            this.restoreActiveThumbnail(this.activePageIndex);
+        });
+    }
+
+    advanceToNextPage() {
+        if (this.pages.length === 0) {
+            showToast('页面列表为空', 'error');
+            return;
+        }
+
+        if (this.activePageIndex >= 0) {
+            const current = this.pages[this.activePageIndex];
+            if (current.status === 'untouched') current.status = 'retouched';
+            else if (current.status === 'retouched') current.status = 'typeset';
+            else if (current.status === 'typeset') current.status = 'done';
+        }
+
+        let nextIdx = -1;
+        for (let i = this.activePageIndex + 1; i < this.pages.length; i += 1) {
+            if (this.pages[i].status !== 'done') {
+                nextIdx = i;
+                break;
             }
+        }
+
+        if (nextIdx < 0) {
+            for (let i = 0; i < this.pages.length; i += 1) {
+                if (this.pages[i].status !== 'done') {
+                    nextIdx = i;
+                    break;
+                }
+            }
+        }
+
+        this.renderThumbnails();
+        this.scheduleSaveProjectState();
+
+        if (nextIdx < 0) {
+            showToast('全部页面均已完成', 'success');
+            return;
+        }
+
+        const nextPage = this.pages[nextIdx];
+        this.activePageIndex = nextIdx;
+        this.callHost('openOrSwitchDocument', [nextPage.path], () => {
+            this.syncCompareAfterDocumentSwitch();
+        });
+
+        setTimeout(() => this.restoreActiveThumbnail(nextIdx, true), 100);
+        this.scheduleSaveProjectState();
+    }
+
+    selectExportDirectory() {
+        const result = window.cep.fs.showOpenDialog(false, true, '选择批量导出保存的文件夹', '', []);
+        if (result.err === window.cep.fs.NO_ERROR && result.data.length > 0) {
+            this.inputExportDir.value = result.data[0];
+            this.scheduleSaveProjectState();
+        }
+    }
+
+    batchExportPages() {
+        if (this.pages.length === 0) {
+            showToast('当前列表为空，无图可导', 'error');
+            return;
+        }
+
+        const outDir = this.inputExportDir ? this.inputExportDir.value : '';
+        if (!outDir) {
+            showToast('请先选择导出文件夹', 'error');
+            return;
+        }
+
+        const format = this.selExportFormat ? this.selExportFormat.value : 'jpg';
+        this.btnBatchExport.innerText = '⏳ 跑批处理中，请勿操作...';
+        this.btnBatchExport.disabled = true;
+
+        this.callHost('batchExportAllPages', [JSON.stringify(this.pages), outDir, format], (res) => {
+            showAlertModal(res, '批量导出结果', () => {
+                this.btnBatchExport.innerText = '一键根据排序输出全部页面';
+                this.btnBatchExport.disabled = false;
+            });
+        });
+    }
+
+    batchSaveOpenDocs() {
+        if (this.pages.length === 0) {
+            showToast('当前列表为空', 'error');
+            return;
+        }
+
+        this.btnBatchSavePsd.innerText = '批量保存中...';
+        this.btnBatchSavePsd.disabled = true;
+
+        this.callHost('batchSaveAllDocs', [], (res) => {
+            showAlertModal(res, '批量保存结果', () => {
+                this.btnBatchSavePsd.innerText = '批量静默保存列表的所有 PSD';
+                this.btnBatchSavePsd.disabled = false;
+            });
+        });
+    }
+
+    handleImportedFiles(filePaths) {
+        const collator = new Intl.Collator(undefined, { numeric: true, sensitivity: 'base' });
+        const sortedPaths = [...filePaths].sort((a, b) => collator.compare(this.getFileName(a), this.getFileName(b)));
+
+        sortedPaths.forEach(path => {
+            if (this.pages.some(page => page.path === path)) return;
+            this.pages.push({
+                path,
+                name: this.getFileName(path),
+                status: 'untouched'
+            });
         });
 
         this.renderThumbnails();
         this.syncSelectionSummary();
         this.scheduleSaveProjectState();
+        this.syncPagesToHost();
+    }
 
-        // 通知 PS 后台
-        this.cs.evalScript(`receiveImportedPages(${JSON.stringify(this.pages)})`);
+    syncPagesToHost() {
+        this.callHost('receiveImportedPages', [JSON.stringify(this.pages)]);
     }
 
     renderThumbnails() {
+        if (!this.thumbnailContainer) return;
+
         this.thumbnailContainer.innerHTML = '';
         if (this.pages.length === 0) {
-            this.thumbnailContainer.innerHTML = '<div class="placeholder">暂无页面，请点击上方按钮导入</div>';
+            this.thumbnailContainer.innerHTML = '<div class="placeholder">暂无页面，请点击上方导入</div>';
+            this.updatePageSummary(0, 0, 0);
             return;
         }
 
         const filterVal = this.selStateFilter ? this.selStateFilter.value : 'all';
         let renderedCount = 0;
 
-        this.pages.forEach((pageData, index) => {
-            if (filterVal !== 'all' && pageData.status !== filterVal) {
-                return;
-            }
+        this.pages.forEach((page, index) => {
+            if (filterVal !== 'all' && page.status !== filterVal) return;
             renderedCount += 1;
-
-            const path = pageData.path;
-            const fileName = pageData.name;
-            const status = pageData.status;
-            const statusClass = `status-${status}`;
-            const statusMap = {
-                untouched: '未处理',
-                retouched: '已去字',
-                typeset: '已嵌字',
-                done: '终审完结'
-            };
 
             const item = document.createElement('div');
             item.className = 'page-item';
             item.draggable = true;
             item.dataset.index = index;
-
             if (this.activePageIndex === index) item.classList.add('active');
 
             const statusDot = document.createElement('div');
-            statusDot.className = `page-status-dot ${statusClass}`;
-            statusDot.title = `当前状态：${statusMap[status]}。右键可修改状态`;
+            statusDot.className = `page-status-dot status-${page.status}`;
+            statusDot.title = `当前状态：${this.getStatusLabel(page.status)}。右键可修改状态`;
 
             const checkbox = document.createElement('input');
             checkbox.type = 'checkbox';
             checkbox.className = 'page-checkbox';
-            checkbox.value = path;
-            checkbox.title = '选取该页';
-            checkbox.addEventListener('click', (e) => {
-                e.stopPropagation();
+            checkbox.value = page.path;
+            checkbox.title = '选中该页';
+            checkbox.addEventListener('click', (event) => {
+                event.stopPropagation();
                 this.syncSelectionSummary();
             });
 
             const imageWrapper = document.createElement('div');
             imageWrapper.className = 'page-img-wrapper';
-            imageWrapper.title = fileName;
+            imageWrapper.title = page.name;
 
             const image = document.createElement('img');
-            image.src = `file:///${path.replace(/\\/g, '/')}`;
-            image.alt = fileName;
+            image.src = `file:///${page.path.replace(/\\/g, '/')}`;
+            image.alt = page.name;
             image.loading = 'lazy';
             imageWrapper.appendChild(image);
 
             const nameNode = document.createElement('div');
             nameNode.className = 'page-name';
-            nameNode.textContent = fileName;
+            nameNode.textContent = page.name;
 
             item.appendChild(statusDot);
             item.appendChild(checkbox);
             item.appendChild(imageWrapper);
             item.appendChild(nameNode);
 
-            item.addEventListener('click', () => {
-                document.querySelectorAll('.page-item').forEach(el => el.classList.remove('active'));
-                item.classList.add('active');
-                this.activePageIndex = index;
-                this.scheduleSaveProjectState();
-
-                this.cs.evalScript(`openOrSwitchDocument("${path.replace(/\\/g, '\\\\')}")`, () => {
-                    this.cs.evalScript(`detectDocumentStatus()`, (statusRes) => {
-                        if (statusRes && statusRes !== 'none' && statusRes !== 'untouched') {
-                            const order = ['untouched', 'retouched', 'typeset', 'done'];
-                            const curIdx = order.indexOf(this.pages[index].status);
-                            const newIdx = order.indexOf(statusRes);
-                            if (newIdx > curIdx) {
-                                this.pages[index].status = statusRes;
-                                this.renderThumbnails();
-                                this.scheduleSaveProjectState();
-                                const allItems = this.thumbnailContainer.querySelectorAll('.page-item');
-                                allItems.forEach(el => {
-                                    if (parseInt(el.dataset.index) === index) el.classList.add('active');
-                                });
-                            }
-                        }
-                    });
-                });
+            item.addEventListener('click', () => this.activatePage(index));
+            item.addEventListener('contextmenu', (event) => {
+                event.preventDefault();
+                this.cyclePageStatus(index);
             });
-
-            item.addEventListener('contextmenu', (e) => {
-                e.preventDefault();
-                const states = ['untouched', 'retouched', 'typeset', 'done'];
-                let nidx = states.indexOf(this.pages[index].status) + 1;
-                if (nidx >= states.length) nidx = 0;
-                this.pages[index].status = states[nidx];
-                this.renderThumbnails();
-                this.scheduleSaveProjectState();
-            });
-
-            item.addEventListener('dragstart', (e) => {
-                this.draggedItemIndex = index;
-                e.dataTransfer.effectAllowed = 'move';
-                setTimeout(() => item.classList.add('dragging'), 0);
-            });
-
-            item.addEventListener('dragend', () => {
-                this.draggedItemIndex = null;
-                item.classList.remove('dragging');
-                document.querySelectorAll('.page-item').forEach(el => el.classList.remove('drag-over'));
-            });
-
-            item.addEventListener('dragover', (e) => {
-                e.preventDefault();
-                e.dataTransfer.dropEffect = 'move';
-                if (this.draggedItemIndex !== null && this.draggedItemIndex !== index) {
-                    item.classList.add('drag-over');
-                }
-            });
-
-            item.addEventListener('dragleave', () => {
-                item.classList.remove('drag-over');
-            });
-
-            item.addEventListener('drop', (e) => {
-                e.preventDefault();
-                item.classList.remove('drag-over');
-                if (this.draggedItemIndex === null || this.draggedItemIndex === index) return;
-
-                const draggedData = this.pages.splice(this.draggedItemIndex, 1)[0];
-                this.pages.splice(index, 0, draggedData);
-
-                if (this.activePageIndex === this.draggedItemIndex) {
-                    this.activePageIndex = index;
-                } else if (
-                    this.activePageIndex > -1 &&
-                    this.draggedItemIndex < this.activePageIndex &&
-                    index >= this.activePageIndex
-                ) {
-                    this.activePageIndex -= 1;
-                } else if (
-                    this.activePageIndex > -1 &&
-                    this.draggedItemIndex > this.activePageIndex &&
-                    index <= this.activePageIndex
-                ) {
-                    this.activePageIndex += 1;
-                }
-
-                this.renderThumbnails();
-                this.scheduleSaveProjectState();
-            });
+            item.addEventListener('dragstart', (event) => this.handleDragStart(event, index, item));
+            item.addEventListener('dragend', () => this.handleDragEnd(item));
+            item.addEventListener('dragover', (event) => this.handleDragOver(event, index, item));
+            item.addEventListener('dragleave', () => item.classList.remove('drag-over'));
+            item.addEventListener('drop', (event) => this.handleDrop(event, index, item));
 
             this.thumbnailContainer.appendChild(item);
         });
 
-        if (this.pages.length === 0) {
-            this.updatePageSummary(0, 0, 0);
-        } else {
-            if (renderedCount === 0) {
-                this.thumbnailContainer.innerHTML = '<div class="placeholder">当前筛选下没有页面</div>';
-            }
-            this.updatePageSummary(this.pages.length, renderedCount, this.getSelectedVisibleCount());
+        if (renderedCount === 0) {
+            this.thumbnailContainer.innerHTML = '<div class="placeholder">当前筛选下没有页面</div>';
         }
+
+        this.updatePageSummary(this.pages.length, renderedCount, this.getSelectedVisibleCount());
+    }
+
+    activatePage(index) {
+        const page = this.pages[index];
+        if (!page) return;
+
+        document.querySelectorAll('.page-item').forEach(el => el.classList.remove('active'));
+        this.activePageIndex = index;
+        this.scheduleSaveProjectState();
+
+        this.callHost('openOrSwitchDocument', [page.path], () => {
+            this.syncCompareAfterDocumentSwitch();
+            this.callHost('detectDocumentStatus', [], (statusRes) => {
+                if (!statusRes || statusRes === 'none' || statusRes === 'untouched') return;
+
+                const order = ['untouched', 'retouched', 'typeset', 'done'];
+                const currentIdx = order.indexOf(this.pages[index].status);
+                const newIdx = order.indexOf(statusRes);
+                if (newIdx > currentIdx) {
+                    this.pages[index].status = statusRes;
+                    this.renderThumbnails();
+                    this.scheduleSaveProjectState();
+                }
+                this.restoreActiveThumbnail(index);
+            });
+        });
+    }
+
+    cyclePageStatus(index) {
+        const states = ['untouched', 'retouched', 'typeset', 'done'];
+        const currentIdx = states.indexOf(this.pages[index].status);
+        this.pages[index].status = states[(currentIdx + 1) % states.length];
+        this.renderThumbnails();
+        this.scheduleSaveProjectState();
+        this.restoreActiveThumbnail(index);
+    }
+
+    handleDragStart(event, index, item) {
+        this.draggedItemIndex = index;
+        event.dataTransfer.effectAllowed = 'move';
+        setTimeout(() => item.classList.add('dragging'), 0);
+    }
+
+    handleDragEnd(item) {
+        this.draggedItemIndex = null;
+        item.classList.remove('dragging');
+        document.querySelectorAll('.page-item').forEach(el => el.classList.remove('drag-over'));
+    }
+
+    handleDragOver(event, index, item) {
+        event.preventDefault();
+        event.dataTransfer.dropEffect = 'move';
+        if (this.draggedItemIndex !== null && this.draggedItemIndex !== index) {
+            item.classList.add('drag-over');
+        }
+    }
+
+    handleDrop(event, index, item) {
+        event.preventDefault();
+        item.classList.remove('drag-over');
+        if (this.draggedItemIndex === null || this.draggedItemIndex === index) return;
+
+        const draggedData = this.pages.splice(this.draggedItemIndex, 1)[0];
+        this.pages.splice(index, 0, draggedData);
+
+        if (this.activePageIndex === this.draggedItemIndex) {
+            this.activePageIndex = index;
+        } else if (this.activePageIndex > -1 && this.draggedItemIndex < this.activePageIndex && index >= this.activePageIndex) {
+            this.activePageIndex -= 1;
+        } else if (this.activePageIndex > -1 && this.draggedItemIndex > this.activePageIndex && index <= this.activePageIndex) {
+            this.activePageIndex += 1;
+        }
+
+        this.renderThumbnails();
+        this.scheduleSaveProjectState();
+    }
+
+    restoreActiveThumbnail(index, scrollIntoView) {
+        const items = this.thumbnailContainer ? this.thumbnailContainer.querySelectorAll('.page-item') : [];
+        items.forEach(el => {
+            if (parseInt(el.dataset.index, 10) === index) {
+                el.classList.add('active');
+                if (scrollIntoView) {
+                    el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                }
+            }
+        });
     }
 
     updatePageSummary(totalCount, visibleCount, selectedCount) {
@@ -753,15 +726,30 @@ class PageManager {
 
     toggleVisibleSelection(checked) {
         if (!this.thumbnailContainer) return;
+
         const boxes = this.thumbnailContainer.querySelectorAll('.page-checkbox');
         if (boxes.length === 0) {
             showToast('当前没有可操作的页面', 'error');
             this.updatePageSummary(0, 0, 0);
             return;
         }
+
         boxes.forEach(box => {
             box.checked = checked;
         });
         this.syncSelectionSummary();
+    }
+
+    getFileName(path) {
+        return String(path).split('\\').pop().split('/').pop();
+    }
+
+    getStatusLabel(status) {
+        return {
+            untouched: '未处理',
+            retouched: '已修图',
+            typeset: '已嵌字',
+            done: '已完成'
+        }[status] || status;
     }
 }

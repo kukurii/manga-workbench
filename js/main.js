@@ -169,7 +169,7 @@ window.showToast = function (msg, type, duration) {
     if (type === 'error') toast.className += ' toast--error';
     else if (type === 'success') toast.className += ' toast--success';
     else if (type === 'warning') toast.className += ' toast--warning';
-    toast.textContent = msg;
+    toast.textContent = window.normalizeUIString ? window.normalizeUIString(msg) : msg;
     container.appendChild(toast);
 
     setTimeout(() => {
@@ -197,6 +197,8 @@ window.showAlertModal = function (msg, title, onOk) {
     document.getElementById('modal-alert-msg').textContent = msg;
     overlay.classList.add('show');
 
+    document.getElementById('modal-alert-title').textContent = window.normalizeUIString ? window.normalizeUIString(document.getElementById('modal-alert-title').textContent) : document.getElementById('modal-alert-title').textContent;
+    document.getElementById('modal-alert-msg').textContent = window.normalizeUIString ? window.normalizeUIString(document.getElementById('modal-alert-msg').textContent) : document.getElementById('modal-alert-msg').textContent;
     const btn = document.getElementById('btn-alert-ok');
     const handler = function () {
         overlay.classList.remove('show');
@@ -233,6 +235,8 @@ window.showConfirmModal = function (msg, onOk, onCancel, title) {
     document.getElementById('modal-confirm-msg').textContent = msg;
     overlay.classList.add('show');
 
+    document.getElementById('modal-confirm-title').textContent = window.normalizeUIString ? window.normalizeUIString(document.getElementById('modal-confirm-title').textContent) : document.getElementById('modal-confirm-title').textContent;
+    document.getElementById('modal-confirm-msg').textContent = window.normalizeUIString ? window.normalizeUIString(document.getElementById('modal-confirm-msg').textContent) : document.getElementById('modal-confirm-msg').textContent;
     const btnOk = document.getElementById('btn-confirm-ok');
     const btnCancel = document.getElementById('btn-confirm-cancel');
 
@@ -271,6 +275,8 @@ window.showPromptModal = function (desc, defaultVal, callback, title) {
 
     document.getElementById('modal-prompt-title').textContent = title || '输入';
     document.getElementById('modal-prompt-desc').textContent = desc;
+    document.getElementById('modal-prompt-title').textContent = window.normalizeUIString ? window.normalizeUIString(document.getElementById('modal-prompt-title').textContent) : document.getElementById('modal-prompt-title').textContent;
+    document.getElementById('modal-prompt-desc').textContent = window.normalizeUIString ? window.normalizeUIString(document.getElementById('modal-prompt-desc').textContent) : document.getElementById('modal-prompt-desc').textContent;
     const input = document.getElementById('modal-prompt-input');
     input.value = defaultVal || '';
     overlay.classList.add('show');
@@ -292,6 +298,46 @@ window.showPromptModal = function (desc, defaultVal, callback, title) {
     btnOk.addEventListener('click', onOk);
     btnCancel.addEventListener('click', onCancel);
     input.addEventListener('keydown', onKey);
+};
+
+window.callHostScript = function (csInterface, fnName, args, callback) {
+    if (!csInterface || typeof csInterface.evalScript !== 'function') {
+        if (typeof callback === 'function') callback('ERROR: CSInterface unavailable');
+        return;
+    }
+
+    const serializedArgs = (args || []).map(arg => JSON.stringify(arg)).join(', ');
+    csInterface.evalScript(`${fnName}(${serializedArgs})`, callback);
+};
+
+window.normalizeUIString = function (value) {
+    if (typeof value !== 'string' || !value) return value;
+
+    const replacements = [
+        ['姝ｅ湪鍞よ捣鏂囦欢閫夋嫨鍣?..', '正在打开文件选择器...'],
+        ['闃熷垪涓虹┖', '页面队列为空'],
+        ['璇峰厛鐐瑰嚮椤甸潰鍒楄〃涓殑涓€涓〉闈互婵€娲诲畠', '请先在列表中选中一个页面'],
+        ['椤甸潰鍒楄〃涓虹┖', '页面列表为空'],
+        ['鍏ㄩ儴椤甸潰鍧囧凡瀹屾垚锛?', '全部页面都已完成'],
+        ['褰撳墠鍒楄〃涓虹┖锛屾棤鍥惧彲瀵?', '当前列表为空，没有可导出的页面'],
+        ['璇峰厛閫夋嫨瀵煎嚭鏂囦欢澶?', '请先选择导出文件夹'],
+        ['鎵归噺瀵煎嚭缁撴灉', '批量导出结果'],
+        ['鎵归噺淇濆瓨缁撴灉', '批量保存结果'],
+        ['鏆傛棤椤甸潰锛岃鐐瑰嚮涓婃柟鎸夐挳瀵煎叆', '暂无页面，请点击上方按钮导入'],
+        ['褰撳墠绛涢€変笅娌℃湁椤甸潰', '当前筛选下没有页面'],
+        ['閫夊彇璇ラ〉', '选中该页'],
+        ['Parsed ', '解析完成：'],
+        [' pages, ', ' 页，'],
+        [' dialogs. Press Ctrl+Enter to reparse.', ' 条对白。可用 Ctrl+Enter 快速重新解析。'],
+        ['Changed', '已修改'],
+        ['绛夊緟淇浘鎿嶄綔...', '等待修图操作...']
+    ];
+
+    let text = value;
+    replacements.forEach(([from, to]) => {
+        text = text.split(from).join(to);
+    });
+    return text;
 };
 
 window.onload = function () {

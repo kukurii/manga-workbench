@@ -1448,9 +1448,9 @@ class FontManager {
             if (scope === 'selected') fnName = 'applyFontToSelectedTextLayers';
             if (scope === 'all') fnName = 'applyFontToAllTextLayers';
 
-            const safePsName = String(font.postScriptName || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+            const safePsName = String(font.postScriptName || '');
 
-            this.cs.evalScript(`${fnName}('${safePsName}')`, (res) => {
+            this.cs.evalScript(`${fnName}(${JSON.stringify(safePsName)})`, (res) => {
                 if (res && res.indexOf("错误") > -1) {
                     showToast(res);
                     return;

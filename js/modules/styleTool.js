@@ -210,7 +210,7 @@ class StyleManager {
         }
 
         const safeFont = fontPostName ? fontPostName : '';
-        this.cs.evalScript(`applyParagraphStyle('${safeFont}', ${size}, '${leadingType}', ${leadingValue}, ${fauxBold})`, (res) => {
+        this.cs.evalScript(`applyParagraphStyle(${JSON.stringify(safeFont)}, ${size}, ${JSON.stringify(leadingType)}, ${leadingValue}, ${fauxBold})`, (res) => {
             if (res && res.indexOf("错误") > -1) {
                 showToast(res);
             } else {
