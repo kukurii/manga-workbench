@@ -179,6 +179,7 @@ function batchSaveAllDocs() {
  */
 function batchExportAllPages(pagesJson, outputDirStr, format) {
     var originalDisplayDialogs = app.displayDialogs;
+    var originalActiveDocument = null;
     try {
         // 关闭所有的中间弹窗，实现真正的静默
         app.displayDialogs = DialogModes.NO;
@@ -191,49 +192,51 @@ function batchExportAllPages(pagesJson, outputDirStr, format) {
             outFolder.create();
         }
 
+        try {
+            if (app.documents.length > 0) {
+                originalActiveDocument = app.activeDocument;
+            }
+        } catch (activeErr) { }
+
         var exportCount = 0;
+        var skippedUnsavedCount = 0;
+        var docsToExport = [];
 
-        for (var i = 0; i < pages.length; i++) {
-            var pData = pages[i];
-            var fPath = pData.path;
-            // 目标期望的最终命名
-            var rawName = pData.name; // 如 "[第06话]测试.jpg"
+        // 彻底以 Photoshop 当前已打开的文档为准，不再依赖前端列表逐条匹配
+        for (var d = 0; d < app.documents.length; d++) {
+            try {
+                docsToExport.push(app.documents[d]);
+            } catch (docReadErr) { }
+        }
 
-            var sourceFile = new File(fPath);
-            if (!sourceFile.exists) continue;
+        if (docsToExport.length === 0) {
+            return "当前没有已打开图片可供导出。";
+        }
 
-            // 1. 判断该文件当前是否已经被打开并停留在画布中
-            var theDoc = null;
-            var wasAlreadyOpen = false;
-            for (var j = 0; j < app.documents.length; j++) {
-                try {
-                    if (app.documents[j].fullName.fsName === sourceFile.fsName) {
-                        theDoc = app.documents[j];
-                        wasAlreadyOpen = true;
-                        break;
-                    }
-                } catch (pe) { }
+        for (var i = 0; i < docsToExport.length; i++) {
+            var theDoc = docsToExport[i];
+            var rawName;
+            try {
+                rawName = theDoc.name;
+                var testPath = theDoc.fullName;
+            } catch (docPathErr) {
+                skippedUnsavedCount++;
+                continue;
             }
 
-            // 2. 没开的话，就在后台打开它作为基准源
-            if (!theDoc) {
-                theDoc = app.open(sourceFile);
-            }
-
-            // 3. 构建输出扩展名
+            app.activeDocument = theDoc;
             var pureName = rawName;
             var dotIndex = rawName.lastIndexOf('.');
             if (dotIndex > 0) {
-                pureName = rawName.substring(0, dotIndex); // 剥离掉原有的 .psd 或 .png
+                pureName = rawName.substring(0, dotIndex);
             }
 
             var ext = format.indexOf('jpg') > -1 ? '.jpg' : '.png';
             var outFile = new File(outFolder.fsName + "/" + pureName + ext);
 
-            // 4. 执行不同的输出策略类型
             if (format === "png") {
                 var pngSaveOptions = new PNGSaveOptions();
-                pngSaveOptions.compression = 5; // 中等压缩比适中
+                pngSaveOptions.compression = 5;
                 pngSaveOptions.interlaced = false;
                 theDoc.saveAs(outFile, pngSaveOptions, true, Extension.LOWERCASE);
             } else {
@@ -241,29 +244,32 @@ function batchExportAllPages(pagesJson, outputDirStr, format) {
                 jpgSaveOptions.embedColorProfile = true;
                 jpgSaveOptions.formatOptions = FormatOptions.STANDARDBASELINE;
                 jpgSaveOptions.matte = MatteType.NONE;
-                // 设置画质
                 if (format === "jpg-high") {
-                    jpgSaveOptions.quality = 12; // 顶配
+                    jpgSaveOptions.quality = 12;
                 } else {
-                    jpgSaveOptions.quality = 8; // 常用网传 (高)
+                    jpgSaveOptions.quality = 8;
                 }
                 theDoc.saveAs(outFile, jpgSaveOptions, true, Extension.LOWERCASE);
             }
 
-            // 5. 收尾工作
             exportCount++;
-
-            // 如果是我刚才为了跑批偷偷打开的，那我就给它随手关门，并且绝不保存源文件更改
-            if (!wasAlreadyOpen) {
-                theDoc.close(SaveOptions.DONOTSAVECHANGES);
-            }
         }
 
+        if (originalActiveDocument) {
+            try {
+                app.activeDocument = originalActiveDocument;
+            } catch (restoreErr) { }
+        }
         app.displayDialogs = originalDisplayDialogs;
-        return "恭喜！成功在一秒内碾过了预定流程！一共稳定输出了 " + exportCount + " 张定稿。";
+        return "已导出 " + exportCount + " 张已打开图片；跳过 " + skippedUnsavedCount + " 个未保存文档。";
 
     } catch (e) {
+        if (originalActiveDocument) {
+            try {
+                app.activeDocument = originalActiveDocument;
+            } catch (restoreErr2) { }
+        }
         app.displayDialogs = originalDisplayDialogs;
-        return "跑批引擎由于严重阻击而中止: " + e.toString();
+        return "跑批导出中止: " + e.toString();
     }
 }

@@ -1,0 +1,1105 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="utf-8">
+    <title>婕敾姹夊寲宸ヤ綔锟?/title>
+    <link rel="stylesheet" href="css/style.css">
+    <script src="js/CSInterface.js"></script>
+    <script src="js/modules/pageManager.js"></script>
+    <script src="js/modules/typeset.js"></script>
+    <script src="js/modules/styleTool.js"></script>
+    <script src="js/modules/retouch.js"></script>
+    <script src="js/modules/fontTool.js"></script>
+    <script src="js/modules/fxTool.js"></script>
+    <script src="js/modules/presets.js"></script>
+    <script src="js/main.js"></script>
+</head>
+
+<body>
+
+    <!-- 鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲
+     椤堕儴瀵艰埅锟?
+     鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲 -->
+    <nav class="header-nav">
+        <button class="nav-btn active" data-target="panel-page" title="椤甸潰绠＄悊">
+            <svg class="nav-icon" viewBox="0 0 16 16" fill="currentColor">
+                <path
+                    d="M1 2.5A1.5 1.5 0 012.5 1h3A1.5 1.5 0 017 2.5v3A1.5 1.5 0 015.5 7h-3A1.5 1.5 0 011 5.5v-3zM2.5 2a.5.5 0 00-.5.5v3a.5.5 0 00.5.5h3a.5.5 0 00.5-.5v-3a.5.5 0 00-.5-.5h-3zm6.5.5A1.5 1.5 0 0110.5 1h3A1.5 1.5 0 0115 2.5v3A1.5 1.5 0 0113.5 7h-3A1.5 1.5 0 019 5.5v-3zm1.5-.5a.5.5 0 00-.5.5v3a.5.5 0 00.5.5h3a.5.5 0 00.5-.5v-3a.5.5 0 00-.5-.5h-3zM1 10.5A1.5 1.5 0 012.5 9h3A1.5 1.5 0 017 10.5v3A1.5 1.5 0 015.5 15h-3A1.5 1.5 0 011 13.5v-3zm1.5-.5a.5.5 0 00-.5.5v3a.5.5 0 00.5.5h3a.5.5 0 00.5-.5v-3a.5.5 0 00-.5-.5h-3zm6.5.5A1.5 1.5 0 0110.5 9h3a1.5 1.5 0 011.5 1.5v3a1.5 1.5 0 01-1.5 1.5h-3A1.5 1.5 0 019 13.5v-3zm1.5-.5a.5.5 0 00-.5.5v3a.5.5 0 00.5.5h3a.5.5 0 00.5-.5v-3a.5.5 0 00-.5-.5h-3z" />
+            </svg>
+            <span class="nav-label">椤甸潰</span>
+        </button>
+
+        <button class="nav-btn" data-target="panel-retouch" title="淇浘鍘诲瓧">
+            <svg class="nav-icon" viewBox="0 0 16 16" fill="currentColor">
+                <path
+                    d="M11.534 7h3.932a.25.25 0 01.192.41l-1.966 2.36a.25.25 0 01-.384 0l-1.966-2.36a.25.25 0 01.192-.41zm-11 2h3.932a.25.25 0 00.192-.41L2.692 6.23a.25.25 0 00-.384 0L.342 8.59A.25.25 0 00.534 9z" />
+                <path fill-rule="evenodd"
+                    d="M8 3c-1.552 0-2.94.707-3.857 1.818a.5.5 0 11-.771-.636A6.002 6.002 0 0113.917 7H12.9A5.002 5.002 0 008 3zM3.1 9a5.002 5.002 0 008.757 2.182.5.5 0 11.771.636A6.002 6.002 0 012.083 9H3.1z" />
+            </svg>
+            <span class="nav-label">淇浘</span>
+        </button>
+
+        <button class="nav-btn" data-target="panel-typeset" title="鏂囨湰宓屽瓧">
+            <svg class="nav-icon" viewBox="0 0 16 16" fill="currentColor">
+                <path fill-rule="evenodd"
+                    d="M2 12.5a.5.5 0 01.5-.5h7a.5.5 0 010 1h-7a.5.5 0 01-.5-.5zm0-3a.5.5 0 01.5-.5h11a.5.5 0 010 1h-11a.5.5 0 01-.5-.5zm0-3a.5.5 0 01.5-.5h11a.5.5 0 010 1h-11a.5.5 0 01-.5-.5zm0-3a.5.5 0 01.5-.5h11a.5.5 0 010 1h-11a.5.5 0 01-.5-.5z" />
+            </svg>
+            <span class="nav-label">宓屽瓧</span>
+        </button>
+
+        <button class="nav-btn" data-target="panel-style" title="娈佃惤鏍峰紡">
+            <svg class="nav-icon" viewBox="0 0 16 16" fill="currentColor">
+                <path
+                    d="M5.5 7a.5.5 0 000 1h5a.5.5 0 000-1h-5zM5 9.5a.5.5 0 01.5-.5h5a.5.5 0 010 1h-5a.5.5 0 01-.5-.5zm0 2a.5.5 0 01.5-.5h2a.5.5 0 010 1h-2a.5.5 0 01-.5-.5z" />
+                <path
+                    d="M9.5 0H4a2 2 0 00-2 2v12a2 2 0 002 2h8a2 2 0 002-2V4.5L9.5 0zm0 1v2A1.5 1.5 0 0011 4.5h2V14a1 1 0 01-1 1H4a1 1 0 01-1-1V2a1 1 0 011-1h5.5z" />
+            </svg>
+            <span class="nav-label">鏍峰紡</span>
+        </button>
+
+        <button class="nav-btn" data-target="panel-fx" title="鍥惧眰鐗规晥">
+            <svg class="nav-icon" viewBox="0 0 16 16" fill="currentColor">
+                <path
+                    d="M7.657 6.247c.11-.33.576-.33.686 0l.645 1.937a2.89 2.89 0 001.829 1.828l1.936.645c.33.11.33.576 0 .686l-1.937.645a2.89 2.89 0 00-1.828 1.829l-.645 1.936a.361.361 0 01-.686 0l-.645-1.937a2.89 2.89 0 00-1.828-1.828l-1.937-.645a.361.361 0 010-.686l1.937-.645a2.89 2.89 0 001.828-1.829l.645-1.936zM3.794 1.148a.217.217 0 01.412 0l.387 1.162c.173.518.5.845 1.018 1.018l1.162.387a.217.217 0 010 .412l-1.162.387A1.73 1.73 0 004.593 5.53l-.387 1.163a.217.217 0 01-.412 0L3.407 5.53a1.73 1.73 0 00-1.018-1.018l-1.163-.387a.217.217 0 010-.412l1.162-.387A1.73 1.73 0 003.407 2.31l.387-1.162z" />
+            </svg>
+            <span class="nav-label">鐗规晥</span>
+        </button>
+
+        <button class="nav-btn" data-target="panel-font" title="瀛椾綋绠＄悊">
+            <svg class="nav-icon" viewBox="0 0 16 16" fill="currentColor">
+                <path
+                    d="M12.258 3H3.747l-.082.334L1.104 13H2.63l.674-2.727h5.394L9.374 13h1.524L8.258 3.334 8.176 3h-1.92zm-.615 6.273H4.387L6.001 4.2h.003l1.639 5.073zM13 1a.5.5 0 01.5.5v1a.5.5 0 01-1 0v-1A.5.5 0 0113 1zm0 4a.5.5 0 01.5.5v1a.5.5 0 01-1 0v-1A.5.5 0 0113 5zm.5 4.5a.5.5 0 00-1 0v1a.5.5 0 001 0v-1z" />
+            </svg>
+            <span class="nav-label">瀛椾綋</span>
+        </button>
+
+        <button class="nav-btn" data-target="panel-preset" title="鍏ㄥ眬璁剧疆">
+            <svg class="nav-icon" viewBox="0 0 16 16" fill="currentColor">
+                <path
+                    d="M8 4.754a3.246 3.246 0 100 6.492 3.246 3.246 0 000-6.492zM5.754 8a2.246 2.246 0 114.492 0 2.246 2.246 0 01-4.492 0z" />
+                <path
+                    d="M9.796 1.343c-.527-1.79-3.065-1.79-3.592 0l-.094.319a.873.873 0 01-1.255.52l-.292-.16c-1.64-.892-3.433.902-2.54 2.541l.159.292a.873.873 0 01-.52 1.255l-.319.094c-1.79.527-1.79 3.065 0 3.592l.319.094a.873.873 0 01.52 1.255l-.16.292c-.892 1.64.901 3.434 2.541 2.54l.292-.159a.873.873 0 011.255.52l.094.319c.527 1.79 3.065 1.79 3.592 0l.094-.319a.873.873 0 011.255-.52l.292.16c1.64.893 3.434-.902 2.54-2.541l-.159-.292a.873.873 0 01.52-1.255l.319-.094c1.79-.527 1.79-3.065 0-3.592l-.319-.094a.873.873 0 01-.52-1.255l.16-.292c.893-1.64-.902-3.433-2.541-2.54l-.292.159a.873.873 0 01-1.255-.52l-.094-.319zm-2.633.283c.246-.835 1.428-.835 1.674 0l.094.319a1.873 1.873 0 002.693 1.115l.291-.16c.764-.415 1.6.42 1.184 1.185l-.159.292a1.873 1.873 0 001.116 2.692l.318.094c.835.246.835 1.428 0 1.674l-.319.094a1.873 1.873 0 00-1.115 2.693l.16.291c.415.764-.42 1.6-1.185 1.184l-.291-.159a1.873 1.873 0 00-2.693 1.116l-.094.318c-.246.835-1.428.835-1.674 0l-.094-.319a1.873 1.873 0 00-2.692-1.115l-.292.16c-.764.415-1.6-.42-1.184-1.185l.159-.291A1.873 1.873 0 001.945 8.93l-.319-.094c-.835-.246-.835-1.428 0-1.674l.319-.094A1.873 1.873 0 003.06 4.377l-.16-.292c-.415-.764.42-1.6 1.185-1.184l.292.159a1.873 1.873 0 002.692-1.115l.094-.319z" />
+            </svg>
+            <span class="nav-label">璁剧疆</span>
+        </button>
+    </nav>
+
+    <div class="main-content">
+
+        <!-- 鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲
+     椤甸潰绠＄悊
+     鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲 -->
+        <div id="panel-page" class="panel active">
+            <div class="panel-title">椤甸潰娴佹按绾挎€绘帶</div>
+
+            <!-- 瀵煎叆鎿嶄綔涓庡熀纭€璁剧疆 -->
+            <div class="section">
+                <div class="btn-row mb-3">
+                    <button id="btn-import-pages" class="btn btn--primary btn--flex2">瀵煎叆椤甸潰 (锟?PSD)</button>
+                    <button id="btn-remove-selected" class="btn btn--secondary" title="绉婚櫎閫変腑">绉婚櫎</button>
+                    <button id="btn-clear-pages" class="btn btn--red" title="娓呯┖鍒楄〃">娓呯┖</button>
+                </div>
+
+                <div class="inline-bar mb-3">
+                    <span class="form-label fw-500">鐘舵€佽繃锟?</span>
+                    <select id="sel-page-state-filter" class="input--flex" style="font-size: 11px;">
+                        <option value="all">鏄剧ず鍏ㄩ儴</option>
+                        <option value="untouched">锟?鏈锟?/option>
+                        <option value="retouched">馃煢 宸蹭慨鍥惧幓锟?/option>
+                        <option value="typeset">馃煪 宸插祵瀛楀～锟?/option>
+                        <option value="done">馃煩 缁堝瀹岀粨</option>
+                    </select>
+                </div>
+
+                <div class="list-header" style="align-items: flex-end;">
+                    <div>
+                        <span class="list-header__title" style="display: block;">鐢绘澘闃熷垪</span>
+                        <span class="list-header__hint">鏀寔鎷栨嫿鍥剧墖閲嶆帓椤哄簭</span>
+                    </div>
+                    <div>
+                        <button id="btn-batch-rename" class="btn btn--ghost btn--xs">鎵归噺鏀瑰悕鍓嶇紑</button>
+                        <button id="btn-toggle-compare-top" class="btn btn--tint btn--xs">&#29983;&#25104;&#21407;&#22270;&#23545;&#27604;</button>
+                    </div>
+                </div>
+
+                <div id="page-thumbnails" class="thumbnail-grid">
+                    <div class="placeholder">鏆傛棤椤甸潰锛岀偣鍑讳笂鏂瑰锟?/div>
+                </div>
+            </div>
+
+            <hr class="divider">
+
+            <!-- 鏂囨。鍐呴儴鎿嶄綔 -->
+            <div class="section">
+                <div class="section-head">
+                    <div class="section-title">褰撳墠鏂囨。鍐呮搷锟?/div>
+                </div>
+
+                <div class="btn-row mb-2">
+                    <button id="btn-auto-detect-status" class="btn btn--tint btn--flex2"
+                        title="鏍规嵁 PS 鍥惧眰缁撴瀯鑷姩鎺ㄦ柇褰撳墠鏂囨。鐨勫畬鎴愮姸锟?>馃攳 鑷姩妫€娴嬬姸锟?/button>
+                    <button id="btn-next-page" class="btn btn--primary btn--flex2" title="灏嗗綋鍓嶉〉鐘舵€佹帹杩涗竴绾э紝骞惰嚜鍔ㄥ垏鎹㈠埌涓嬩竴涓湭瀹屾垚鐨勯〉锟?>锟?
+                        涓嬩竴锟?/button>
+                </div>
+
+                <button id="btn-toggle-compare" class="btn btn--tint btn--block mb-2">寮€鍚師鍥惧锟?/button>
+
+                <!-- 閫忔槑搴︽粦鍧楀锟?-->
+                <div class="inline-bar mb-2" id="compare-opacity-row" style="display:none;">
+                    <span class="form-label">閫忔槑锟?/span>
+                    <input type="range" id="input-compare-opacity" min="0" max="100" value="100" class="input--flex"
+                        style="cursor:pointer;">
+                    <span id="compare-opacity-val" class="form-unit"
+                        style="min-width:32px; text-align:right;">100%</span>
+                </div>
+
+                <button id="btn-save-psd-compare" class="btn btn--orange btn--block mb-2"
+                    title="鎷疯礉搴曞眰鍘熷浘涓洪《灞傚弬鑰冪粍骞朵繚锟?>灏嗗姣旂粍甯﹀叆杩炲悓淇濆瓨</button>
+            </div>
+
+            <hr class="divider">
+
+            <!-- ===============================
+       鑷姩鍖栬法鏂囨。鎵瑰鐞嗕腑锟?
+       =============================== -->
+            <div class="section">
+                <div class="section-head">
+                    <div class="section-title section-title--red">鑷姩鍖栬窇鎵硅溅锟?/div>
+                </div>
+
+                <div class="card">
+                    <div class="form-row mb-2">
+                        <span class="form-label" style="width: 50px;">瀵煎嚭锟?</span>
+                        <input type="text" id="input-export-dir" class="input--flex" placeholder="鏈缃紙鐐瑰嚮鍙充晶閫夋嫨锟? readonly>
+                        <button id="btn-sel-export-dir" class="btn btn--secondary btn--sm">閫夋嫨</button>
+                    </div>
+                    <div class="form-row mb-3">
+                        <span class="form-label" style="width: 50px;">鏍煎紡:</span>
+                        <select id="sel-export-format" class="input--flex">
+                            <option value="jpg">JPEG (涓瓑璐ㄩ噺閫備簬缃戜紶)</option>
+                            <option value="jpg-high">JPEG (鏈€楂樿川锟?</option>
+                            <option value="png">PNG (鏃犳崯鐢昏川)</option>
+                        </select>
+                    </div>
+
+                    <div class="btn-col">
+                        <button id="btn-batch-export" class="btn btn--primary btn--block">馃殌 瀵煎嚭宸叉墦寮€鍥剧墖</button>
+                        <button id="btn-batch-save-psd" class="btn btn--ghost btn--block" title="閬嶅巻鎵€鏈夊紑鍚姸鎬佺殑鐢绘澘鎵ц蹇嵎淇濆瓨">馃捑
+                            鎵归噺闈欓粯淇濆瓨鍒楄〃鐨勬墍锟?PSD</button>
+                    </div>
+                </div>
+            </div>
+
+            <hr class="divider">
+
+            <!-- 寮€鍙戞祴锟?-->
+            <div class="section">
+                <div class="section-head">
+                    <div class="section-title">寮€鍙戣皟锟?/div>
+                </div>
+                <button id="btn-test-ps-conn" class="btn btn--ghost btn--block mb-2">杩炴帴娴嬭瘯锛氬脊锟?PS 璀﹀憡锟?/button>
+                <div id="ps-response" class="code-output"></div>
+            </div>
+        </div>
+
+
+        <!-- 鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲
+     淇浘鍘诲瓧
+     鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲 -->
+        <div id="panel-retouch" class="panel">
+            <div class="panel-title">淇浘鍘诲瓧</div>
+
+            <!-- 宸ュ叿鍒囨崲 -->
+            <div class="section">
+                <div class="section-head">
+                    <div class="section-title">PS 宸ュ叿鍒囨崲</div>
+                </div>
+                <div class="tool-grid">
+                    <button class="tool-btn" data-tool="removeTool" title="绉婚櫎宸ュ叿 (J)">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="m20.2 8.5-7.7 7.7" />
+                            <path d="M12.5 16.2 8.5 20.2a2.83 2.83 0 0 1-4-4l4-4" />
+                            <path d="m20.2 8.5-4-4a2.83 2.83 0 0 0-4 4l4 4" />
+                        </svg>
+                        绉婚櫎宸ュ叿
+                    </button>
+                    <button class="tool-btn" data-tool="marqueeRectTool" title="鐭╁舰閫夋 (M)">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+                        </svg>
+                        鐭╁舰閫夋
+                    </button>
+                    <button class="tool-btn" data-tool="lassoTool" title="濂楃储 (L)">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path
+                                d="M12 21a9 9 0 01-8.3-5.5c-1-2.4-.5-5 1.7-6.8L12 3l6.6 5.7c2.2 1.8 2.7 4.4 1.7 6.8A9 9 0 0112 21z" />
+                            <path d="M12 14v7" />
+                            <path d="M9 18l3 3 3-3" />
+                        </svg>
+                        濂楃储
+                    </button>
+                    <button class="tool-btn" data-tool="polySelTool" title="澶氳竟褰㈠锟?(L)">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <polygon points="12 2 22 8.5 22 15.5 12 22 2 15.5 2 8.5" />
+                        </svg>
+                        澶氳竟锟?
+                    </button>
+                    <button class="tool-btn" data-tool="magicWandTool" title="榄旀 (W)">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="m15 5 4 4" />
+                            <path d="m19 5-4 4" />
+                            <path d="m12 12-8 8" />
+                            <path d="m13 11 4-4" />
+                            <path d="m11 13-4 4" />
+                        </svg>
+                        榄旀
+                    </button>
+                    <button class="tool-btn" data-tool="quickSelectTool" title="蹇€熼€夋嫨 (W)">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="12" cy="12" r="10" />
+                            <path d="m12 8 4 4-4 4" />
+                        </svg>
+                        蹇€熼€夋嫨
+                    </button>
+                    <button class="tool-btn" data-tool="paintbrushTool" title="鐢荤瑪 (B)">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="m18 2-4 4" />
+                            <path d="m14 6-4 4" />
+                            <path d="M22 22 11 11.5" />
+                        </svg>
+                        鐢荤瑪
+                    </button>
+                    <button class="tool-btn" data-tool="eraserTool" title="姗＄毊锟?(E)">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path
+                                d="m7 21-4.3-4.3c-1-1-1-2.5 0-3.4l9.6-9.6c1-1 2.5-1 3.4 0l5.6 5.6c1 1 1 2.5 0 3.4L13 21" />
+                            <path d="M22 21H7" />
+                            <path d="m5 11 9 9" />
+                        </svg>
+                        姗＄毊锟?
+                    </button>
+                    <button class="tool-btn" data-tool="cloneStampTool" title="浠垮埗鍥剧珷 (S)">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M12 2v6" />
+                            <path d="M7 6h10" />
+                            <path d="M6 10c-1.1 0-2 .9-2 2v2c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2v-2c0-1.1-.9-2-2-2Z" />
+                            <path d="M8 16v6" />
+                            <path d="M16 16v6" />
+                            <path d="M4 22h16" />
+                        </svg>
+                        鍥剧珷
+                    </button>
+                    <button class="tool-btn" data-tool="patchSelection" title="淇ˉ宸ュ叿 (J)">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path
+                                d="M6 18l12-12c1.1-1.1 3-1.1 4.1 0 1.1 1.1 1.1 3 0 4.1l-12 12c-1.1 1.1-3 1.1-4.1 0-1.1-1.1-1.1-3 0-4.1Z" />
+                            <circle cx="10" cy="10" r=".5" />
+                            <circle cx="14" cy="14" r=".5" />
+                            <circle cx="10" cy="14" r=".5" />
+                            <circle cx="14" cy="10" r=".5" />
+                        </svg>
+                        淇ˉ
+                    </button>
+                </div>
+            </div>
+
+            <!-- 鎵╄竟璁剧疆 -->
+            <div class="section">
+                <div class="inline-bar mb-3">
+                    <span class="form-label">鎵╄竟鍍忕礌</span>
+                    <input type="number" id="input-expand-pixel" value="-4" min="-50" max="50" class="input--sm">
+                    <span class="form-hint">锟?澶栨墿 路 锟?鍐呯缉</span>
+                </div>
+
+                <div class="btn-col">
+                    <button id="btn-auto-erase" class="btn btn--primary btn--lg btn--block">涓€閿幓锟?锟?鍐呭鎰熺煡濉厖</button>
+                    <button id="btn-fill-white" class="btn btn--secondary btn--block">娑傜櫧澶勭悊 锟?鐩存帴濉厖鐧藉簳</button>
+                </div>
+
+                <div class="inline-bar mt-2 mb-1">
+                    <div class="cp-wrap" data-cp-id="fill-color" data-cp-value="#ffffff">
+                        <button class="cp-swatch" style="background:#ffffff;" title="閫夋嫨濉厖棰滆壊"></button>
+                        <div class="cp-panel" style="display:none;"></div>
+                    </div>
+                    <button id="btn-fill-color" class="btn btn--ghost btn--flex2">鍙栬壊濉厖閫夊尯</button>
+                </div>
+
+                <hr class="divider">
+
+                <div class="section-head">
+                    <div class="section-title section-title--pink">鏂囧瓧涓庢皵娉￠€変腑</div>
+                </div>
+
+                <div class="btn-col mb-2">
+                    <button id="btn-create-selection-auto" class="btn btn--primary btn--block btn--lg mb-1"
+                        title="濡傛灉鐢ㄩ瓟妫掔偣鍑绘皵娉″鑷存枃瀛楁紡閫夛紝鐐瑰嚮姝ゆ寜閽彲鐬棿闂悎閫夊尯鐮存礊鍖呰９浣忔枃瀛楋拷?>
+                        馃┕ 淇閫夊尯锛氶棴鍚堢牬娲炲寘瑁规枃锟?
+                    </button>
+                    <p class="form-hint pb-2" style="text-align: center; margin-top:-2px;">鐐瑰嚮鍚庡湪 PS 涓鏌ラ€夊尯锛屽啀閫夋嫨涓嬫柟鎿嶄綔锟?/p>
+                    <!-- 涓ゆ纭琛岋細榛樿闅愯棌锛屼慨澶嶉€夊尯鍚庢樉锟?-->
+                    <div id="heal-confirm-row" class="btn-row" style="display:none;">
+                        <button id="btn-heal-confirm" class="btn btn--green btn--flex2">锟?纭濉厖鐧借壊</button>
+                        <button id="btn-heal-cancel" class="btn btn--ghost">锟?鍙栨秷</button>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- 璇存槑 -->
+            <div class="note mt-3">
+                <strong>浣跨敤璇存槑</strong><br>
+                1. 浣跨敤濂楃储鎴栫煩褰㈤€夋妗嗛€夎鎿﹂櫎鐨勬枃瀛楀尯鍩燂拷?br>
+                2. 鐐瑰嚮銆屼竴閿幓瀛椼€嶏紝鎻掍欢鑷姩鎵╄竟骞惰皟锟?PS 鍐呭鎰熺煡濉厖琛ラ綈鑳屾櫙锟?
+            </div>
+        </div>
+
+
+        <!-- 鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲
+     鏂囨湰宓屽瓧
+     鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲 -->
+        <div id="panel-typeset" class="panel">
+            <div class="panel-title">鏂囨湰宓屽瓧</div>
+
+            <!-- ====== 1. 瀵煎叆鍖猴紙鍙姌鍙狅級 ====== -->
+            <div class="collapse-section open" id="sec-import">
+                <div class="collapse-header" data-toggle="sec-import-body">
+                    <span class="collapse-arrow">锟?/span>
+                    <span class="collapse-title">馃摜 瀵煎叆涓庤В鏋愭枃锟?/span>
+                </div>
+                <div class="collapse-body" id="sec-import-body">
+                    <div class="btn-row mb-2">
+                        <button id="btn-import-txt" class="btn btn--primary">瀵煎叆 TXT 鏂囦欢</button>
+                        <button id="btn-copy-ai-prompt" class="btn btn--tint">澶嶅埗 AI 鎺掔増瑕佹眰</button>
+                    </div>
+                    <textarea id="txt-source" class="input--full mb-2" rows="4"
+                        placeholder="鍦ㄦ绮樿创鏂囩锛屾垨鐐瑰嚮涓婃柟瀵煎叆 TXT&#10;&#10;=== 锟?1 锟? 001.jpg ===&#10;[1] 浣犲ソ锛屼笘鐣岋拷?></textarea>
+                    <button id="btn-parse-txt" class="btn btn--green btn--block">瑙ｆ瀽鏂囩鍐呭</button>
+                </div>
+            </div>
+
+            <!-- ====== 2. 瀵硅瘽鍒楄〃锛堝缁堝彲瑙侊紝鏍稿績涓灑锟?====== -->
+            <div id="typeset-shared-list" class="card mb-2 mt-2" style="display:none;">
+                <div class="form-row mb-2">
+                    <span class="form-label">褰撳墠锟?/span>
+                    <button id="btn-prev-page-typeset" class="btn btn--ghost btn--sm" title="涓婁竴锟?
+                        style="padding:0 8px; flex-shrink:0;">锟?/button>
+                    <select id="sel-page-list" class="input--flex"></select>
+                    <button id="btn-next-page-typeset" class="btn btn--ghost btn--sm" title="涓嬩竴锟?
+                        style="padding:0 8px; flex-shrink:0;">锟?/button>
+                </div>
+                <div id="dialog-list" class="dialog-list">
+                    <div class="placeholder">灏氭湭瑙ｆ瀽鏂囩锛岃鍦ㄤ笂鏂瑰鍏ュ苟瑙ｆ瀽</div>
+                </div>
+            </div>
+
+            <!-- ====== 3 & 4. 瀛愬姛锟?Tab 鍒囨崲锟?====== -->
+            <div id="typeset-ui-area">
+
+                <!-- Tab 鎸夐挳锟?-->
+                <div class="tab-bar" id="typeset-sub-tabs">
+                    <button class="tab-bar__item active" data-tab="typeset-tab-batch">锟?鎵归噺鐢熸垚</button>
+                    <button class="tab-bar__item" data-tab="typeset-tab-adjust">馃敡 鍗曟潯绮捐皟</button>
+                    <button class="tab-bar__item" data-tab="typeset-tab-fix">鉁忥笍 鎺掔増淇</button>
+                </div>
+
+                <!-- Tab 鍐呭锛氭壒閲忕敓锟?-->
+                <div id="typeset-tab-batch" class="typeset-tab-pane">
+                    <div class="form-row mb-2">
+                        <span class="form-label">鍦烘櫙棰勮</span>
+                        <select id="sel-typeset-preset" class="input--flex">
+                            <option value="">锛堥€夋嫨鍙傛暟鍚庤嚜鍔ㄨ鐩栦笅鏂归厤缃級</option>
+                        </select>
+                    </div>
+                    <div class="form-row mb-1">
+                        <span class="form-label">瀛椾綋</span>
+                        <select id="sel-font-family" class="input--flex">
+                            <option value="">锛堝尮閰嶉粯璁わ級</option>
+                        </select>
+                    </div>
+                    <div class="form-row mb-1">
+                        <span class="form-label">鏂瑰悜</span>
+                        <select id="sel-text-direction" class="input--flex">
+                            <option value="VERTICAL">猬囷笍 绔栨帓</option>
+                            <option value="HORIZONTAL">鉃★笍 妯帓</option>
+                        </select>
+                    </div>
+                    <div class="form-row mb-2">
+                        <span class="form-label">瀛楀彿</span>
+                        <input type="number" id="input-font-size" value="16" min="1" max="200" class="input--sm">
+                        <span class="form-unit">pt</span>
+                    </div>
+                    <button id="btn-auto-typeset" class="btn btn--primary btn--block btn--lg">
+                        鎵归噺鐢熸垚鏂囨湰鍥惧眰
+                    </button>
+                </div>
+
+                <!-- Tab 鍐呭锛氬崟鏉＄簿锟?-->
+                <div id="typeset-tab-adjust" class="typeset-tab-pane" style="display:none;">
+
+                    <!-- 妗嗛€夋皵娉″垱锟?-->
+                    <div class="section-head mt-1">
+                        <div class="section-title section-title--green">妗嗛€夋皵锟?锟?鍒涘缓鏂囨湰锟?/div>
+                    </div>
+                    <textarea id="input-selection-text" class="input--full mb-2" rows="2"
+                        placeholder="锛堝彲閫夛級棰勫～鍏ユ枃瀛楀唴锟?></textarea>
+                    <button id="btn-create-from-selection" class="btn btn--primary btn--block mb-3">
+                        馃敳 妗嗛€夋皵锟?锟?鍒涘缓鏂囨湰锟?
+                    </button>
+
+                    <hr class="divider">
+
+                    <!-- 鍥惧眰灞炴€ц锟?-->
+                    <div class="section-head">
+                        <div class="section-title">鍥惧眰灞炴€ц皟锟?/div>
+                        <div class="btn-row">
+                            <button id="btn-sync-read-layer" class="btn btn--tint btn--sm">鎻愬彇鍥惧眰</button>
+                            <button id="btn-sync-read-all" class="btn btn--tint btn--sm">馃摜 鍏ㄩ〉鎻愬彇</button>
+                        </div>
+                    </div>
+                    <textarea id="input-sync-text" class="input--full mb-2" rows="2"
+                        placeholder="閫変腑鏂囨湰鍥惧眰鍚庣偣鍑汇€屾彁鍙栧浘灞傘€嶏拷?></textarea>
+
+                    <div class="form-row mb-1">
+                        <span class="form-label">瀛椾綋</span>
+                        <select id="sel-sync-font" class="input--flex">
+                            <option value="">锛堜繚鎸佷笉鍙橈級</option>
+                        </select>
+                    </div>
+                    <div class="form-row mb-1">
+                        <span class="form-label">瀛楀彿</span>
+                        <input type="number" id="input-sync-size" placeholder="16" class="input--flex">
+                        <span class="form-unit">pt</span>
+                    </div>
+                    <div class="form-row mb-1">
+                        <span class="form-label">琛岃窛</span>
+                        <input type="text" id="input-sync-leading" placeholder="鑷姩" class="input--flex">
+                        <span class="form-unit">pt/%</span>
+                    </div>
+                    <div class="form-row mb-2">
+                        <span class="form-label">棰滆壊</span>
+                        <div class="cp-wrap" data-cp-id="sync-color" data-cp-value="#000000">
+                            <button class="cp-swatch" style="background:#000000;" title="鏂囧瓧棰滆壊"></button>
+                            <div class="cp-panel" style="display:none;"></div>
+                        </div>
+                    </div>
+                    <button id="btn-sync-write-layer" class="btn btn--primary btn--block mb-3">搴旂敤鏂囨湰涓庢帓锟?/button>
+
+                </div>
+
+                <!-- Tab 鍐呭锛氭帓鐗堜慨锟?-->
+                <div id="typeset-tab-fix" class="typeset-tab-pane" style="display:none;">
+
+                    <div class="section-head mt-1">
+                        <div class="section-title section-title--pink">鑷姩鏂彞</div>
+                    </div>
+                    <div class="inline-bar mb-2">
+                        <span class="form-label">锟?/span>
+                        <input type="number" id="input-auto-break-num" value="7" min="2" max="50" class="input--sm">
+                        <span class="form-unit">瀛楁崲锟?/span>
+                    </div>
+                    <button id="btn-auto-break-text" class="btn btn--pink-solid btn--block mb-3">鎵ц鏂彞骞跺啓鍏ュ浘锟?/button>
+
+                    <hr class="divider">
+
+                    <div class="section-head">
+                        <div class="section-title section-title--green">绗﹀彿淇</div>
+                    </div>
+                    <div class="btn-col mb-2">
+                        <button id="btn-fix-punctuation" class="btn btn--secondary btn--block btn--sm">銆屻€嶆爣鐐硅鑼冨寲 锟?搴旂敤鍒板浘锟?/button>
+                        <button id="btn-fix-bang-question" class="btn btn--secondary btn--block btn--sm">!? 鍏ㄥ崐瑙掗檷锟?锟?搴旂敤鍒板浘锟?/button>
+                        <button id="btn-apply-tate-chu-yoko" class="btn btn--secondary btn--block btn--sm">!? 鑻辨枃绗﹀彿 锟?鐩存帓鍐呮í锟?/button>
+                        <button id="btn-fix-dash" class="btn btn--tint btn--block btn--sm">鈥旓拷?杩炶ˉ鐮存姌锟?锟?搴旂敤鍒板浘锟?/button>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+
+        <!-- 鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲
+     娈佃惤鏍峰紡
+     鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲 -->
+        <div id="panel-style" class="panel">
+            <div class="panel-title">娈佃惤鏍峰紡</div>
+
+            <!-- 棰勮锟?-->
+            <div class="section">
+                <div class="section-head">
+                    <div class="section-title">棰勮锟?/div>
+                </div>
+                <div class="card">
+                    <div id="style-presets-container" class="btn-row" style="flex-wrap:wrap;">
+                        <div class="placeholder" style="padding:20px 0;">灏氭湭鍒涘缓棰勮锛屽湪涓嬫柟閰嶇疆鍙傛暟鍚庝繚锟?/div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 鍙傛暟閰嶇疆 -->
+            <div class="section">
+                <div class="section-head">
+                    <div class="section-title section-title--green">鍙傛暟閰嶇疆</div>
+                </div>
+                <div class="card">
+                    <div class="form-row mb-2">
+                        <span class="form-label">瀛椾綋</span>
+                        <select id="sel-style-font" class="input--flex">
+                            <option value="">锛堢郴缁熷瓧浣撳簱鍔犺浇涓€︼級</option>
+                        </select>
+                    </div>
+
+                    <div class="form-row mb-2">
+                        <span class="form-label">瀛楀彿</span>
+                        <input type="number" id="input-style-size" value="36" class="input--sm">
+                        <span class="form-unit">pt</span>
+                    </div>
+
+                    <div class="form-row mb-3">
+                        <span class="form-label">琛岃窛</span>
+                        <select id="sel-style-leading-type" class="input--md">
+                            <option value="auto">鑷姩鍊嶇巼</option>
+                            <option value="fixed">鍥哄畾鏁帮拷?/option>
+                        </select>
+                        <input type="number" id="input-style-leading-val" value="125" class="input--flex">
+                        <span class="form-unit" id="lab-style-leading-unit">%</span>
+                    </div>
+
+                    <div class="form-row mb-3" style="align-items:center;">
+                        <span class="form-label">浠跨矖锟?/span>
+                        <label style="display:flex; align-items:center; gap:6px; cursor:pointer;">
+                            <input type="checkbox" id="chk-style-faux-bold">
+                            <span class="form-hint" style="margin:0;">浠跨矖锟?/span>
+                        </label>
+                    </div>
+
+                    <div class="btn-row">
+                        <button id="btn-apply-style-now" class="btn btn--secondary">鎵ц濂楃敤</button>
+                        <button id="btn-save-style-preset" class="btn btn--primary">瀛樹负棰勮</button>
+                    </div>
+                </div>
+            </div>
+
+            <p class="hint">鑷姩琛岃窛閫氬父濉叆 120锟?25 鍗冲彲閬垮厤涓枃琛岄噸鍙犮€備繚瀛樺悗鍙湪涓婃柟棰勮搴撲竴閿皟鐢拷?/p>
+        </div>
+
+
+        <!-- 鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲
+     鍥惧眰鐗规晥
+     鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲 -->
+        <div id="panel-fx" class="panel">
+            <div class="panel-title">鍥惧眰鐗规晥</div>
+
+            <div class="section">
+                <div class="section-head">
+                    <div class="section-title">鏂囧瓧棰滆壊</div>
+                </div>
+                <div class="card mb-3">
+                    <p class="form-hint mb-2">涓€閿皢閫変腑鏂囨湰鍥惧眰鐨勫瓧鑹叉敼涓虹櫧鑹叉垨榛戣壊锟?/p>
+                    <div class="btn-row">
+                        <button id="btn-text-color-white" class="btn btn--secondary btn--flex2" style="background:#f5f5f5; color:#222; border:1.5px solid #ccc;">锟?鏂囧瓧鏀圭櫧</button>
+                        <button id="btn-text-color-black" class="btn btn--secondary btn--flex2" style="background:#222; color:#fff; border:1.5px solid #444;">锟?鏂囧瓧鏀归粦</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section">
+                <div class="section-head">
+                    <div class="section-title">澶栨弿杈圭敓锟?/div>
+                </div>
+                <div class="card">
+                    <div class="form-row mb-2">
+                        <span class="form-label">鎻忚竟绮楃粏</span>
+                        <input type="number" id="input-stroke-size" value="3" min="1" max="50" class="input--sm">
+                        <span class="form-unit">px</span>
+                    </div>
+
+                    <div class="form-row mb-3">
+                        <span class="form-label">鎻忚竟棰滆壊</span>
+                        <div class="cp-wrap" data-cp-id="stroke-color" data-cp-value="#000000">
+                            <button class="cp-swatch" style="background:#000000;" title="鑷畾涔夋弿杈归锟?></button>
+                            <div class="cp-panel" style="display:none;"></div>
+                        </div>
+                    </div>
+
+                    <div class="btn-row mb-3">
+                        <button id="btn-stroke-black" class="btn btn--secondary">鍔犻粦锟?/button>
+                        <button id="btn-stroke-white" class="btn btn--secondary">鍔犵櫧锟?/button>
+                        <button id="btn-stroke-custom" class="btn btn--tint" title="浣跨敤宸︿晶棰滆壊閫夋嫨鍣ㄤ腑閫夊畾鐨勯锟?>鑷畾棰滆壊</button>
+                    </div>
+
+                    <button id="btn-clear-layer-style" class="btn btn--danger-text btn--block">闅愯棌璇ュ浘灞傛墍鏈夌壒锟?/button>
+                </div>
+            </div>
+
+            <!-- 甯哥敤婕敾鏁堟灉 -->
+            <div class="section mt-2">
+                <div class="section-head">
+                    <div class="section-title">甯哥敤婕敾鏁堟灉</div>
+                </div>
+                <div class="card">
+                    <div class="form-row mb-2">
+                        <span class="form-label">鍙戝厜棰滆壊</span>
+                        <div class="cp-wrap" data-cp-id="glow-color" data-cp-value="#ffffff">
+                            <button class="cp-swatch" style="background:#ffffff;" title="鍙戝厜棰滆壊"></button>
+                            <div class="cp-panel" style="display:none;"></div>
+                        </div>
+                        <span class="form-label ml-2">澶у皬</span>
+                        <input type="number" id="input-glow-size" value="5" min="1" max="50" class="input--sm">
+                        <span class="form-unit">px</span>
+                    </div>
+                    <button id="btn-add-outer-glow" class="btn btn--green btn--block mb-3">锟?娣诲姞澶栧彂锟?/button>
+
+                    <div class="form-row mb-2">
+                        <span class="form-label">鎶曞奖棰滆壊</span>
+                        <div class="cp-wrap" data-cp-id="shadow-color" data-cp-value="#000000">
+                            <button class="cp-swatch" style="background:#000000;" title="鎶曞奖棰滆壊"></button>
+                            <div class="cp-panel" style="display:none;"></div>
+                        </div>
+                        <span class="form-label ml-2">璺濈</span>
+                        <input type="number" id="input-shadow-dist" value="3" min="0" max="50" class="input--sm">
+                        <span class="form-unit">px</span>
+                    </div>
+                    <button id="btn-add-drop-shadow" class="btn btn--secondary btn--block">馃寫 娣诲姞鎶曞奖</button>
+                </div>
+            </div>
+
+            <p class="hint">鏃犻渶杩涘叆鍥惧眰鏍峰紡闈㈡澘鍗冲彲蹇€熸坊鍔犳弿杈癸紝閫傚悎鍦ㄥ鏉傝儗鏅笂鎻愬崌鏂囧瓧鍙鎬с€傛敮鎸佸閫夊浘灞傛壒閲忔搷浣滐拷?/p>
+        </div>
+
+
+        <!-- 鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲
+     瀛椾綋绠＄悊
+     鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲 -->
+        <div id="panel-font" class="panel">
+            <div class="panel-title">瀛椾綋绠＄悊</div>
+
+            <!-- 涓夌骇鏍囩 -->
+            <div class="tab-bar" id="font-mode-tabs">
+                <button class="tab-bar__item active" data-mode="system">绯荤粺瀛楀簱</button>
+                <button class="tab-bar__item" data-mode="favorite">鏀惰棌锟?/button>
+                <button class="tab-bar__item" data-mode="online">鍦ㄧ嚎 / AI</button>
+            </div>
+
+            <!-- 绯荤粺瀛楀簱宸ュ叿 -->
+            <div id="font-system-tools">
+                <div class="form-row mb-2">
+                    <input type="text" id="input-font-search" placeholder="鎼滅储绯荤粺瀛椾綋锟? class="input--flex">
+                    <button id="btn-refresh-fonts" class="btn btn--ghost btn--sm" title="閲嶆柊鎵弿绯荤粺瀛椾綋锟?>
+                        <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
+                            <path fill-rule="evenodd" d="M8 3a5 5 0 104.546 2.914.5.5 0 01.908-.418A6 6 0 118 2v1z" />
+                            <path
+                                d="M8 4.466V.534a.25.25 0 01.41-.192l2.36 1.966c.12.1.12.284 0 .384L8.41 4.658A.25.25 0 018 4.466z" />
+                        </svg>
+                    </button>
+                </div>
+
+                <div class="tab-bar mb-2" id="font-category-filters">
+                    <button class="tab-bar__item active" data-filter="all">鍏ㄩ儴</button>
+                    <button class="tab-bar__item" data-filter="chinese">涓枃</button>
+                    <button class="tab-bar__item" data-filter="english">锟?/ 锟?/button>
+                </div>
+            </div>
+
+            <!-- 鏀惰棌澶瑰伐锟?-->
+            <div id="font-fav-tools" style="display:none;">
+                <div class="btn-row mb-2" id="fav-category-filters" style="flex-wrap:wrap;">
+                    <!-- JS 鍔ㄦ€佺敓鎴愭敹钘忓垎绫绘寜锟?-->
+                </div>
+                <div class="btn-row mb-2">
+                    <button id="btn-export-fav-json" class="btn btn--ghost btn--sm" title="灏嗘敹钘忔暟鎹鍑轰负 JSON 鏂囦欢澶囦唤">馃摛
+                        瀵煎嚭鏀惰棌</button>
+                    <button id="btn-import-fav-json" class="btn btn--ghost btn--sm" title="锟?JSON 鏂囦欢瀵煎叆鏀惰棌鏁版嵁锛堝悎骞舵ā寮忥級">馃摜
+                        瀵煎叆鏀惰棌</button>
+                    <input type="file" id="input-import-fav-file" accept=".json" style="display:none;">
+                </div>
+            </div>
+
+            <!-- 鍦ㄧ嚎瀛楀簱宸ュ叿 -->
+            <div id="font-online-tools" style="display:none;">
+
+                <!-- AI 瀛椾綋鍙傝皨锟?-->
+                <div class="section-head">
+                    <div class="section-title section-title--pink">馃 AI 瀛椾綋鍙傝皨</div>
+                </div>
+                <div class="card mb-3">
+                    <textarea id="input-online-search" class="input--full mb-2" rows="2"
+                        placeholder="鎻忚堪婕敾鍦烘櫙鎴栨儏缁紝锟?AI 鎺ㄨ崘瀛椾綋椋庢牸锟?#10;濡傦細鎰ゆ€掔敺涓荤殑澶у悧銆佸皯濂冲績浜嬫墜璐︺€侀瓟娉曡蹇冩湳鍐呭績鐙櫧锟?></textarea>
+                    <div class="btn-row">
+                        <button id="btn-ai-recommend" class="btn btn--primary btn--flex2">馃 AI 鍒嗘瀽鎺ㄨ崘</button>
+                        <button id="btn-ai-clear" class="btn btn--ghost btn--sm">娓呯┖</button>
+                    </div>
+                </div>
+
+                <!-- AI 鎺ㄨ崘缁撴灉锟?-->
+                <div id="ai-result-area" style="display:none;">
+                    <div class="section-head">
+                        <div class="section-title text-accent">鎺ㄨ崘缁撴灉</div>
+                    </div>
+                    <div id="ai-result-cards" class="mb-3"></div>
+                </div>
+
+                <!-- 灏忓垎锟?-->
+                <hr class="divider">
+
+                <!-- 鍦ㄧ嚎绮鹃€夊厤璐瑰瓧浣撳簱 -->
+                <div class="section-head">
+                    <div class="section-title section-title--green">锟?甯哥敤鍏嶈垂鍟嗙敤瀛楀簱</div>
+                </div>
+
+                <!-- 椋庢牸蹇嵎灏忔寜锟?-->
+                <div class="btn-row mb-2" id="online-tag-filters" style="flex-wrap:wrap;">
+                    <button class="btn btn--ghost btn--xs active" data-tag="all">鍏ㄩ儴</button>
+                    <button class="btn btn--ghost btn--xs" data-tag="榛戜綋">榛戜綋</button>
+                    <button class="btn btn--ghost btn--xs" data-tag="妤蜂綋">妤蜂綋</button>
+                    <button class="btn btn--ghost btn--xs" data-tag="鍦嗕綋">鍦嗕綋</button>
+                    <button class="btn btn--ghost btn--xs" data-tag="鏍囬">鏍囬</button>
+                    <button class="btn btn--ghost btn--xs" data-tag="鎵嬪啓">鎵嬪啓</button>
+                    <button class="btn btn--ghost btn--xs" data-tag="婕敾">婕敾</button>
+                </div>
+
+                <!-- 瀛椾綋鍗＄墖鍒楄〃 -->
+                <div id="online-font-list"></div>
+
+                <hr class="divider">
+                <div class="btn-row mb-1">
+                    <button class="btn btn--ghost btn--sm btn--flex2" id="btn-jump-zfont">馃敆 瀛楃敱 zfont.cn</button>
+                    <button class="btn btn--ghost btn--sm btn--flex2" id="btn-jump-zeoseven">馃敆 ZeoSeven Fonts</button>
+                </div>
+            </div>
+
+            <!-- 搴旂敤鑼冨洿鎺у埗 -->
+            <div class="inline-bar mb-2" id="font-apply-scope-row">
+                <span class="form-label fw-500">搴旂敤鑼冨洿</span>
+                <select id="sel-font-apply-scope" class="input--flex" style="font-size: 11px;">
+                    <option value="active">浠呭綋鍓嶅浘锟?/option>
+                    <option value="selected">褰撳墠閫変腑鐨勫涓浘灞傦紙浠呮枃鏈眰锟?/option>
+                    <option value="all">褰撳墠鏂囨。鍏ㄩ儴鏂囨湰鍥惧眰</option>
+                </select>
+            </div>
+
+            <!-- 瀛椾綋鍒楄〃 -->
+            <div class="list-header" style="display:flex; justify-content:space-between; align-items:center;">
+                <div style="display:flex; align-items:center; gap:6px;">
+                    <span class="list-header__title" id="font-list-title">绯荤粺瀛楀簱</span>
+                    <span class="list-header__hint" id="font-count-lab">0 锟?/span>
+                </div>
+                <div style="display:flex; align-items:center; gap:4px;">
+                    <button id="btn-font-batch-mode" class="btn btn--ghost btn--xs" title="杩涘叆鎵归噺绠＄悊妯″紡锛屽彲鍕鹃€夊涓瓧浣撴壒閲忛殣锟?>鎵归噺绠＄悊</button>
+                    <button id="btn-open-font-manager" class="btn btn--ghost btn--xs" title="楂樼骇瀛椾綋绠＄悊 (鍏ㄩ儴/鏄剧ず/闅愯棌)">锟?/button>
+                </div>
+            </div>
+
+            <div id="font-list-container" class="dialog-list" style="max-height:50vh;">
+                <div class="placeholder">姝ｅ湪璇诲彇绯荤粺瀛椾綋搴擄拷?/div>
+            </div>
+
+            <!-- 鎵归噺鎿嶄綔鏍忥紙鎵归噺绠＄悊妯″紡鏃舵樉绀猴級 -->
+            <div id="font-batch-bar" class="font-batch-bar">
+                <span class="font-batch-bar__info" id="font-batch-info">宸诧拷?0 锟?/span>
+                <button id="btn-batch-select-all" class="btn btn--ghost btn--xs">鍏拷?/button>
+                <button id="btn-batch-hide-sel" class="btn btn--ghost btn--xs">闅愯棌閫変腑</button>
+                <button id="btn-batch-show-sel" class="btn btn--ghost btn--xs">鎭㈠閫変腑</button>
+                <button id="btn-batch-exit" class="btn btn--xs" style="color:var(--text-faint);">閫€锟?/button>
+            </div>
+
+            <p class="hint" id="font-install-tip">鐐瑰嚮鐩存帴搴旂敤 路 <span class="text-accent">鎮诞鏄剧ず鎿嶄綔鎸夐挳</span></p>
+        </div>
+
+
+        <!-- 鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲
+     鍏ㄥ眬璁剧疆
+     鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲 -->
+        <div id="panel-preset" class="panel">
+            <div class="panel-title">璁剧疆</div>
+
+            <!-- 缂撳瓨绠＄悊 -->
+            <div class="settings-group">
+                <div class="settings-group__title">缂撳瓨涓庡瓨锟?/div>
+                <p class="text-dim mb-2" style="font-size:11px;">鎻掍欢杩愯涓細鐢熸垚鏈湴閰嶇疆涓庣紦瀛樻枃浠讹紙濡傚瓧浣撶储寮曪級锟?/p>
+                <div class="form-row">
+                    <span class="form-label">瀛椾綋缂撳瓨</span>
+                    <button id="btn-clear-font-cache" class="btn btn--ghost btn--sm"
+                        style="margin-left:auto;">娓呯悊缂撳瓨</button>
+                </div>
+            </div>
+
+            <!-- API 鎺ュ叆 -->
+            <div class="settings-group">
+                <div class="settings-group__title"
+                    style="display: flex; align-items: center; justify-content: space-between;">
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"></path>
+                        </svg>
+                        鑷畾涔夋ā锟?
+                        <span title="濉啓 API 浠ュ惎锟?AI 瀛椾綋鍙傝皨涓庣炕璇戝姛鑳姐€傚瘑閽ヤ粎淇濆瓨鍦ㄦ湰鍦帮拷?
+                            style="cursor:help; color:var(--text-dim); font-size:12px; border:1px solid var(--border); border-radius:50%; width:14px; height:14px; display:inline-flex; align-items:center; justify-content:center;">i</span>
+                    </div>
+                </div>
+
+                <div class="api-manager">
+                    <!-- 宸︿晶锛氫緵搴斿晢鍒楄〃 -->
+                    <div class="api-sidebar">
+                        <div id="provider-list-container" class="provider-list">
+                            <!-- JS 娓叉煋 -->
+                        </div>
+                        <button id="btn-add-provider" class="btn btn--ghost btn--block"
+                            style="color:var(--accent); margin-top: 8px;">
+                            + 娣诲姞渚涘簲锟?
+                        </button>
+                    </div>
+
+                    <!-- 鍙充晶锛氫緵搴斿晢璇︽儏 -->
+                    <div id="provider-detail-panel" class="api-detail" style="display: none;">
+                        <div class="detail-header mb-2" id="detail-header-title">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="12" cy="12" r="3"></circle>
+                                <path
+                                    d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z">
+                                </path>
+                            </svg>
+                            <span id="detail-title-text" style="font-weight: 600;">缂栬緫渚涘簲锟?/span>
+                        </div>
+
+                        <label class="form-label mb-1" style="display:block;">渚涘簲鍟嗗悕锟?/label>
+                        <input type="text" id="provider-name" class="input--full mb-2" placeholder="渚嬪锛氳交llm">
+
+                        <label class="form-label mb-1" id="provider-url-label" style="display:block;">API Base
+                            URL</label>
+                        <input type="text" id="provider-url" class="input--full mb-2"
+                            placeholder="https://api.example.com/v1">
+
+                        <label class="form-label mb-1" style="display:block;">API 鏍煎紡</label>
+                        <div class="tab-bar mb-2" id="provider-format-tabs" style="border-bottom:none;">
+                            <button class="tab-bar__item active provider-format-btn" data-format="openai"
+                                style="border:1px solid var(--border); border-right:none; border-radius:4px 0 0 4px; padding:6px 0;">OpenAI</button>
+                            <button class="tab-bar__item provider-format-btn" data-format="anthropic"
+                                style="border:1px solid var(--border); border-left:none; border-right:none; padding:6px 0;">Anthropic</button>
+                            <button class="tab-bar__item provider-format-btn" data-format="gemini"
+                                style="border:1px solid var(--border); border-left:none; border-radius:0 4px 4px 0; padding:6px 0;">Gemini</button>
+                        </div>
+
+                        <label class="form-label mb-1" style="display:block;">API 瀵嗛挜</label>
+                        <div style="position:relative; display:flex;" class="mb-3">
+                            <input type="password" id="provider-key" class="input--full" placeholder="sk-..."
+                                style="padding-right:30px;">
+                            <button id="btn-toggle-key-vis" title="鏄剧ず/闅愯棌瀵嗛挜"
+                                style="position:absolute; right:4px; top:50%; transform:translateY(-50%); background:none; border:none; cursor:pointer; color:var(--text-dim);">馃憗</button>
+                        </div>
+
+                        <div
+                            style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+                            <label class="form-label" style="display:block; margin:0;">妯″瀷浼樺厛绾э紙鑷冲皯1涓紝鏈€锟?涓級</label>
+                        </div>
+
+                        <div id="model-list-container" class="model-list mb-2">
+                            <!-- JS 娓叉煋妯″瀷锟?-->
+                        </div>
+
+                        <div
+                            style="display:flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                            <span class="text-dim" style="font-size:10px;">鎷栨嫿璋冩暣浼樺厛锟?路 涓绘ā锟?锟?澶囩敤 1</span>
+                            <button id="btn-add-model" class="btn btn--tint btn--sm" style="margin-left:auto;">+
+                                娣诲姞妯″瀷</button>
+                        </div>
+
+                        <button id="btn-test-provider" class="btn btn--secondary btn--block mb-2">锟?娴嬭瘯杩炴帴</button>
+                    </div>
+                </div>
+            </div>
+            <!-- 鍏充簬 -->
+            <div class="app-footer">
+                <div class="app-footer__name">婕敾姹夊寲宸ヤ綔锟?/div>
+                <div class="app-footer__ver">V1.0.0 Beta</div>
+                <button id="btn-reload-extension" class="btn btn--ghost btn--sm">寮哄埗閲嶈浇鎻掍欢</button>
+            </div>
+        </div>
+
+    </div><!-- /.main-content -->
+
+
+    <!-- 鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲
+     瀛椾綋鏀惰棌寮圭獥
+     鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲 -->
+    <div id="modal-fav-font" class="modal-overlay">
+        <div class="modal">
+            <div class="modal__title">瀛椾綋鏀惰棌涓庡懡锟?/div>
+
+            <p class="modal__meta">绯荤粺瀛椾綋鍚嶏細<span id="fav-font-psname"></span></p>
+            <p class="modal__meta mb-2">PostScript锟?span id="fav-font-postname"></span></p>
+
+            <hr class="divider" style="margin:8px 0;">
+
+            <label class="form-label mb-1" style="display:block;">鑷畾涔変腑鏂囧悕锟?/label>
+            <input type="text" id="fav-font-alias" placeholder="涓鸿瀛椾綋璧嬩簣涓枃鍒悕锟? class="input--full mb-3">
+
+            <label class="form-label mb-1" style="display:block;">鍒嗙被鏍囩锛堢暀绌轰负鏈垎绫伙級</label>
+            <input type="text" id="fav-font-category" placeholder="濡傦細瀵硅瘽銆佹梺鐧姐€佹晥鏋滈煶銆佹墜鍐欙拷? class="input--full mb-3">
+
+            <div class="btn-row">
+                <button class="btn btn--primary" id="btn-save-fav">淇濆瓨鏀惰棌</button>
+                <button class="btn btn--ghost" id="btn-cancel-fav">鍙栨秷</button>
+                <button class="btn btn--danger-text" id="btn-remove-fav" style="display:none;">绉婚櫎</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲
+     瀵规瘮鎮诞鏍忎笌姣旀澶х洏
+     鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲 -->
+    <div id="cmp-float-bar" class="float-bar" style="display:none;">
+        <span>宸插姞锟?<strong id="cmp-count" class="text-accent" style="font-size:14px;">0</strong> 娆炬祴璇曞瓧锟?/span>
+        <button id="btn-open-cmp" class="btn btn--primary" style="padding:4px 12px; font-weight:600;">鍘诲锟?/button>
+        <button id="btn-clear-cmp" class="btn btn--ghost" style="padding:4px 8px;">娓呯┖</button>
+    </div>
+
+    <div id="modal-compare-font" class="modal-overlay" style="display:none;">
+        <div class="modal"
+            style="width:90%; max-width:400px; padding:0; display:flex; flex-direction:column; max-height:85vh; background:var(--bg)">
+            <div style="padding:16px 16px 0 16px;">
+                <div class="modal__title" style="display:flex; justify-content:space-between; align-items:center;">
+                    <span class="text-pink">鈿旓笍 澶氱淮瀛椾綋姣旀锟?/span>
+                    <button class="btn btn--ghost btn--xs" id="btn-close-cmp" style="padding:2px 6px;">鍏抽棴</button>
+                </div>
+                <textarea id="cmp-preview-text" class="input--full mb-2" rows="2"
+                    style="font-size:14px; background:var(--bg-lighter);"
+                    placeholder="鍦ㄦ杈撳叆鐢ㄤ簬瀵规瘮娴嬭瘯鐨勬极鐢绘梺鐧芥垨瀵圭櫧锟?>鍦ㄨ繖涓悕涓恒€岀緛缁娿€嶇殑鎴樺満涓婏紝鎴戠粷涓嶄細閫€缂╋紒</textarea>
+            </div>
+
+            <div id="cmp-list-container"
+                style="flex:1; overflow-y:auto; padding:0 16px 16px 16px; display:flex; flex-direction:column; gap:8px;">
+                <!-- 鍔ㄦ€佺敓鎴愬姣斿垪锟?-->
+            </div>
+        </div>
+    </div>
+
+    </div>
+
+    <!-- 鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲
+     楂樼骇瀛椾綋绠＄悊闈㈡澘
+     鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲 -->
+    <div id="modal-font-manager" class="modal-overlay" style="display:none;">
+        <div class="modal"
+            style="width:92%; max-width:520px; padding:0; display:flex; flex-direction:column; max-height:85vh; background:var(--bg)">
+            <div style="padding:16px 16px 8px 16px; border-bottom: 1px solid var(--border-color);">
+                <div class="modal__title" style="display:flex; justify-content:space-between; align-items:center;">
+                    <span>鈿欙笍 楂樼骇瀛椾綋绠＄悊</span>
+                    <button class="btn btn--ghost btn--xs" id="btn-close-font-manager"
+                        style="padding:2px 6px;">鍏抽棴</button>
+                </div>
+                <div class="inline-bar mb-1" style="margin-top: 12px;">
+                    <input type="text" id="input-fm-search" placeholder="鍦ㄧ郴缁熶腑鎼滅储... (锟?锟?鎷奸煶)" class="input--flex"
+                        style="flex:2;">
+                    <select id="sel-fm-filter" class="input--flex" style="flex:1;">
+                        <option value="all">鏄剧ず鍏ㄩ儴瀛椾綋</option>
+                        <option value="visible">馃専 浠呯湅宸叉樉锟?/option>
+                        <option value="hidden">馃毇 浠呯湅宸查殣锟?/option>
+                    </select>
+                </div>
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <span class="text-dim" style="font-size:11px;" id="fm-count-lab">锟?0 锟?/span>
+                    <div style="display:flex; gap:6px; align-items:center;">
+                        <label style="display:flex; align-items:center; gap:4px; font-size:11px; cursor:pointer;"
+                            class="text-dim">
+                            <input type="checkbox" id="chk-fm-select-all"> 鍏ㄩ€夊彲瑙侀」
+                        </label>
+                        <div style="width:1px; height:12px; background:var(--border-color); margin:0 4px;"></div>
+                        <button class="btn btn--tint btn--xs" id="btn-fm-hide-sel">闅愯棌閫変腑</button>
+                        <button class="btn btn--tint btn--xs" id="btn-fm-show-sel">鎭㈠閫変腑</button>
+                    </div>
+                </div>
+            </div>
+
+            <div id="fm-list-container"
+                style="flex:1; overflow-y:auto; padding:12px; display:flex; flex-direction:column; gap:6px;">
+                <!-- JS 鍔ㄦ€佹覆锟?-->
+            </div>
+
+            <div style="padding:12px; border-top: 1px solid var(--border-color); background: var(--surface);">
+                <p class="hint" style="margin:0; text-align:center;">
+                    闅愯棌鐨勫瓧浣撳皢涓嶄細鍑虹幇鍦ㄤ富鐣岄潰鐨勫垪琛ㄤ笌鈥滄渶杩戜娇鐢ㄢ€濅腑锟?
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- 鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲
+     娓呯┖纭寮圭獥
+     鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲 -->
+    <div id="modal-clear-confirm" class="modal-overlay">
+        <div class="modal">
+            <div class="modal__title" style="color: var(--red);">鈿狅笍 娓呯┖鍒楄〃璀﹀憡</div>
+            <p class="modal__desc" style="font-size: 11px; color: var(--text-dim); margin-bottom: 16px;">
+                纭畾瑕佹竻绌烘墍鏈夊凡瀵煎叆鐨勯〉闈㈠垪琛ㄥ悧锛熸鎿嶄綔涓嶄細鍒犻櫎鏈湴鏂囦欢锛屼絾杩涘害灏嗛噸缃拷?
+            </p>
+            <div class="btn-row">
+                <button class="btn btn--red" id="btn-confirm-clear" style="background: var(--red-dim);">纭畾娓呯┖</button>
+                <button class="btn btn--secondary" id="btn-cancel-clear">鍙栨秷</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲
+     鍏ㄥ眬 Toast 閫氱煡瀹瑰櫒
+     鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲 -->
+    <div id="toast-container"></div>
+
+    <!-- 鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲
+     閫氱敤杈撳叆寮圭獥锛堟浛浠ｇ郴锟?prompt锟?
+     鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲 -->
+    <div id="modal-prompt" class="modal-overlay">
+        <div class="modal">
+            <div class="modal__title" id="modal-prompt-title">杈撳叆</div>
+            <p class="modal__meta mb-2" id="modal-prompt-desc" style="white-space:pre-wrap; line-height:1.6;"></p>
+            <input type="text" id="modal-prompt-input" class="input--full mb-3" placeholder="">
+            <div class="btn-row">
+                <button class="btn btn--primary" id="btn-prompt-ok">纭畾</button>
+                <button class="btn btn--ghost" id="btn-prompt-cancel">鍙栨秷</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲
+     閫氱敤璀﹀憡寮圭獥锛堟浛浠ｇ郴锟?alert锟?
+     鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲 -->
+    <div id="modal-alert" class="modal-overlay">
+        <div class="modal">
+            <div class="modal__title" id="modal-alert-title">鎻愮ず</div>
+            <p class="modal__desc" id="modal-alert-msg"
+                style="font-size:11px; color:var(--text-dim); margin-bottom:16px; white-space:pre-wrap; line-height:1.6;">
+            </p>
+            <button class="btn btn--primary btn--block" id="btn-alert-ok">纭畾</button>
+        </div>
+    </div>
+
+    <!-- 鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲
+     閫氱敤纭寮圭獥锛堟浛浠ｇ郴锟?confirm锟?
+     鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲 -->
+    <div id="modal-confirm" class="modal-overlay">
+        <div class="modal">
+            <div class="modal__title" id="modal-confirm-title" style="color: var(--orange);">纭鎿嶄綔</div>
+            <p class="modal__desc" id="modal-confirm-msg"
+                style="font-size:11px; color:var(--text-dim); margin-bottom:16px; white-space:pre-wrap; line-height:1.6;">
+            </p>
+            <div class="btn-row">
+                <button class="btn btn--primary" id="btn-confirm-ok">纭畾</button>
+                <button class="btn btn--ghost" id="btn-confirm-cancel">鍙栨秷</button>
+            </div>
+        </div>
+    </div>
+
+</body>
+
+</html>

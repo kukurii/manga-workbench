@@ -1593,8 +1593,14 @@ select {
 }
 
 /* 可拖动预设卡片默认光标 */
-#style-presets-container .btn--secondary {
+#style-presets-container .style-preset-card {
+  cursor: pointer;
+}
+
+#style-presets-container .style-preset-drag-handle {
   cursor: grab;
+  min-width: 18px;
+  text-align: center;
 }
 
 /* 拖动目标：在卡片上方显示蓝色插入线 */

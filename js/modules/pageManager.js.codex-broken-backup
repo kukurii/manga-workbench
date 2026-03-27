@@ -1,4 +1,4 @@
-﻿// pageManager.js - 页面管理面板前端逻辑
+// pageManager.js - 页面管理面板前端逻辑
 
 class PageManager {
     constructor(csInterface, extPath, dataDir) {
@@ -28,7 +28,6 @@ class PageManager {
 
         this.selStateFilter = document.getElementById('sel-page-state-filter');
         this.btnBatchRename = document.getElementById('btn-batch-rename');
-        this.btnToggleCompareTop = document.getElementById('btn-toggle-compare-top');
         this.inputExportDir = document.getElementById('input-export-dir');
         this.btnSelExportDir = document.getElementById('btn-sel-export-dir');
         this.selExportFormat = document.getElementById('sel-export-format');
@@ -223,36 +222,28 @@ class PageManager {
             });
         }
 
-        [this.btnToggleCompare, this.btnToggleCompareTop].forEach((btn) => {
-            if (!btn) return;
-            btn.addEventListener('click', () => this.handleGenerateCompareClick());
-        });
-    }
-
-    handleGenerateCompareClick() {
-        this.generateCompareAssetForCurrentDocument((res) => {
-            this.updateCompareUi();
-            if (res === 'NO_DOC') {
-                showToast('当前没有打开的文档', 'error');
-                return;
-            }
-            if (res === 'NO_HANDLER' || res === 'NO_LAYER' || (res && res.indexOf('ERROR:') === 0)) {
-                showToast(res || '生成原图对比失败', 'error');
-                return;
-            }
-            showToast('已生成原图对比层，默认保持隐藏', 'success');
-        });
+        if (this.btnToggleCompare) {
+            this.btnToggleCompare.addEventListener('click', () => {
+                this.generateCompareAssetForCurrentDocument((res) => {
+                    this.updateCompareUi();
+                    if (res === 'NO_DOC') {
+                        showToast('当前没有打开的文档', 'error');
+                        return;
+                    }
+                    if (res === 'NO_HANDLER' || res === 'NO_LAYER' || (res && res.indexOf('ERROR:') === 0)) {
+                        showToast(res || '生成原图对比失败', 'error');
+                        return;
+                    }
+                    showToast('已生成原图对比层，默认保持隐藏', 'success');
+                });
+            });
+        }
     }
 
     updateCompareUi() {
         if (this.btnToggleCompare) {
             this.btnToggleCompare.innerText = '生成原图对比（隐藏）';
             this.btnToggleCompare.classList.remove('active');
-        }
-
-        if (this.btnToggleCompareTop) {
-            this.btnToggleCompareTop.innerText = '生成原图对比';
-            this.btnToggleCompareTop.classList.remove('active');
         }
 
         if (this.compareOpacityRow) {
@@ -499,12 +490,12 @@ class PageManager {
         }
 
         const format = this.selExportFormat ? this.selExportFormat.value : 'jpg';
-        this.btnBatchExport.innerText = '⏳ 跑批处理中，请勿操作...';
+        this.btnBatchExport.innerText = '⏳ 正在导出已打开图片，请勿操作...';
         this.btnBatchExport.disabled = true;
 
         this.callHost('batchExportAllPages', [JSON.stringify(this.pages), outDir, format], (res) => {
             showAlertModal(res, '批量导出结果', () => {
-                this.btnBatchExport.innerText = '一键根据排序输出全部页面';
+                this.btnBatchExport.innerText = '导出已打开图片';
                 this.btnBatchExport.disabled = false;
             });
         });

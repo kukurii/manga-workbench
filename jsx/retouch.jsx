@@ -20,6 +20,47 @@ function _parseIntDefault(val, defaultVal) {
     return isNaN(n) ? defaultVal : n;
 }
 
+function _findTopLevelLayerByName(doc, layerName) {
+    for (var i = 0; i < doc.layers.length; i++) {
+        try {
+            if (doc.layers[i].name === layerName) return doc.layers[i];
+        } catch (e) { }
+    }
+    return null;
+}
+
+function _ensureRetouchGroup(doc) {
+    var retouchGroupName = "【修图管理组】";
+    var typesetGroupName = "【翻译文字】";
+    var compareGroupName = "【原图参考】";
+    var retouchGroup = null;
+    var typesetGroup = null;
+    var compareGroup = null;
+
+    try {
+        retouchGroup = doc.layerSets.getByName(retouchGroupName);
+    } catch (e) {
+        retouchGroup = doc.layerSets.add();
+        retouchGroup.name = retouchGroupName;
+    }
+
+    try {
+        typesetGroup = doc.layerSets.getByName(typesetGroupName);
+    } catch (e2) {
+        typesetGroup = null;
+    }
+
+    compareGroup = _findTopLevelLayerByName(doc, compareGroupName);
+
+    try {
+        if (compareGroup) retouchGroup.move(compareGroup, ElementPlacement.PLACEAFTER);
+        else if (typesetGroup) retouchGroup.move(typesetGroup, ElementPlacement.PLACEAFTER);
+        else retouchGroup.move(doc.layers[0], ElementPlacement.PLACEBEFORE);
+    } catch (moveErr) { }
+
+    return retouchGroup;
+}
+
 /**
  * 辅助：确保存在一个可填充的普通像素图层，并切到该图层
  * - 若同名图层存在但不是普通 ArtLayer（例如组/调整层/智能对象），则新建一个同名普通图层
@@ -149,15 +190,7 @@ function autoEraseSelection(expandPx) {
         } catch (e) { }
 
         // --- 整理图层：放置到专属修图组中 ---
-        var retouchGroupName = "【修图管理组】";
-        var retouchGroup = null;
-        try {
-            retouchGroup = doc.layerSets.getByName(retouchGroupName);
-        } catch (e) {
-            retouchGroup = doc.layerSets.add();
-            retouchGroup.name = retouchGroupName;
-            retouchGroup.move(doc.layers[0], ElementPlacement.PLACEBEFORE); // 始终置于最顶层
-        }
+        var retouchGroup = _ensureRetouchGroup(doc);
 
         patchLayer.name = "【修补局部贴片】";
 
@@ -208,15 +241,7 @@ function fillWhiteSelection(expandPx) {
         doc.selection.deselect();
 
         // 整理：移入修图管理组
-        var retouchGroupName = "【修图管理组】";
-        var retouchGroup = null;
-        try {
-            retouchGroup = doc.layerSets.getByName(retouchGroupName);
-        } catch (e) {
-            retouchGroup = doc.layerSets.add();
-            retouchGroup.name = retouchGroupName;
-            retouchGroup.move(doc.layers[0], ElementPlacement.PLACEBEFORE);
-        }
+        var retouchGroup = _ensureRetouchGroup(doc);
 
         try {
             fillLayer.move(retouchGroup, ElementPlacement.PLACEATBEGINNING);
@@ -313,15 +338,7 @@ function _createWhiteLayerImpl() {
     doc.selection.deselect();
 
     // 整理：移入修图管理组并垫底
-    var retouchGroupName = "【修图管理组】";
-    var retouchGroup = null;
-    try {
-        retouchGroup = doc.layerSets.getByName(retouchGroupName);
-    } catch (e) {
-        retouchGroup = doc.layerSets.add();
-        retouchGroup.name = retouchGroupName;
-        retouchGroup.move(doc.layers[0], ElementPlacement.PLACEBEFORE);
-    }
+    var retouchGroup = _ensureRetouchGroup(doc);
 
     try {
         // 这个图层通常垫底使用

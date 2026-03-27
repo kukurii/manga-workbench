@@ -10,6 +10,8 @@ function backupOriginalLayer() {
 
         var doc = app.activeDocument;
         var backupLayerName = "【原图参考】";
+        var retouchGroupName = "【修图管理组】";
+        var typesetGroupName = "【翻译文字】";
 
         // 检查是否已经存在同名备份图层
         for (var i = 0; i < doc.layers.length; i++) {
@@ -34,8 +36,42 @@ function backupOriginalLayer() {
         backupLayer.allLocked = true;
         backupLayer.visible = false;
 
-        // 将其移动到最顶层，以便随时显示查看
-        backupLayer.move(doc.layers[0], ElementPlacement.PLACEBEFORE);
+        // 目标顺序：
+        // 【翻译文字】（若存在）
+        // 【原图参考】
+        // 【修图管理组】（若存在）
+        // 原图
+        var typesetGroup = null;
+        var retouchGroup = null;
+
+        try {
+            typesetGroup = doc.layerSets.getByName(typesetGroupName);
+        } catch (e) {
+            typesetGroup = null;
+        }
+
+        try {
+            retouchGroup = doc.layerSets.getByName(retouchGroupName);
+        } catch (e) {
+            retouchGroup = null;
+        }
+
+        try {
+            if (typesetGroup) {
+                // 放到【翻译文字】下面
+                backupLayer.move(typesetGroup, ElementPlacement.PLACEAFTER);
+            } else if (retouchGroup) {
+                // 放到【修图管理组】上面
+                backupLayer.move(retouchGroup, ElementPlacement.PLACEBEFORE);
+            } else {
+                // 至少保持在原图上面
+                backupLayer.move(bottomLayer, ElementPlacement.PLACEBEFORE);
+            }
+        } catch (moveErr) {
+            try {
+                backupLayer.move(bottomLayer, ElementPlacement.PLACEBEFORE);
+            } catch (fallbackErr) { }
+        }
 
         return "原图备份成功！可随时开启显示进行对比。";
     } catch (e) {
@@ -53,7 +89,7 @@ function setCompareGroupOpacity(opacity) {
 
         var doc = app.activeDocument;
         var backupLayerName = "【原图参考】";
-        var opacityVal = parseInt(opacity);
+        var opacityVal = parseInt(opacity, 10);
         if (isNaN(opacityVal)) opacityVal = 100;
         if (opacityVal < 0) opacityVal = 0;
         if (opacityVal > 100) opacityVal = 100;

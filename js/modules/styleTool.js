@@ -258,13 +258,13 @@ class StyleManager {
 
         this.presets.forEach((p, idx) => {
             const btn = document.createElement('div');
-            btn.className = 'btn btn--secondary';
+            btn.className = 'btn btn--secondary style-preset-card';
             btn.style.flex = '1 1 45%';
             btn.style.justifyContent = 'space-between';
             btn.style.alignItems = 'center';
             btn.title = `字体: ${p.fontName}\n字号: ${p.size}pt\n行距: ${p.leadingType === 'auto' ? '自动 ' + p.leadingValue + '%' : '固定 ' + p.leadingValue + 'pt'}\n仿粗体: ${p.fauxBold ? '开' : '关'}`;
             btn.dataset.idx = idx;
-            btn.draggable = true;
+            btn.draggable = false;
 
             if (p.id === this.editingPresetId) {
                 btn.classList.add('is-active');
@@ -279,6 +279,14 @@ class StyleManager {
             nameSpan.style.overflow = 'hidden';
             nameSpan.style.textOverflow = 'ellipsis';
             nameSpan.style.whiteSpace = 'nowrap';
+
+            const dragHandle = document.createElement('span');
+            dragHandle.className = 'style-preset-drag-handle';
+            dragHandle.innerText = '⋮⋮';
+            dragHandle.style.cursor = 'grab';
+            dragHandle.style.opacity = '0.65';
+            dragHandle.style.userSelect = 'none';
+            dragHandle.title = '拖拽排序';
 
             const actionWrap = document.createElement('span');
             actionWrap.style.display = 'inline-flex';
@@ -307,10 +315,12 @@ class StyleManager {
             actionWrap.appendChild(delSpan);
 
             btn.appendChild(nameSpan);
+            btn.appendChild(dragHandle);
             btn.appendChild(actionWrap);
 
-            nameSpan.addEventListener('click', (e) => {
+            btn.addEventListener('click', (e) => {
                 e.stopPropagation();
+                if (e.target === dragHandle || e.target === editSpan || e.target === delSpan) return;
                 this.applyStyle(p);
             });
 
@@ -332,7 +342,24 @@ class StyleManager {
                 });
             });
 
+            dragHandle.addEventListener('mousedown', (e) => {
+                e.stopPropagation();
+                btn.draggable = true;
+            });
+
+            dragHandle.addEventListener('mouseup', () => {
+                btn.draggable = false;
+            });
+
+            dragHandle.addEventListener('mouseleave', () => {
+                btn.draggable = false;
+            });
+
             btn.addEventListener('dragstart', (e) => {
+                if (!btn.draggable) {
+                    e.preventDefault();
+                    return;
+                }
                 dragSrcIdx = idx;
                 btn.classList.add('preset-dragging');
                 e.dataTransfer.effectAllowed = 'move';
@@ -341,6 +368,7 @@ class StyleManager {
 
             btn.addEventListener('dragend', () => {
                 btn.classList.remove('preset-dragging');
+                btn.draggable = false;
                 clearDropIndicators();
             });
 
