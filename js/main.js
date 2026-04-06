@@ -285,19 +285,39 @@ window.showPromptModal = function (desc, defaultVal, callback, title) {
     const btnOk = document.getElementById('btn-prompt-ok');
     const btnCancel = document.getElementById('btn-prompt-cancel');
 
+    // 追踪 IME（输入法）组合状态：中文拼音选字期间不触发 Enter/Escape
+    let isComposing = false;
+
     function cleanup() {
         overlay.classList.remove('show');
         btnOk.removeEventListener('click', onOk);
         btnCancel.removeEventListener('click', onCancel);
         input.removeEventListener('keydown', onKey);
+        input.removeEventListener('compositionstart', onCompositionStart);
+        input.removeEventListener('compositionend', onCompositionEnd);
     }
     function onOk() { const v = input.value; cleanup(); callback(v); }
     function onCancel() { cleanup(); callback(null); }
-    function onKey(e) { if (e.key === 'Enter') onOk(); if (e.key === 'Escape') onCancel(); }
+
+    // compositionstart：用户开始用输入法输拼音（组合开始）
+    function onCompositionStart() { isComposing = true; }
+    // compositionend：用户完成选字，汉字已写入输入框（组合结束）
+    function onCompositionEnd() { isComposing = false; }
+
+    function onKey(e) {
+        // 阻止事件冒泡，防止 CEP 宿主层拦截输入法的组合按键
+        e.stopPropagation();
+        // 如果正在 IME 组合输入（如：正在选汉字），不响应 Enter/Escape
+        if (isComposing || e.isComposing) return;
+        if (e.key === 'Enter') onOk();
+        if (e.key === 'Escape') onCancel();
+    }
 
     btnOk.addEventListener('click', onOk);
     btnCancel.addEventListener('click', onCancel);
     input.addEventListener('keydown', onKey);
+    input.addEventListener('compositionstart', onCompositionStart);
+    input.addEventListener('compositionend', onCompositionEnd);
 };
 
 window.callHostScript = function (csInterface, fnName, args, callback) {

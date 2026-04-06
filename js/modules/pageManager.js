@@ -1,4 +1,4 @@
-﻿// pageManager.js - 页面管理面板前端逻辑
+// pageManager.js - 页面管理面板前端逻辑
 
 class PageManager {
     constructor(csInterface, extPath, dataDir) {
@@ -39,6 +39,8 @@ class PageManager {
         this.btnSavePsdCompare = document.getElementById('btn-save-psd-compare');
 
         this.btnToggleCompare = document.getElementById('btn-toggle-compare');
+        // 修图界面顶部的原图对比按钮（与上面两个复用同一逻辑）
+        this.btnToggleCompareRetouch = document.getElementById('btn-toggle-compare-retouch');
         this.compareOpacityRow = document.getElementById('compare-opacity-row');
         this.inputCompareOpacity = document.getElementById('input-compare-opacity');
         this.compareOpacityVal = document.getElementById('compare-opacity-val');
@@ -223,7 +225,7 @@ class PageManager {
             });
         }
 
-        [this.btnToggleCompare, this.btnToggleCompareTop].forEach((btn) => {
+        [this.btnToggleCompare, this.btnToggleCompareTop, this.btnToggleCompareRetouch].forEach((btn) => {
             if (!btn) return;
             btn.addEventListener('click', () => this.handleGenerateCompareClick());
         });
@@ -253,6 +255,11 @@ class PageManager {
         if (this.btnToggleCompareTop) {
             this.btnToggleCompareTop.innerText = '生成原图对比';
             this.btnToggleCompareTop.classList.remove('active');
+        }
+
+        if (this.btnToggleCompareRetouch) {
+            this.btnToggleCompareRetouch.innerText = '生成原图对比';
+            this.btnToggleCompareRetouch.classList.remove('active');
         }
 
         if (this.compareOpacityRow) {

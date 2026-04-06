@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="zh-CN">
 
 <head>
@@ -117,7 +117,7 @@
                         <span class="list-header__title" style="display: block;">画板队列</span>
                         <span class="list-header__hint">支持拖拽图片重排顺序</span>
                     </div>
-                    <div>
+                    <div style="display:flex; gap:4px;">
                         <button id="btn-batch-rename" class="btn btn--ghost btn--xs">批量改名前缀</button>
                         <button id="btn-toggle-compare-top" class="btn btn--tint btn--xs">生成原图对比</button>
                     </div>
@@ -209,6 +209,8 @@
      ══════════════════════════════════════ -->
         <div id="panel-retouch" class="panel">
             <div class="panel-title">修图去字</div>
+
+            <button id="btn-toggle-compare-retouch" class="btn btn--tint btn--block mb-2">生成原图对比</button>
 
             <!-- 工具切换 -->
             <div class="section">
@@ -532,6 +534,16 @@
      ══════════════════════════════════════ -->
         <div id="panel-style" class="panel">
             <div class="panel-title">段落样式</div>
+
+            <!-- 符号修正 -->
+            <div class="section">
+                <div class="section-head">
+                    <div class="section-title section-title--green">符号修正</div>
+                </div>
+                <div class="btn-col">
+                    <button id="btn-fix-bang-question-style" class="btn btn--secondary btn--block btn--sm">!? 全半角降级 → 应用到图层</button>
+                </div>
+            </div>
 
             <!-- 预设库 -->
             <div class="section">

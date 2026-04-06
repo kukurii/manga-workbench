@@ -41,6 +41,8 @@ class TypesetManager {
         this.btnFixPunctuation = document.getElementById('btn-fix-punctuation');
         this.btnFixDash = document.getElementById('btn-fix-dash');
         this.btnFixBangQuestion = document.getElementById('btn-fix-bang-question');
+        // 样式界面也有一个相同功能的按钮（复制到样式面板）
+        this.btnFixBangQuestionStyle = document.getElementById('btn-fix-bang-question-style');
 
         this.btnSyncRead = document.getElementById('btn-sync-read-layer');
         this.btnSyncReadAll = document.getElementById('btn-sync-read-all');
@@ -384,12 +386,18 @@ class TypesetManager {
         }
 
         // 处理感叹问号 (!?) 形态转换(替换为自带立排的单字 Unicode)
-        if (this.btnFixBangQuestion) {
-            this.btnFixBangQuestion.addEventListener('click', () => {
-                this.cs.evalScript(`fixBangQuestion()`, (res) => {
-                    if (res && res.indexOf("错误") > -1) showToast(res);
-                });
+        // fixBangQuestionHandler 被嵌字界面和样式界面的按钮共同复用
+        const fixBangQuestionHandler = () => {
+            this.cs.evalScript(`fixBangQuestion()`, (res) => {
+                if (res && res.indexOf("错误") > -1) showToast(res);
             });
+        };
+        if (this.btnFixBangQuestion) {
+            this.btnFixBangQuestion.addEventListener('click', fixBangQuestionHandler);
+        }
+        // 样式界面里的副本按钮，复用同一处理函数
+        if (this.btnFixBangQuestionStyle) {
+            this.btnFixBangQuestionStyle.addEventListener('click', fixBangQuestionHandler);
         }
 
         // --- 中间态双向绑定事件 ---
