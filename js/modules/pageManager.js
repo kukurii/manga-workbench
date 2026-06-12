@@ -12,6 +12,7 @@ class PageManager {
 
         this.projectStatePath = this.dataDir ? (this.dataDir + '/project_state.json') : null;
         this._saveTimer = null;
+        this._isSwitching = false; // 防止连续点击图片时发送多个并发 PS 请求导致卡死
 
         this.initDOM();
         this.injectEnhancements();
@@ -443,6 +444,12 @@ class PageManager {
             return;
         }
 
+        // 防止切换进行中时再次触发，避免多个 PS 请求堆积卡死
+        if (this._isSwitching) {
+            showToast('正在切换中，请稍候...', 'info', 1500);
+            return;
+        }
+
         if (this.activePageIndex >= 0) {
             const current = this.pages[this.activePageIndex];
             if (current.status === 'untouched') current.status = 'retouched';
@@ -477,12 +484,16 @@ class PageManager {
 
         const nextPage = this.pages[nextIdx];
         this.activePageIndex = nextIdx;
+        this.restoreActiveThumbnail(nextIdx, true);
+
+        this._isSwitching = true;
+        if (this.btnImport) this.btnImport.disabled = true;
+
         this.callHost('openOrSwitchDocument', [nextPage.path], () => {
+            this._isSwitching = false;
+            if (this.btnImport) this.btnImport.disabled = false;
             this.syncCompareAfterDocumentSwitch();
         });
-
-        setTimeout(() => this.restoreActiveThumbnail(nextIdx, true), 100);
-        this.scheduleSaveProjectState();
     }
 
     selectExportDirectory() {
@@ -638,25 +649,27 @@ class PageManager {
         const page = this.pages[index];
         if (!page) return;
 
+        // 防止用户快速连点多张图片，导致多个 openOrSwitchDocument 并发堆积在 PS 队列里卡死
+        if (this._isSwitching) {
+            showToast('正在切换中，请稍候...', 'info', 1500);
+            return;
+        }
+
         document.querySelectorAll('.page-item').forEach(el => el.classList.remove('active'));
         this.activePageIndex = index;
         this.scheduleSaveProjectState();
+        this.restoreActiveThumbnail(index);
+
+        this._isSwitching = true;
+        if (this.btnImport) this.btnImport.disabled = true;
 
         this.callHost('openOrSwitchDocument', [page.path], () => {
+            // PS 完成文档切换，解除锁定
+            this._isSwitching = false;
+            if (this.btnImport) this.btnImport.disabled = false;
             this.syncCompareAfterDocumentSwitch();
-            this.callHost('detectDocumentStatus', [], (statusRes) => {
-                if (!statusRes || statusRes === 'none' || statusRes === 'untouched') return;
-
-                const order = ['untouched', 'retouched', 'typeset', 'done'];
-                const currentIdx = order.indexOf(this.pages[index].status);
-                const newIdx = order.indexOf(statusRes);
-                if (newIdx > currentIdx) {
-                    this.pages[index].status = statusRes;
-                    this.renderThumbnails();
-                    this.scheduleSaveProjectState();
-                }
-                this.restoreActiveThumbnail(index);
-            });
+            // 注意：不在回调中再次嵌套调用 detectDocumentStatus
+            // 嵌套 evalScript 会导致 PS 任务队列堆积卡死
         });
     }
 

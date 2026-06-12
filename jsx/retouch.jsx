@@ -1,4 +1,4 @@
-// retouch.jsx - 修图相关的 Photoshop ExtendScript
+﻿// retouch.jsx - 修图相关的 Photoshop ExtendScript
 
 /**
  * 辅助：检查是否有可用选区
@@ -121,84 +121,46 @@ function switchTool(toolStringID) {
  * 核心：一键去字 (扩展选区 -> 在独立修图中采样全图进行内容感知填充 -> 取消选区)
  * 【带 suspendHistory 包裹，使整个操作只占一条历史记录】
  */
+// 【内部实现】一键去字核心逻辑 - 被 suspendHistory 调用
+function _autoEraseSelectionImpl(expandPx) {
+    var doc = app.activeDocument;
+    if (expandPx > 0) { doc.selection.expand(new UnitValue(expandPx, "px")); }
+    else if (expandPx < 0) { doc.selection.contract(new UnitValue(Math.abs(expandPx), "px")); }
+    // 盖印所有可见图层到新图层，作为内容感知填充的安全基底
+    var baseLayer = doc.activeLayer;
+    try {
+        var descMrg = new ActionDescriptor(); descMrg.putBoolean(charIDToTypeID("Dplc"), true);
+        executeAction(charIDToTypeID("MrgV"), descMrg, DialogModes.NO);
+    } catch (mrgErr) {
+        try { doc.activeLayer = baseLayer.duplicate(); } catch (dupErr) { return; }
+    }
+    var patchLayer = doc.activeLayer;
+    // 内容感知填充
+    var descFl = new ActionDescriptor();
+    descFl.putEnumerated(charIDToTypeID("Usng"), charIDToTypeID("FlCn"), stringIDToTypeID("contentAware"));
+    descFl.putUnitDouble(charIDToTypeID("Opct"), charIDToTypeID("#Prc"), 100.0);
+    try { executeAction(charIDToTypeID("Fl  "), descFl, DialogModes.NO); } catch (fillErr) { patchLayer.remove(); return; }
+    // 反选裁剪，只保留补丁区域
+    try { doc.selection.invert(); doc.selection.clear(); } catch (e) { }
+    try { doc.selection.deselect(); } catch (e) { }
+    // 整理图层到修图管理组
+    var retouchGroup = _ensureRetouchGroup(doc);
+    patchLayer.name = "【修补局部贴片】";
+    try { patchLayer.move(retouchGroup, ElementPlacement.PLACEATBEGINNING); } catch (e) { }
+}
+
 /**
- * 核心：一键去字 (由于部分 PS 版本在透明层使用 sampleAllLayers 容易报像素不足，
- * 改用：盖印可见图层 -> 内容感知填充 -> 反选删除只留补丁 -> 非破坏性修补贴片)
+ * 核心：一键去字（带 suspendHistory 包裹，整个操作只占 1 条历史记录）
+ * 流程：扩展选区 → 盖印可见层 → 内容感知填充 → 反选裁剪 → 整理到修图组
  */
 function autoEraseSelection(expandPx) {
     try {
         if (app.documents.length === 0) return "错误：没有打开的文档";
         var doc = app.activeDocument;
-
-        if (!hasSelection(doc)) {
-            return "失败：请先使用魔棒、套索等工具框选需要去除的文字或图案！";
-        }
-
-        // --- 预处理：扩展选区避免遗漏边缘 ---
-        expandPx = parseInt(expandPx) || 3;
-        try {
-            if (expandPx > 0) {
-                doc.selection.expand(new UnitValue(expandPx, "px"));
-            } else if (expandPx < 0) {
-                doc.selection.contract(new UnitValue(Math.abs(expandPx), "px"));
-            }
-        } catch (e) { }
-
-        // --- 提取源像素：强行把当前所有可见图层“盖印”提取到一张新图层，用来提供 100% 安全的内容感知基底 ---
-        var baseLayer = doc.activeLayer;
-        try {
-            var idMrgV = charIDToTypeID("MrgV");
-            var descMrg = new ActionDescriptor();
-            descMrg.putBoolean(charIDToTypeID("Dplc"), true);
-            executeAction(idMrgV, descMrg, DialogModes.NO);
-        } catch (mrgErr) {
-            // 若盖印失败（例如文档只有一个孤立背景层时），直接 duplicate 此层
-            try {
-                doc.activeLayer = baseLayer.duplicate();
-            } catch (dupErr) {
-                return "去字失败: 无法提取原位像素图像。";
-            }
-        }
-
-        var patchLayer = doc.activeLayer;
-
-        // --- 执行内容感知填充 ---
-        try {
-            var idFl = charIDToTypeID("Fl  ");
-            var descFl = new ActionDescriptor();
-            descFl.putEnumerated(charIDToTypeID("Usng"), charIDToTypeID("FlCn"), stringIDToTypeID("contentAware"));
-            var idOpct = charIDToTypeID("Opct");
-            var idPrc = charIDToTypeID("#Prc");
-            descFl.putUnitDouble(idOpct, idPrc, 100.0);
-
-            // 此处坚决不使用 sampleAllLayers，因为 patchLayer 自己就已经是所有可见图案的结晶！
-            executeAction(idFl, descFl, DialogModes.NO);
-        } catch (fillErr) {
-            patchLayer.remove(); // 失败则清理图层痕迹
-            return "去字(内容感知填充)失败: " + fillErr.toString() + " \n选定区域可能过大或过小不支持感知。";
-        }
-
-        // --- 反向选择，清除全图其余冗余画面，只留下选框内部的完美贴合贴片 ---
-        try {
-            doc.selection.invert();
-            doc.selection.clear(); // 强力裁剪
-        } catch (e) { }
-
-        // 扫尾：取消选区
-        try {
-            doc.selection.deselect();
-        } catch (e) { }
-
-        // --- 整理图层：放置到专属修图组中 ---
-        var retouchGroup = _ensureRetouchGroup(doc);
-
-        patchLayer.name = "【修补局部贴片】";
-
-        try {
-            // 将此修补层移动到修图管理组内最顶端
-            patchLayer.move(retouchGroup, ElementPlacement.PLACEATBEGINNING);
-        } catch (e) { }
-
+        if (!hasSelection(doc)) { return "失败：请先使用魔棒、套索等工具框选需要去除的文字或图案！"; }
+        var exPx = parseInt(expandPx) || 3;
+        // suspendHistory 将盖印+填充+裁剪+整理全部压缩为 1 条历史记录
+        doc.suspendHistory("一键去字", "_autoEraseSelectionImpl(" + exPx + ")");
         return "去字生成完毕 (已收入修图管理组)";
     } catch (e) {
         return "去字构建失败: " + e.toString();

@@ -34,6 +34,8 @@ class TypesetManager {
         this.selTextDirection = document.getElementById('sel-text-direction');
         this.inputFontSize = document.getElementById('input-font-size');
         this.selTypesetPreset = document.getElementById('sel-typeset-preset');
+        // 批量生成的仿粗体勾选框
+        this.chkBatchFauxBold = document.getElementById('chk-batch-faux-bold');
 
         this.stylePresets = []; // 本地缓存从样式面板同步过来的预设数据
 
@@ -239,12 +241,9 @@ class TypesetManager {
             });
         }
 
-        // --- 预设覆盖联动 --- 
+        // --- 预设覆盖联动 ---
         if (this.selTypesetPreset) {
-            // 当鼠标移入选框时动态刷新文件内容，以防在另一个面板刚建好预设
-            this.selTypesetPreset.addEventListener('mouseenter', () => {
-                this.loadStylePresets();
-            });
+            // 只在用户真正打开下拉框（focus）时才读取磁盘，避免 mouseenter 频繁 I/O
             this.selTypesetPreset.addEventListener('focus', () => {
                 this.loadStylePresets();
             });
@@ -324,7 +323,9 @@ class TypesetManager {
                 const styleParams = {
                     fontPostScriptName: this.selFontFamily ? this.selFontFamily.value : "",
                     fontSize: this.inputFontSize ? this.inputFontSize.value : "16",
-                    direction: this.selTextDirection ? this.selTextDirection.value : "VERTICAL"
+                    direction: this.selTextDirection ? this.selTextDirection.value : "VERTICAL",
+                    // 仿粗体：读取勾选框状态
+                    fauxBold: this.chkBatchFauxBold ? this.chkBatchFauxBold.checked : false
                 };
                 const styleJson = JSON.stringify(styleParams);
 
@@ -487,18 +488,20 @@ class TypesetManager {
         let currentPage = null;
         let currentDialog = null;
 
-        // 匹配页码分隔符，例如 === 第 1 页: 001.jpg ===
-        const pageRegex = /^===\s*第\s*(\d+)\s*页:\s*(.*?)\s*===$/;
+        // 匹配页码分隔符，兼容多种常见格式，例如：
+        //   === 第 1 页: 001.jpg ===
+        //   === 第1页 001.jpg ===
+        //   === 1 001.jpg ===
+        // 原有的 pageRegex / robustPageRegex / fallbackPageRegex 三个正则已合并为一个
+        const pageRegex = /^===\s*(?:第\s*)?(\d+)\s*(?:页[：:。]?)?\s*(.*?)\s*===$/;
         // 匹配对话编号，例如 [1] 为什么，赛亚人
         const dialogRegex = /^\[(\d+)\]\s*(.*)$/;
-        const robustPageRegex = /^===\s*[^\d]*(\d+)\s*[^\w\r\n=]*(.*?)\s*===$/;
-        const fallbackPageRegex = /^===\s*(?:第\s*)?(\d+)\s*(?:页)?\s*(.*?)\s*===$/;
 
         lines.forEach(line => {
             let trimmed = line.trim();
             if (!trimmed) return;
 
-            let pageMatch = trimmed.match(pageRegex) || trimmed.match(robustPageRegex) || trimmed.match(fallbackPageRegex);
+            let pageMatch = trimmed.match(pageRegex);
             if (pageMatch) {
                 currentPage = {
                     pageNum: pageMatch[1],

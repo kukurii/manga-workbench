@@ -1,4 +1,12 @@
-// typeset.jsx - 嵌字排版相关的 Photoshop ExtendScript
+﻿// typeset.jsx - 嵌字排版相关的 Photoshop ExtendScript
+// 全局临时变量 - 用于在 suspendHistory 回调中传递参数（ExtendScript ES3 限制）
+var _bulkDialogs = null;
+var _bulkStyle = null;
+var _applyFontPsName = null;
+var _applyFontSelected = null;
+var _applyFontApplied = 0;
+var _applyFontSkipped = 0;
+var _applyFontTotal = 0;
 
 /**
  * 极速版字体拉取：使用 ActionManager 提取本地化字体名，直接写为本地缓存文件
@@ -47,95 +55,65 @@ function generateFontCacheFile(exportPath) {
     }
 }
 
+// 【内部实现】批量生成文本图层 - 被 suspendHistory 调用
+// 依赖全局变量 _bulkDialogs/_bulkStyle，由 generateTextLayersBulk 提前设置
+function _generateTextLayersBulkImpl() {
+    var doc = app.activeDocument;
+    var dialogs = _bulkDialogs;
+    var styleParams = _bulkStyle;
+    var groupName = "【翻译文字】";
+    var txtGroup;
+    try { txtGroup = doc.layerSets.getByName(groupName); } catch (e) {
+        txtGroup = doc.layerSets.add(); txtGroup.name = groupName;
+    }
+    txtGroup.move(doc.layers[0], ElementPlacement.PLACEBEFORE);
+    var docHeight = doc.height.as("px");
+    for (var i = 0; i < dialogs.length; i++) {
+        var diag = dialogs[i];
+        var textLayer = txtGroup.artLayers.add();
+        textLayer.kind = LayerKind.TEXT;
+        textLayer.name = diag.id;
+        var textItem = textLayer.textItem;
+        textItem.contents = "T"; // 先英文占位，防止中文导致布局损坏
+        var colWidth = doc.width.as("px") / 4;
+        var rowHeight = 250;
+        var startX = 100 + ((i % 4) * colWidth);
+        var startY = 100 + (Math.floor(i / 4) * rowHeight);
+        if (startY > docHeight - 100) { startY = 150 + (i * 40 % (docHeight / 2)); startX = 100 + ((i % 3) * 150); }
+        textItem.position = [new UnitValue(startX, "px"), new UnitValue(startY, "px")];
+        try {
+            if (styleParams.direction === 'HORIZONTAL') { textItem.direction = Direction.HORIZONTAL; }
+            else { textItem.direction = Direction.VERTICAL; }
+            var fontSize = styleParams.fontSize ? parseFloat(styleParams.fontSize) : 16;
+            textItem.size = new UnitValue(fontSize, "pt");
+            if (styleParams.fontPostScriptName && styleParams.fontPostScriptName !== "") { textItem.font = styleParams.fontPostScriptName; }
+            try { textItem.fauxBold = (styleParams.fauxBold === true); } catch (efb) {}
+            textItem.useAutoLeading = true;
+            textItem.justification = Justification.LEFT;
+        } catch (e) { }
+        var content = diag.text.replace(/\\n/g, '\r');
+        if (styleParams.direction !== 'HORIZONTAL') { content = content.replace(/\?/g, '？').replace(/\!/g, '！'); }
+        textItem.contents = content;
+    }
+    doc.activeLayer = txtGroup;
+}
+
 /**
- * 将整页翻译文稿生成文本图层，避免全部重叠
- */
-function generateTextLayersBulk(dialogsJson, styleJson) {
+ * 将整页翻译文稿生成文本图层（带 suspendHistory 包裹，防崩溃）
+ */function generateTextLayersBulk(dialogsJson, styleJson) {
     try {
         if (app.documents.length === 0) return "错误：当前 Photoshop 没有打开任何文档进行放置。";
-
         var doc = app.activeDocument;
-        var dialogs = JSON.parse(dialogsJson);
-        var styleParams = JSON.parse(styleJson);
-
-        // 创建或获取【翻译文字】图层组
-        var groupName = "【翻译文字】";
-        var txtGroup;
-        try {
-            txtGroup = doc.layerSets.getByName(groupName);
-        } catch (e) {
-            txtGroup = doc.layerSets.add();
-            txtGroup.name = groupName;
-        }
-
-        // 将翻译文字置于顶层
-        txtGroup.move(doc.layers[0], ElementPlacement.PLACEBEFORE);
-
-        // 简单计算画板总高度，以便于将文本纵向瀑布流排开避免完全堆叠
-        var docHeight = doc.height.as("px");
-
-        for (var i = 0; i < dialogs.length; i++) { // 创建新的文本图层
-            var diag = dialogs[i];
-            var textLayer = txtGroup.artLayers.add();
-            textLayer.kind = LayerKind.TEXT;
-            textLayer.name = diag.id; // 使用对话ID作为图层名
-
-            var textItem = textLayer.textItem;
-
-            // 核心修复：先用一个英文字符占位，防止提前混入中文字符导致 PS 后续更换字体时文本引擎的包围盒渲染直接损坏（即表现为无法选中、无法光标吸附、无法拖动）
-            textItem.contents = "T";
-
-            // 智能排版落点计算 (防遮挡的斜向大落差大跨度瀑布流)
-            var colWidth = doc.width.as("px") / 4; // 分为 4 列
-            var rowHeight = 250;
-
-            var startX = 100 + ((i % 4) * colWidth);
-            var startY = 100 + (Math.floor(i / 4) * rowHeight);
-
-            // 如果超出画板底端，强制拉回到另外一条垂直阶梯排列，并增加横向缩进
-            if (startY > docHeight - 100) {
-                startY = 150 + (i * 40 % (docHeight / 2));
-                startX = 100 + ((i % 3) * 150);
-            }
-
-            textItem.position = [new UnitValue(startX, "px"), new UnitValue(startY, "px")];
-
-            // 基础样式设置（在占位符上设置）
-            try {
-                // 读取并在竖排和横排间切换以匹配不同需求（日漫/韩漫）
-                if (styleParams.direction === 'HORIZONTAL') {
-                    textItem.direction = Direction.HORIZONTAL;
-                } else {
-                    textItem.direction = Direction.VERTICAL;
-                }
-
-                // 应用传入的字号
-                var fontSize = styleParams.fontSize ? parseFloat(styleParams.fontSize) : 16;
-                textItem.size = new UnitValue(fontSize, "pt");
-
-                // 应用传入的字体 (必须使用 postScriptName)
-                if (styleParams.fontPostScriptName && styleParams.fontPostScriptName !== "") {
-                    textItem.font = styleParams.fontPostScriptName;
-                }
-
-                textItem.useAutoLeading = true;
-                textItem.justification = Justification.LEFT;
-            } catch (e) { }
-
-            // 全部排版参数配置完毕后，最后填入正式内容。
-            // 预处理换行和简单的标点替换：自动将半角问号叹号转成全角
-            var content = diag.text.replace(/\\n/g, '\r');
-            if (styleParams.direction !== 'HORIZONTAL') {
-                content = content.replace(/\?/g, '？').replace(/\!/g, '！');
-            }
-            textItem.contents = content;
-        }
-
-        // 选中刚创建的组
-        doc.activeLayer = txtGroup;
-
-        return "批量生成文本结束，共 " + dialogs.length + " 个图层。";
+        // 通过全局变量传参给 suspendHistory 的回调（避免 JSON 转义问题）
+        _bulkDialogs = JSON.parse(dialogsJson);
+        _bulkStyle = JSON.parse(styleJson);
+        var count = _bulkDialogs.length;
+        // suspendHistory 将整个批量操作压缩为 1 条历史记录
+        doc.suspendHistory("批量生成文字（共 " + count + " 条）", "_generateTextLayersBulkImpl()");
+        _bulkDialogs = null; _bulkStyle = null;
+        return "批量生成文本结束，共 " + count + " 个图层。";
     } catch (e) {
+        _bulkDialogs = null; _bulkStyle = null;
         return "生成图层时发生错误: " + e.toString();
     }
 }
@@ -367,117 +345,88 @@ function applyFontToLayer(postScriptName) {
     }
 }
 
-/**
- * 批量应用字体：对“当前选择的多个图层”中的文本图层应用字体
- * - 若当前仅单选，则等同于 applyFontToLayer
- * 返回：SUCCESS|||{"total":x,"applied":y,"skipped":z}
- */
-function applyFontToSelectedTextLayers(postScriptName) {
-    try {
-        if (app.documents.length === 0) return "错误：没有打开的文档";
-        var doc = app.activeDocument;
-
-        function getSelectedLayerIndices() {
-            var indices = [];
-            try {
-                var ref = new ActionReference();
-                ref.putProperty(charIDToTypeID("Prpr"), stringIDToTypeID("targetLayers"));
-                ref.putEnumerated(charIDToTypeID("Dcmn"), charIDToTypeID("Ordn"), charIDToTypeID("Trgt"));
-                var desc = executeActionGet(ref);
-                if (!desc.hasKey(stringIDToTypeID("targetLayers"))) return indices;
-
-                var list = desc.getList(stringIDToTypeID("targetLayers"));
-                for (var i = 0; i < list.count; i++) {
-                    var ref2 = list.getReference(i);
-                    var idx = ref2.getIndex();
-                    indices.push(idx);
-                }
-            } catch (e) { }
-            return indices;
-        }
-
-        function selectLayerByIndex(idx) {
-            var idslct = charIDToTypeID("slct");
-            var desc = new ActionDescriptor();
-            var idnull = charIDToTypeID("null");
-            var ref = new ActionReference();
-            ref.putIndex(charIDToTypeID("Lyr "), idx);
-            desc.putReference(idnull, ref);
-            desc.putBoolean(charIDToTypeID("MkVs"), false);
-            executeAction(idslct, desc, DialogModes.NO);
-        }
-
-        var selected = getSelectedLayerIndices();
-        // 若没有拿到多选信息，降级为单层处理（兼容某些版本 PS）
-        if (!selected || selected.length === 0) {
-            return applyFontToLayer(postScriptName);
-        }
-
-        var applied = 0;
-        var skipped = 0;
-        var total = selected.length;
-
-        for (var k = 0; k < selected.length; k++) {
-            try {
-                selectLayerByIndex(selected[k]);
-                var lr = doc.activeLayer;
-                if (lr && lr.kind === LayerKind.TEXT) {
-                    lr.textItem.font = postScriptName;
-                    applied++;
-                } else {
-                    skipped++;
-                }
-            } catch (e1) {
-                skipped++;
-            }
-        }
-
-        return 'SUCCESS|||{"total":' + total + ',"applied":' + applied + ',"skipped":' + skipped + "}";
-    } catch (e) {
-        return "更改字体失败: " + e.toString();
+// 【内部实现】对多选图层换字体 - 被 suspendHistory 调用
+function _applyFontToSelectedImpl() {
+    var doc = app.activeDocument;
+    var postScriptName = _applyFontPsName;
+    var selected = _applyFontSelected;
+    function selectLayerByIndex(idx) {
+        var desc = new ActionDescriptor(); var ref = new ActionReference();
+        ref.putIndex(charIDToTypeID("Lyr "), idx);
+        desc.putReference(charIDToTypeID("null"), ref);
+        desc.putBoolean(charIDToTypeID("MkVs"), false);
+        executeAction(charIDToTypeID("slct"), desc, DialogModes.NO);
+    }
+    for (var k = 0; k < selected.length; k++) {
+        try {
+            selectLayerByIndex(selected[k]);
+            var lr = doc.activeLayer;
+            if (lr && lr.kind === LayerKind.TEXT) { lr.textItem.font = postScriptName; _applyFontApplied++; }
+            else { _applyFontSkipped++; }
+        } catch (e1) { _applyFontSkipped++; }
     }
 }
 
 /**
- * 批量应用字体：对“当前文档全部文本图层”（含编组内）应用字体
- * 返回：SUCCESS|||{"total":x,"applied":y,"skipped":z}
- */
-function applyFontToAllTextLayers(postScriptName) {
+ * 批量应用字体：对"当前选择的多个图层"中的文本图层应用字体
+ * 【带 suspendHistory 包裹：整批操作只产生 1 条历史记录】
+ */function applyFontToSelectedTextLayers(postScriptName) {
     try {
         if (app.documents.length === 0) return "错误：没有打开的文档";
         var doc = app.activeDocument;
+        var selected = [];
+        try {
+            var ref = new ActionReference();
+            ref.putProperty(charIDToTypeID("Prpr"), stringIDToTypeID("targetLayers"));
+            ref.putEnumerated(charIDToTypeID("Dcmn"), charIDToTypeID("Ordn"), charIDToTypeID("Trgt"));
+            var desc = executeActionGet(ref);
+            if (desc.hasKey(stringIDToTypeID("targetLayers"))) {
+                var list = desc.getList(stringIDToTypeID("targetLayers"));
+                for (var i = 0; i < list.count; i++) { selected.push(list.getReference(i).getIndex()); }
+            }
+        } catch (e) { }
+        if (!selected || selected.length === 0) { return applyFontToLayer(postScriptName); }
+        var total = selected.length;
+        _applyFontPsName = postScriptName; _applyFontSelected = selected; _applyFontApplied = 0; _applyFontSkipped = 0;
+        doc.suspendHistory("批量换字体（" + total + " 个图层）", "_applyFontToSelectedImpl()");
+        var applied = _applyFontApplied; var skipped = _applyFontSkipped;
+        _applyFontPsName = null; _applyFontSelected = null; _applyFontApplied = 0; _applyFontSkipped = 0;
+        return 'SUCCESS|||{"total":' + total + ',"applied":' + applied + ',"skipped":' + skipped + "}";
+    } catch (e) { return "更改字体失败: " + e.toString(); }
+}
 
-        var applied = 0;
-        var skipped = 0;
-        var total = 0;
-
-        function walk(layers) {
-            for (var i = 0; i < layers.length; i++) {
-                var lr = layers[i];
-                if (lr.typename === "LayerSet") {
-                    walk(lr.layers);
-                } else {
-                    total++;
-                    if (lr.kind === LayerKind.TEXT) {
-                        try {
-                            lr.textItem.font = postScriptName;
-                            applied++;
-                        } catch (e1) {
-                            skipped++;
-                        }
-                    } else {
-                        skipped++;
-                    }
-                }
+// 【内部实现】全文档换字体 - 被 suspendHistory 调用
+function _applyFontToAllImpl() {
+    var doc = app.activeDocument;
+    var postScriptName = _applyFontPsName;
+    function walk(layers) {
+        for (var i = 0; i < layers.length; i++) {
+            var lr = layers[i];
+            if (lr.typename === "LayerSet") { walk(lr.layers); }
+            else {
+                _applyFontTotal++;
+                if (lr.kind === LayerKind.TEXT) {
+                    try { lr.textItem.font = postScriptName; _applyFontApplied++; } catch (e1) { _applyFontSkipped++; }
+                } else { _applyFontSkipped++; }
             }
         }
-
-        walk(doc.layers);
-
-        return 'SUCCESS|||{"total":' + total + ',"applied":' + applied + ',"skipped":' + skipped + "}";
-    } catch (e) {
-        return "更改字体失败: " + e.toString();
     }
+    walk(doc.layers);
+}
+
+/**
+ * 批量应用字体：对"当前文档全部文本图层"（含编组内）应用字体
+ * 【带 suspendHistory 包裹：整批操作只产生 1 条历史记录】
+ */function applyFontToAllTextLayers(postScriptName) {
+    try {
+        if (app.documents.length === 0) return "错误：没有打开的文档";
+        var doc = app.activeDocument;
+        _applyFontPsName = postScriptName; _applyFontApplied = 0; _applyFontSkipped = 0; _applyFontTotal = 0;
+        doc.suspendHistory("全文档换字体", "_applyFontToAllImpl()");
+        var total = _applyFontTotal; var applied = _applyFontApplied; var skipped = _applyFontSkipped;
+        _applyFontPsName = null; _applyFontApplied = 0; _applyFontSkipped = 0; _applyFontTotal = 0;
+        return 'SUCCESS|||{"total":' + total + ',"applied":' + applied + ',"skipped":' + skipped + "}";
+    } catch (e) { return "更改字体失败: " + e.toString(); }
 }
 
 /**

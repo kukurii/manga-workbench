@@ -193,12 +193,12 @@ window.showAlertModal = function (msg, title, onOk) {
     const overlay = document.getElementById('modal-alert');
     if (!overlay) { alert(msg); if (onOk) onOk(); return; }
 
-    document.getElementById('modal-alert-title').textContent = title || '提示';
-    document.getElementById('modal-alert-msg').textContent = msg;
+    // 一次性赋值，同时做乱码兜底处理
+    const normAlert = window.normalizeUIString || function(v) { return v; };
+    document.getElementById('modal-alert-title').textContent = normAlert(title || '提示');
+    document.getElementById('modal-alert-msg').textContent = normAlert(msg);
     overlay.classList.add('show');
 
-    document.getElementById('modal-alert-title').textContent = window.normalizeUIString ? window.normalizeUIString(document.getElementById('modal-alert-title').textContent) : document.getElementById('modal-alert-title').textContent;
-    document.getElementById('modal-alert-msg').textContent = window.normalizeUIString ? window.normalizeUIString(document.getElementById('modal-alert-msg').textContent) : document.getElementById('modal-alert-msg').textContent;
     const btn = document.getElementById('btn-alert-ok');
     const handler = function () {
         overlay.classList.remove('show');
@@ -231,12 +231,12 @@ window.showConfirmModal = function (msg, onOk, onCancel, title) {
         return;
     }
 
-    document.getElementById('modal-confirm-title').textContent = title || '确认操作';
-    document.getElementById('modal-confirm-msg').textContent = msg;
+    // 一次性赋值，同时做乱码兜底处理
+    const normConfirm = window.normalizeUIString || function(v) { return v; };
+    document.getElementById('modal-confirm-title').textContent = normConfirm(title || '确认操作');
+    document.getElementById('modal-confirm-msg').textContent = normConfirm(msg);
     overlay.classList.add('show');
 
-    document.getElementById('modal-confirm-title').textContent = window.normalizeUIString ? window.normalizeUIString(document.getElementById('modal-confirm-title').textContent) : document.getElementById('modal-confirm-title').textContent;
-    document.getElementById('modal-confirm-msg').textContent = window.normalizeUIString ? window.normalizeUIString(document.getElementById('modal-confirm-msg').textContent) : document.getElementById('modal-confirm-msg').textContent;
     const btnOk = document.getElementById('btn-confirm-ok');
     const btnCancel = document.getElementById('btn-confirm-cancel');
 
@@ -273,10 +273,10 @@ window.showPromptModal = function (desc, defaultVal, callback, title) {
         return;
     }
 
-    document.getElementById('modal-prompt-title').textContent = title || '输入';
-    document.getElementById('modal-prompt-desc').textContent = desc;
-    document.getElementById('modal-prompt-title').textContent = window.normalizeUIString ? window.normalizeUIString(document.getElementById('modal-prompt-title').textContent) : document.getElementById('modal-prompt-title').textContent;
-    document.getElementById('modal-prompt-desc').textContent = window.normalizeUIString ? window.normalizeUIString(document.getElementById('modal-prompt-desc').textContent) : document.getElementById('modal-prompt-desc').textContent;
+    // 一次性赋值，同时做乱码兜底处理
+    const normPrompt = window.normalizeUIString || function(v) { return v; };
+    document.getElementById('modal-prompt-title').textContent = normPrompt(title || '输入');
+    document.getElementById('modal-prompt-desc').textContent = normPrompt(desc);
     const input = document.getElementById('modal-prompt-input');
     input.value = defaultVal || '';
     overlay.classList.add('show');
@@ -327,7 +327,8 @@ window.callHostScript = function (csInterface, fnName, args, callback) {
     }
 
     const serializedArgs = (args || []).map(arg => JSON.stringify(arg)).join(', ');
-    csInterface.evalScript(`${fnName}(${serializedArgs})`, callback);
+    // 如果调用方没传 callback，给一个空函数兜底，防止 CEP 报错
+    csInterface.evalScript(`${fnName}(${serializedArgs})`, callback || function() {});
 };
 
 window.normalizeUIString = function (value) {

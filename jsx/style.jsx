@@ -376,6 +376,134 @@ function setTextLayerColor(r, g, b) {
     }
 }
 
+// Stable replacement for setTextLayerColor.
+// The earlier implementation selected target layers by item index; Photoshop can
+// report those indices with an offset in some documents, which changes the layer
+// below the user's selection. Layer IDs are stable across groups and selection
+// states, so use them here and restore the original selection afterwards.
+function setTextLayerColor(r, g, b) {
+    try {
+        if (app.documents.length === 0) return "ERROR: no open document";
+        var doc = app.activeDocument;
+
+        var newColor = new SolidColor();
+        newColor.rgb.red = r;
+        newColor.rgb.green = g;
+        newColor.rgb.blue = b;
+
+        var changedCount = 0;
+
+        function applyColorToLayer(layer) {
+            try {
+                if (layer && layer.kind === LayerKind.TEXT) {
+                    layer.textItem.color = newColor;
+                    changedCount++;
+                    return true;
+                }
+            } catch (e) {
+            }
+            return false;
+        }
+
+        function pushUnique(arr, value) {
+            if (value === undefined || value === null) return;
+            for (var i = 0; i < arr.length; i++) {
+                if (arr[i] === value) return;
+            }
+            arr.push(value);
+        }
+
+        function getActiveLayerID() {
+            var ref = new ActionReference();
+            ref.putProperty(charIDToTypeID("Prpr"), stringIDToTypeID("layerID"));
+            ref.putEnumerated(charIDToTypeID("Lyr "), charIDToTypeID("Ordn"), charIDToTypeID("Trgt"));
+            var desc = executeActionGet(ref);
+            return desc.getInteger(stringIDToTypeID("layerID"));
+        }
+
+        function getIdentifierFromReference(ref) {
+            try { return ref.getIdentifier(stringIDToTypeID("layerID")); } catch (e1) { }
+            try { return ref.getIdentifier(charIDToTypeID("Lyr ")); } catch (e2) { }
+            try { return ref.getIdentifier(); } catch (e3) { }
+            return null;
+        }
+
+        function getSelectedLayerIDs() {
+            var ids = [];
+            try {
+                var ref = new ActionReference();
+                ref.putProperty(charIDToTypeID("Prpr"), stringIDToTypeID("targetLayersIDs"));
+                ref.putEnumerated(charIDToTypeID("Dcmn"), charIDToTypeID("Ordn"), charIDToTypeID("Trgt"));
+                var desc = executeActionGet(ref);
+                if (desc.hasKey(stringIDToTypeID("targetLayersIDs"))) {
+                    var list = desc.getList(stringIDToTypeID("targetLayersIDs"));
+                    for (var i = 0; i < list.count; i++) {
+                        try {
+                            pushUnique(ids, getIdentifierFromReference(list.getReference(i)));
+                        } catch (e2) {
+                        }
+                    }
+                }
+            } catch (e) {
+            }
+
+            if (ids.length === 0) {
+                try { pushUnique(ids, getActiveLayerID()); } catch (e3) { }
+            }
+            return ids;
+        }
+
+        function selectLayerByID(id, addToSelection) {
+            var desc = new ActionDescriptor();
+            var ref = new ActionReference();
+            ref.putIdentifier(charIDToTypeID("Lyr "), id);
+            desc.putReference(charIDToTypeID("null"), ref);
+            if (addToSelection) {
+                desc.putEnumerated(
+                    stringIDToTypeID("selectionModifier"),
+                    stringIDToTypeID("selectionModifierType"),
+                    stringIDToTypeID("addToSelection")
+                );
+            }
+            desc.putBoolean(charIDToTypeID("MkVs"), false);
+            executeAction(charIDToTypeID("slct"), desc, DialogModes.NO);
+        }
+
+        function restoreLayerSelection(ids) {
+            if (!ids || ids.length === 0) return;
+            try {
+                selectLayerByID(ids[0], false);
+                for (var i = 1; i < ids.length; i++) {
+                    selectLayerByID(ids[i], true);
+                }
+            } catch (e) {
+            }
+        }
+
+        var selected = getSelectedLayerIDs();
+        if (!selected || selected.length === 0) {
+            applyColorToLayer(doc.activeLayer);
+        } else {
+            for (var j = 0; j < selected.length; j++) {
+                try {
+                    selectLayerByID(selected[j], false);
+                    applyColorToLayer(doc.activeLayer);
+                } catch (e1) {
+                }
+            }
+            if (changedCount === 0) {
+                applyColorToLayer(doc.activeLayer);
+            }
+            restoreLayerSelection(selected);
+        }
+
+        if (changedCount === 0) return "ERROR: please select one or more text layers";
+        return "SUCCESS (" + changedCount + " text layer color changed)";
+    } catch (e) {
+        return "ERROR: failed to change text color " + e.toString();
+    }
+}
+
 function hideLayerEffects() {
     try {
         if (app.documents.length === 0) return "错误：没有打开的文档";

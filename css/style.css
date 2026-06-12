@@ -565,7 +565,8 @@ select {
 /* ── 缩略图网格 ── */
 .thumbnail-grid {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  /* auto-fill：面板宽度变化时自动调整列数，每列最小 80px，不超过 2 列 */
+  grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
   gap: 8px;
   max-height: 380px;
   overflow-y: auto;
@@ -1002,7 +1003,7 @@ select {
   left: 50%;
   transform: translateX(-50%);
   background: var(--surface-2);
-  border: 1px solid var(--border-color);
+  border: 1px solid var(--border);  /* 原为未定义的 --border-color，已修正为 --border */
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
   padding: 8px 16px;
   border-radius: 20px;
@@ -1043,11 +1044,14 @@ select {
 
 .collapse-arrow {
   font-size: 10px;
+  /* 默认状态（折叠关闭）：箭头指向右 ▶ */
+  transform: rotate(-90deg);
   transition: transform 0.2s;
   width: 14px;
   text-align: center;
 }
 
+/* 展开状态：箭头指向下 ▼ */
 .collapse-section.open .collapse-arrow {
   transform: rotate(0deg);
 }

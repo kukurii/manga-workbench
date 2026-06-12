@@ -60,8 +60,8 @@ function openOrSwitchDocument(filePath) {
     try {
         var fileToOpen = new File(filePath);
         if (!fileToOpen.exists) {
-            alert("文件不存在: " + filePath);
-            return;
+            // 不使用 alert()！会弹出 PS 系统对话框阻塞 ExtendScript 线程，导致 CEP 面板卡死
+            return "ERROR:文件不存在: " + filePath;
         }
 
         var docAlreadyOpen = false;
@@ -87,8 +87,8 @@ function openOrSwitchDocument(filePath) {
 
         return "Opened document.";
     } catch (e) {
-        alert("打开文档失败: " + e.toString());
-        return e.toString();
+        // 不使用 alert()！会阻塞 PS ExtendScript 线程，导致 CEP 面板卡死
+        return "ERROR:打开文档失败: " + e.toString();
     }
 }
 

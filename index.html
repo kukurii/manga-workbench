@@ -441,6 +441,13 @@
                         <input type="number" id="input-font-size" value="16" min="1" max="200" class="input--sm">
                         <span class="form-unit">pt</span>
                     </div>
+                    <div class="form-row mb-2" style="align-items:center;">
+                        <span class="form-label">仿粗体</span>
+                        <label style="display:flex; align-items:center; gap:6px; cursor:pointer;">
+                            <input type="checkbox" id="chk-batch-faux-bold">
+                            <span class="form-hint" style="margin:0;">开启仿粗体（适合无粗体字重的字体）</span>
+                        </label>
+                    </div>
                     <button id="btn-auto-typeset" class="btn btn--primary btn--block btn--lg">
                         批量生成文本图层
                     </button>
@@ -995,8 +1002,6 @@
                 <!-- 动态生成对比列表 -->
             </div>
         </div>
-    </div>
-
     </div>
 
     <!-- ══════════════════════════════════════
