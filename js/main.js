@@ -320,15 +320,44 @@ window.showPromptModal = function (desc, defaultVal, callback, title) {
     input.addEventListener('compositionend', onCompositionEnd);
 };
 
-window.callHostScript = function (csInterface, fnName, args, callback) {
+window.callHostScript = function (csInterface, fnName, args, callback, options) {
     if (!csInterface || typeof csInterface.evalScript !== 'function') {
         if (typeof callback === 'function') callback('ERROR: CSInterface unavailable');
         return;
     }
 
     const serializedArgs = (args || []).map(arg => JSON.stringify(arg)).join(', ');
-    // 如果调用方没传 callback，给一个空函数兜底，防止 CEP 报错
-    csInterface.evalScript(`${fnName}(${serializedArgs})`, callback || function() {});
+    const script = `${fnName}(${serializedArgs})`;
+
+    // 【优化】支持批量调用模式和超时控制
+    options = options || {};
+    const timeout = options.timeout || 30000; // 默认 30 秒超时
+
+    // 创建超时包装的回调
+    let timeoutId = null;
+    let completed = false;
+    const wrappedCallback = function(result) {
+        if (completed) return; // 防止超时和正常返回同时触发
+        completed = true;
+        if (timeoutId) clearTimeout(timeoutId);
+        if (callback) callback(result);
+    };
+
+    // 设置超时定时器
+    timeoutId = setTimeout(() => {
+        if (completed) return;
+        completed = true;
+        console.warn(`[Timeout] ${fnName} 超时 (${timeout}ms)`);
+        if (callback) callback('ERROR: 操作超时，Photoshop 可能卡住或正在处理大文件');
+    }, timeout);
+
+    if (options.batch && window.batchHelper) {
+        // 使用批量助手收集调用，减少通信开销
+        window.batchHelper.enqueue(script, wrappedCallback, options.immediate);
+    } else {
+        // 传统模式：直接调用
+        csInterface.evalScript(script, wrappedCallback);
+    }
 };
 
 window.normalizeUIString = function (value) {
@@ -369,14 +398,23 @@ window.onload = function () {
 
     navBtns.forEach(btn => {
         btn.addEventListener('click', function () {
-            // 重置状态
-            navBtns.forEach(b => b.classList.remove('active'));
-            panels.forEach(p => p.classList.remove('active'));
-
-            // 激活当前点击的标签及对应面板
-            this.classList.add('active');
             const targetId = this.getAttribute('data-target');
-            document.getElementById(targetId).classList.add('active');
+
+            // 【优化】延迟加载：首次切换到面板时加载对应的 JSX 模块和管理器
+            loadPanelModules(targetId, () => {
+                initPanelManager(targetId);
+
+                // 重置状态
+                navBtns.forEach(b => b.classList.remove('active'));
+                panels.forEach(p => p.classList.remove('active'));
+
+                // 激活当前点击的标签及对应面板
+                this.classList.add('active');
+                document.getElementById(targetId).classList.add('active');
+
+                // 【优化】同步面板状态到 app
+                window.app.switchPanel(targetId);
+            });
         });
     });
 
@@ -403,36 +441,6 @@ window.onload = function () {
     const cs = new CSInterface();
     const extPath = cs.getSystemPath(SystemPath.EXTENSION);
 
-    // 我们在此告诉系统要加载哪些模块文件
-    const jsxModules = [
-        "jsx/json2.jsx",       // 必须第一个加载，为 ExtendScript(ES3) 补全 JSON.parse/stringify
-        "jsx/main.jsx",
-        "jsx/pageManager.jsx",
-        "jsx/compare.jsx",
-        "jsx/typeset.jsx",
-        "jsx/style.jsx",
-        "jsx/retouch.jsx"
-    ];
-
-    // IMPORTANT:
-    // cs.evalScript 是异步的；如果用 forEach 并发加载，会导致模块加载顺序不确定
-    // （json2.jsx 可能还没加载完就执行了依赖 JSON 的脚本）。
-    // 这里改为严格串行加载，且每个文件只加载一次。
-    function loadJsxModulesSerial(modules, done) {
-        let i = 0;
-        const next = () => {
-            if (i >= modules.length) {
-                if (done) done();
-                return;
-            }
-            const modulePath = modules[i++];
-            const absPath = extPath + "/" + modulePath;
-            const safeAbsPath = absPath.replace(/\\/g, '\\\\');
-            cs.evalScript(`$.evalFile("${safeAbsPath}")`, next);
-        };
-        next();
-    }
-
     // 确保数据目录存在 (放置 font 缓存、收藏、最近使用等 json 文件)
     // 统一使用插件自身的 data/ 目录，便于直接读取预置的 font-cn-cache.json
     const dataDir = extPath + "/data";
@@ -441,33 +449,145 @@ window.onload = function () {
         window.cep.fs.makedir(dataDir);
     }
 
-    // --- 实例化各模块的前端逻辑 ---
-    // 延迟初始化，确保所有 DOM 和 JSX 模块已准备就绪
-    function initPanels() {
-        window.pageManager = new PageManager(cs, extPath, dataDir);
-        window.typesetManager = new TypesetManager(cs, extPath, dataDir);
-        window.styleManager = new StyleManager(cs, extPath, dataDir);
-        window.fxManager = new FxManager(cs, extPath, dataDir);
-        window.retouchManager = new RetouchManager(cs, extPath, dataDir);
-        window.fontManager = new FontManager(cs, extPath, dataDir);
-        window.presetsManager = new PresetsManager(cs, extPath, dataDir);
+    // 【优化】初始化应用命名空间
+    window.app.init(cs, extPath, dataDir);
 
-        // 原图对比的旧逻辑在 pageManager.js 中已重构，这里仅保留以防万一
-        const btnCompare = document.getElementById('btn-toggle-compare');
-        if (btnCompare && !window.pageManager) { // 仅当 pageManager 未初始化时才执行旧逻辑
-            btnCompare.addEventListener('click', () => {
-                cs.evalScript(`backupOriginalLayer()`, () => cs.evalScript(`toggleOriginalCompare()`));
-                btnCompare.classList.toggle('active-contrast');
-                btnCompare.innerText = btnCompare.classList.contains('active-contrast')
-                    ? "👁️ 隐藏原图查看嵌字 (长按对比)"
-                    : "👀 点击开启原图对比";
+    // 【优化】初始化批量调用助手（减少 evalScript 通信开销）
+    window.batchHelper = new BatchHelper(cs);
+
+    // 【优化】模块延迟加载策略：
+    // 1. 核心模块：立即加载（json2, main, pageManager）
+    // 2. 功能模块：首次使用面板时才加载
+    const coreModules = [
+        "jsx/json2.jsx",       // 必须第一个加载，为 ExtendScript(ES3) 补全 JSON.parse/stringify
+        "jsx/main.jsx",
+        "jsx/pageManager.jsx"  // 页面管理是最常用功能，提前加载
+    ];
+
+    // 延迟加载模块映射表（面板 ID → JSX 文件）
+    const lazyModules = {
+        'panel-typeset': ["jsx/typeset.jsx"],
+        'panel-style': ["jsx/style.jsx"],
+        'panel-retouch': ["jsx/retouch.jsx", "jsx/compare.jsx"],
+        'panel-fx': [],  // FX 面板暂无独立 JSX
+        'panel-font': [], // 字体管理纯前端逻辑
+        'panel-settings': []
+    };
+
+    // 记录已加载的模块，避免重复加载
+    const loadedModules = new Set();
+
+    // 串行加载多个 JSX 模块
+    function loadJsxModulesSerial(modules, done) {
+        let i = 0;
+        const next = () => {
+            if (i >= modules.length) {
+                if (done) done();
+                return;
+            }
+            const modulePath = modules[i++];
+            // 跳过已加载的模块
+            if (loadedModules.has(modulePath)) {
+                next();
+                return;
+            }
+            const absPath = extPath + "/" + modulePath;
+            const safeAbsPath = absPath.replace(/\\/g, '\\\\');
+            cs.evalScript(`$.evalFile("${safeAbsPath}")`, (result) => {
+                loadedModules.add(modulePath);
+                next();
             });
+        };
+        next();
+    }
+
+    // 延迟加载指定面板的 JSX 模块
+    function loadPanelModules(panelId, callback) {
+        const modules = lazyModules[panelId];
+        if (!modules || modules.length === 0) {
+            if (callback) callback();
+            return;
+        }
+        // 过滤出尚未加载的模块
+        const pending = modules.filter(m => !loadedModules.has(m));
+        if (pending.length === 0) {
+            if (callback) callback();
+            return;
+        }
+        loadJsxModulesSerial(pending, callback);
+    }
+
+    // --- 实例化各模块的前端逻辑 ---
+    // 【优化】改为按需初始化，避免启动时实例化所有管理器
+    const managers = {}; // 存储已实例化的管理器
+
+    // 初始化指定面板的管理器
+    function initPanelManager(panelId) {
+        if (managers[panelId]) return; // 已初始化，跳过
+
+        switch(panelId) {
+            case 'panel-page':
+                if (!window.pageManager) {
+                    window.pageManager = new PageManager(cs, extPath, dataDir);
+                    managers[panelId] = window.pageManager;
+                    // 【优化】注册到 app 命名空间
+                    window.app.registerManager('page', window.pageManager);
+                }
+                break;
+            case 'panel-typeset':
+                if (!window.typesetManager) {
+                    window.typesetManager = new TypesetManager(cs, extPath, dataDir);
+                    managers[panelId] = window.typesetManager;
+                    window.app.registerManager('typeset', window.typesetManager);
+                }
+                break;
+            case 'panel-style':
+                if (!window.styleManager) {
+                    window.styleManager = new StyleManager(cs, extPath, dataDir);
+                    managers[panelId] = window.styleManager;
+                    window.app.registerManager('style', window.styleManager);
+                }
+                break;
+            case 'panel-fx':
+                if (!window.fxManager) {
+                    window.fxManager = new FxManager(cs, extPath, dataDir);
+                    managers[panelId] = window.fxManager;
+                    window.app.registerManager('fx', window.fxManager);
+                }
+                break;
+            case 'panel-retouch':
+                if (!window.retouchManager) {
+                    window.retouchManager = new RetouchManager(cs, extPath, dataDir);
+                    managers[panelId] = window.retouchManager;
+                    window.app.registerManager('retouch', window.retouchManager);
+                }
+                break;
+            case 'panel-font':
+                if (!window.fontManager) {
+                    window.fontManager = new FontManager(cs, extPath, dataDir);
+                    managers[panelId] = window.fontManager;
+                    window.app.registerManager('font', window.fontManager);
+                }
+                break;
+            case 'panel-settings':
+                if (!window.presetsManager) {
+                    window.presetsManager = new PresetsManager(cs, extPath, dataDir);
+                    managers[panelId] = window.presetsManager;
+                    window.app.registerManager('presets', window.presetsManager);
+                }
+                break;
         }
     }
 
-    // 串行加载全部 JSX 后再初始化各面板
-    loadJsxModulesSerial(jsxModules, () => {
-        setTimeout(initPanels, 100); // 双重保险：确保 DOM/JSX 均已准备就绪
+    // 【优化】仅加载核心模块，其他模块按需加载
+    loadJsxModulesSerial(coreModules, () => {
+        // 核心模块加载完成，立即初始化页面管理器（默认激活面板）
+        setTimeout(() => {
+            initPanelManager('panel-page');
+            // 隐藏加载指示器（如果有）
+            const loader = document.getElementById('startup-loader');
+            if (loader) loader.style.display = 'none';
+        }, 100);
     });
 
     // 原图对比快捷操作（此部分逻辑已移至 pageManager.js，为安全起见注释掉旧代码）

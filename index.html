@@ -6,6 +6,12 @@
     <title>漫画汉化工作台</title>
     <link rel="stylesheet" href="css/style.css">
     <script src="js/CSInterface.js"></script>
+    <script src="js/modules/encodingFixer.js"></script>
+    <script src="js/modules/errorHandler.js"></script>
+    <script src="js/modules/eventManager.js"></script>
+    <script src="js/modules/batchHelper.js"></script>
+    <script src="js/modules/progressBar.js"></script>
+    <script src="js/modules/namespaceManager.js"></script>
     <script src="js/modules/pageManager.js"></script>
     <script src="js/modules/typeset.js"></script>
     <script src="js/modules/styleTool.js"></script>
@@ -17,6 +23,16 @@
 </head>
 
 <body>
+
+    <!-- ══════════════════════════════════════
+     启动加载指示器
+     ══════════════════════════════════════ -->
+    <div id="startup-loader" class="startup-loader">
+        <div class="startup-loader__content">
+            <div class="startup-loader__spinner"></div>
+            <div class="startup-loader__text">正在初始化插件...</div>
+        </div>
+    </div>
 
     <!-- ══════════════════════════════════════
      顶部导航栏
